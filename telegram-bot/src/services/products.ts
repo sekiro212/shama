@@ -3,6 +3,7 @@ import {
   CreateProductSchema,
   UpdateProductSchema,
   SearchProductsSchema,
+  DeleteProductSchema,
 } from "../types";
 import type { BotLanguage, ProductDraft, FragranceNotes, OrderItem } from "../types";
 
@@ -94,11 +95,12 @@ export async function createProduct(draft: ProductDraft): Promise<string> {
     .insert({
       name: draft.name,
       price: draft.price,
-      description: draft.description ?? null,
-      fragrance_notes: draft.fragrance_notes ?? null,
+      description: draft.description ?? "",
+      fragrance_notes: draft.fragrance_notes ?? { top: [], middle: [], base: [] },
       name_ar: draft.name_ar || draft.name,
-      description_ar: draft.description_ar || draft.description || null,
-      fragrance_notes_ar: draft.fragrance_notes_ar ?? draft.fragrance_notes ?? null,
+      description_ar: draft.description_ar ?? draft.description ?? "",
+      fragrance_notes_ar: draft.fragrance_notes_ar ?? draft.fragrance_notes ?? { top: [], middle: [], base: [] },
+      brand: draft.brand ?? "",
       size: draft.size,
       gender: draft.gender,
       stock_quantity: draft.stock_quantity,
@@ -107,6 +109,7 @@ export async function createProduct(draft: ProductDraft): Promise<string> {
       has_bottle_sizes: false,
       image: "",
       rating: 4.5,
+      type: "bottle",
     })
     .select("id")
     .single();
@@ -145,20 +148,27 @@ export async function updateProduct(id: string, changes: Record<string, unknown>
     throw new Error(`Invalid update input: ${parsed.error.message}`);
   }
 
-  const invalidFields = Object.keys(changes).filter((k) => !UPDATABLE_FIELDS.has(k));
+  const invalidFields = Object.keys(parsed.data.changes).filter((k) => !UPDATABLE_FIELDS.has(k));
   if (invalidFields.length > 0) {
     throw new Error(`Invalid field(s) for update: ${invalidFields.join(", ")}`);
   }
 
-  const { error } = await supabase.from("perfumes").update(changes).eq("id", id);
+  const { error } = await supabase.from("perfumes").update(parsed.data.changes).eq("id", parsed.data.id);
   if (error) throw new Error(`Failed to update product ${id}: ${error.message}`);
 }
 
 // ─── Delete (cascade) ─────────────────────────
 
 export async function deleteProduct(id: string): Promise<void> {
-  await supabase.from("perfume_samples").delete().eq("perfume_id", id);
-  await supabase.from("perfume_images").delete().eq("perfume_id", id);
+  const parsed = DeleteProductSchema.safeParse({ id });
+  if (!parsed.success) throw new Error(`Invalid product ID: ${parsed.error.message}`);
+
+  const { error: samplesErr } = await supabase.from("perfume_samples").delete().eq("perfume_id", id);
+  if (samplesErr) throw new Error(`Failed to delete samples: ${samplesErr.message}`);
+
+  const { error: imagesErr } = await supabase.from("perfume_images").delete().eq("perfume_id", id);
+  if (imagesErr) throw new Error(`Failed to delete images: ${imagesErr.message}`);
+
   const { error } = await supabase.from("perfumes").delete().eq("id", id);
   if (error) throw new Error(`Failed to delete product ${id}: ${error.message}`);
 }
@@ -183,7 +193,8 @@ export function formatProduct(product: Product, lang: BotLanguage): string {
   const desc = isAr ? product.description_ar : product.description;
   if (desc) {
     lines.push("");
-    lines.push(`${isAr ? "الوصف" : "Description"}: ${desc.slice(0, 120)}...`);
+    const truncated = desc.length > 120 ? `${desc.slice(0, 120)}...` : desc;
+    lines.push(`${isAr ? "الوصف" : "Description"}: ${truncated}`);
   }
 
   const notes = isAr ? product.fragrance_notes_ar : product.fragrance_notes;

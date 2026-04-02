@@ -61,7 +61,7 @@ export async function getAnalytics(): Promise<AnalyticsData> {
     const items = (order.items as OrderItem[]) || [];
     for (const item of items) {
       const key = item.name || item.id;
-      productCounter[key] = (productCounter[key] ?? 0) + 1;
+      productCounter[key] = (productCounter[key] ?? 0) + (item.quantity ?? 1);
     }
   }
 

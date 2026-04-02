@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { GetOrdersSchema } from "../types";
 import type { BotLanguage, OrderItem } from "../types";
 
 // ─── Order type ───────────────────────────────
@@ -22,13 +23,17 @@ export async function fetchOrders(options?: {
   timeRange?: "today" | "week" | "month" | "all";
   status?: string;
 }): Promise<Order[]> {
+  const parsed = GetOrdersSchema.safeParse(options ?? {});
+  const { time_range: timeRange, status } = parsed.success
+    ? parsed.data
+    : { time_range: "today" as const, status: "all" as const };
+
   let query = supabase
     .from("orders")
-    .select("*")
+    .select("id, first_name, last_name, phone, city, place_name, status, items, total, created_at")
     .order("created_at", { ascending: false });
 
   // Apply time range filter
-  const timeRange = options?.timeRange ?? "all";
   if (timeRange !== "all") {
     const msMap: Record<string, number> = {
       today: 24 * 60 * 60 * 1000,
@@ -40,7 +45,6 @@ export async function fetchOrders(options?: {
   }
 
   // Apply status filter
-  const status = options?.status;
   if (status && status !== "all") {
     query = query.eq("status", status);
   }

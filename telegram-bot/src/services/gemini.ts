@@ -81,7 +81,6 @@ The Arabic fragrance notes should be proper Arabic names for each note.`;
 
       const text = response.text;
       if (!text) throw new Error("Gemini returned empty text response for image");
-      console.log("[Gemini image] raw response:", text.slice(0, 400));
       return parseGeminiJson(text);
     }, 30_000)
   );
