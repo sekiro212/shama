@@ -1,0 +1,23 @@
+{
+  "name": "shama-telegram-bot",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@google/genai": "^1.10.0",
+    "@supabase/supabase-js": "^2.52.0",
+    "dotenv": "^16.4.5",
+    "groq-sdk": "^1.1.2",
+    "telegraf": "^4.16.3",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.3",
+    "tsx": "^4.21.0",
+    "typescript": "^5.5.3"
+  }
+}
