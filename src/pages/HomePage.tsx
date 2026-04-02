@@ -19,10 +19,13 @@ import {
   Product,
 } from "@/services/productsService";
 import { useEffect, useState } from "react";
-import { ChatbotButton } from "@/components/ui/ChatbotButton";
+import { useLanguage } from "@/contexts/LanguageContext";
+// ChatbotButton is now global in App.tsx
+import RecentlyViewed from "@/components/RecentlyViewed";
 import { BackgroundBeamsWithCollision } from "@/components/ui/background-beams-with-collision";
 import PixelTransition from "@/components/ui/PixelTransition";
 import { PinContainer } from "@/components/ui/3d-pin";
+import MarketingVideoSection from "@/components/MarketingVideoSection";
 
 // TikTokIcon SVG from Footer
 const TikTokIcon = ({ className }: { className?: string }) => (
@@ -37,22 +40,11 @@ const TikTokIcon = ({ className }: { className?: string }) => (
 );
 
 export default function HomePage() {
+  const { t, isRTL } = useLanguage();
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [scrollY, setScrollY] = useState(0);
   const [loading, setLoading] = useState(true);
   const [isVisible, setIsVisible] = useState(false);
-  const [isChatOpen, setIsChatOpen] = useState(false);
-
-  const handleChatOpen = () => {
-    setIsChatOpen(true);
-  };
-  const handleChatClose = () => {
-    setIsChatOpen(false);
-  };
-
-  // Debug effect
-  useEffect(() => {}, [isChatOpen]);
-
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
     window.addEventListener("scroll", handleScroll);
@@ -81,24 +73,20 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="min-h-screen w-full bg-[#0e0a1d] relative overflow-hidden">
+    <div className="min-h-screen w-full bg-[#F8F9FB] dark:bg-[#1a2235] relative overflow-hidden">
       {/* Animated Background Elements */}
       <div className="fixed inset-0 z-0">
-        <div className="absolute top-20 left-10 w-32 h-32 bg-gradient-to-r from-[#b24ce2]/20 to-[#8e2de2]/20 rounded-full blur-xl animate-float" />
+        <div className="absolute top-20 left-10 w-32 h-32 bg-gradient-to-r from-[#5B8DD9]/20 to-[#3E6BB5]/20 rounded-full blur-xl animate-float" />
         <div
-          className="absolute top-40 right-20 w-24 h-24 bg-gradient-to-r from-[#8e2de2]/20 to-[#b24ce2]/20 rounded-full blur-xl animate-float"
+          className="absolute top-40 right-20 w-24 h-24 bg-gradient-to-r from-[#3E6BB5]/20 to-[#5B8DD9]/20 rounded-full blur-xl animate-float"
           style={{ animationDelay: "2s" }}
         />
         <div
-          className="absolute bottom-40 left-1/4 w-40 h-40 bg-gradient-to-r from-[#b24ce2]/10 to-[#8e2de2]/10 rounded-full blur-2xl animate-float"
+          className="absolute bottom-40 left-1/4 w-40 h-40 bg-gradient-to-r from-[#5B8DD9]/10 to-[#3E6BB5]/10 rounded-full blur-2xl animate-float"
           style={{ animationDelay: "4s" }}
         />
       </div>
-      <ChatbotButton
-        isOpen={isChatOpen}
-        onOpen={handleChatOpen}
-        onClose={handleChatClose}
-      />
+      {/* ChatbotButton is now rendered globally in App.tsx */}
       {/* Enhanced Hero Section */}
       <section className="relative h-screen flex items-center justify-center w-full overflow-hidden">
         {/* Parallax Background */}
@@ -111,20 +99,20 @@ export default function HomePage() {
             alt="Luxury Perfume"
             className="w-full h-[120%] object-cover opacity-30"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#0e0a1d] via-[#0e0a1d]/80 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0e0a1d] via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#F8F9FB] dark:from-[#1a2235] dark:via-[#1a2235]/80 via-[#F8F9FB] dark:via-[#1a2235]/80 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#F8F9FB] dark:from-[#1a2235] via-transparent to-transparent" />
         </div>
 
-        <BackgroundBeamsWithCollision beamColor="from-[#b24ce2] via-[#b24ce2] to-transparent">
+        <BackgroundBeamsWithCollision beamColor="from-[#5B8DD9] via-[#5B8DD9] to-transparent">
           {/* Floating Elements */}
           <div className="absolute inset-0 z-5">
-            <div className="absolute top-1/4 left-1/4 w-2 h-2 bg-[#b24ce2] rounded-full animate-pulse-glow" />
+            <div className="absolute top-1/4 left-1/4 w-2 h-2 bg-[#5B8DD9] rounded-full animate-pulse-glow" />
             <div
-              className="absolute top-3/4 right-1/3 w-1 h-1 bg-[#8e2de2] rounded-full animate-pulse-glow"
+              className="absolute top-3/4 right-1/3 w-1 h-1 bg-[#3E6BB5] rounded-full animate-pulse-glow"
               style={{ animationDelay: "1s" }}
             />
             <div
-              className="absolute bottom-1/4 left-2/3 w-1.5 h-1.5 bg-[#b24ce2] rounded-full animate-pulse-glow"
+              className="absolute bottom-1/4 left-2/3 w-1.5 h-1.5 bg-[#5B8DD9] rounded-full animate-pulse-glow"
               style={{ animationDelay: "0.5s" }}
             />
           </div>
@@ -137,41 +125,41 @@ export default function HomePage() {
             }`}
           >
             <div className="mb-6">
-              <span className="inline-flex items-center gap-2 bg-gradient-to-r from-[#b24ce2]/20 to-[#8e2de2]/20 backdrop-blur-sm border border-[#b24ce2]/30 rounded-full px-4 py-2 text-sm text-white/80 mb-8">
+              <span className="inline-flex items-center gap-2 bg-gradient-to-r from-[#5B8DD9]/20 to-[#3E6BB5]/20 backdrop-blur-sm border border-[#5B8DD9]/30 rounded-full px-4 py-2 text-sm text-[#323D50] dark:text-white/80 mb-8">
                 <Sparkles className="w-4 h-4" />
-                Luxury Fragrance Collection
+                {t("home.hero.badge")}
               </span>
             </div>
 
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold text-white mb-6 sm:mb-8 leading-tight">
-              Discover Your
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold text-[#323D50] dark:text-white mb-6 sm:mb-8 leading-tight">
+              {t("home.hero.titleLine1")}
               <span className="gradient-text block animate-pulse-glow">
-                Signature Scent
+                {t("home.hero.titleLine2")}
               </span>
             </h1>
 
-            <p className="text-lg sm:text-xl md:text-2xl text-white/90 mb-8 sm:mb-10 md:mb-12 max-w-xs sm:max-w-lg md:max-w-2xl lg:max-w-3xl mx-auto leading-relaxed px-2 sm:px-0">
-              Luxury fragrances crafted for the discerning individual. Each
-              bottle tells a story, each scent creates memories that last
-              forever.
+            <p className="text-lg sm:text-xl md:text-2xl text-[#323D50]/80 dark:text-white/90 mb-8 sm:mb-10 md:mb-12 max-w-xs sm:max-w-lg md:max-w-2xl lg:max-w-3xl mx-auto leading-relaxed px-2 sm:px-0">
+              {t("home.hero.description")}
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center max-w-lg sm:max-w-none mx-auto">
               <Button
-                onClick={handleChatOpen}
-                className="glass-card bg-gradient-to-r from-[#b24ce2] to-[#8e2de2] hover:from-[#8e2de2] hover:to-[#b24ce2] text-white text-base sm:text-lg px-6 sm:px-8 md:px-10 py-4 sm:py-6 md:py-7 rounded-xl font-semibold transform transition-all duration-300 hover:scale-105 hover:shadow-2xl w-full sm:w-auto"
+                asChild
+                className="glass-card bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] hover:from-[#3E6BB5] hover:to-[#5B8DD9] text-white text-base sm:text-lg px-6 sm:px-8 md:px-10 py-4 sm:py-6 md:py-7 rounded-xl font-semibold transform transition-all duration-300 hover:scale-105 hover:shadow-2xl w-full sm:w-auto"
               >
-                <Sparkles className="mr-2 h-4 w-4 sm:h-5 sm:w-5" />
-                Find Your Fragrance
+                <Link to="/quiz">
+                  <Sparkles className="me-2 h-4 w-4 sm:h-5 sm:w-5" />
+                  {t("home.hero.ctaQuiz")}
+                </Link>
               </Button>
               <Button
                 asChild
                 variant="outline"
-                className="glass-card border-[#b24ce2]/50 text-white hover:bg-[#b24ce2] hover:border-[#b24ce2] text-base sm:text-lg px-6 sm:px-8 md:px-10 py-4 sm:py-6 md:py-7 rounded-xl font-semibold glow-hover w-full sm:w-auto"
+                className="glass-card border-[#5B8DD9]/50 text-[#323D50] dark:text-white hover:bg-[#5B8DD9] hover:border-[#5B8DD9] hover:text-white text-base sm:text-lg px-6 sm:px-8 md:px-10 py-4 sm:py-6 md:py-7 rounded-xl font-semibold glow-hover w-full sm:w-auto"
               >
                 <Link to="/collection">
-                  Shop Collection
-                  <ChevronRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
+                  {t("home.hero.ctaCollection")}
+                  <ChevronRight className={`ms-2 h-4 w-4 sm:h-5 sm:w-5 ${isRTL ? "rotate-180" : ""}`} />
                 </Link>
               </Button>
             </div>
@@ -179,8 +167,8 @@ export default function HomePage() {
 
           {/* Scroll Indicator */}
           <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
-            <div className="w-6 h-10 border-2 border-white/30 rounded-full flex justify-center">
-              <div className="w-1 h-3 bg-white/60 rounded-full mt-2 animate-pulse" />
+            <div className="w-6 h-10 border-2 border-[#323D50]/30 dark:border-white/30 rounded-full flex justify-center">
+              <div className="w-1 h-3 bg-[#323D50]/60 dark:bg-white/60 rounded-full mt-2 animate-pulse" />
             </div>
           </div>
         </BackgroundBeamsWithCollision>
@@ -191,10 +179,10 @@ export default function HomePage() {
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 md:gap-8">
             {[
-              { icon: Users, label: "Happy Customers", value: "150+" },
-              { icon: Wind, label: "Our Perfumes ", value: "100+" },
-              { icon: Heart, label: "Years of Craft", value: "1+" },
-              { icon: Star, label: "Average Rating", value: "4.6+" },
+              { icon: Users, label: t("home.stats.happyCustomers"), value: "150+" },
+              { icon: Wind, label: t("home.stats.ourPerfumes"), value: "100+" },
+              { icon: Heart, label: t("home.stats.yearsOfCraft"), value: "1+" },
+              { icon: Star, label: t("home.stats.averageRating"), value: "4.6+" },
             ].map((stat, index) => (
               <Card
                 key={index}
@@ -202,11 +190,11 @@ export default function HomePage() {
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
                 <CardContent className="p-0">
-                  <stat.icon className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-[#b24ce2] mx-auto mb-2 sm:mb-3 md:mb-4" />
-                  <div className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-1 sm:mb-2">
+                  <stat.icon className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-[#5B8DD9] mx-auto mb-2 sm:mb-3 md:mb-4" />
+                  <div className="text-xl sm:text-2xl md:text-3xl font-bold dark:text-[#F5F5F5] text-[#323D50] mb-1 sm:mb-2">
                     {stat.value}
                   </div>
-                  <div className="text-white/60 text-xs sm:text-sm">
+                  <div className="dark:text-white/60 text-[#6B7B8D] text-xs sm:text-sm">
                     {stat.label}
                   </div>
                 </CardContent>
@@ -216,20 +204,21 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Marketing Video Section */}
+      <MarketingVideoSection />
+
       {/* Enhanced Featured Products */}
       <section id="products" className="py-24 relative z-10">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16 animate-slide-up">
-            <span className="inline-block text-[#b24ce2] text-sm font-semibold tracking-wider uppercase mb-4">
-              Featured Collection
+            <span className="inline-block text-[#5B8DD9] text-sm font-semibold tracking-wider uppercase mb-4">
+              {t("home.featured.badge")}
             </span>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold gradient-text mb-4 sm:mb-6">
-              Signature Fragrances
+              {t("home.featured.title")}
             </h2>
-            <p className="text-white/70 text-lg sm:text-xl max-w-xs sm:max-w-lg md:max-w-2xl lg:max-w-3xl mx-auto leading-relaxed px-4 sm:px-0">
-              Discover our most beloved scents, each carefully crafted to evoke
-              emotion and create lasting memories that define your unique
-              essence.
+            <p className="dark:text-white/70 text-[#6B7B8D] text-lg sm:text-xl max-w-xs sm:max-w-lg md:max-w-2xl lg:max-w-3xl mx-auto leading-relaxed px-4 sm:px-0">
+              {t("home.featured.description")}
             </p>
           </div>
 
@@ -261,11 +250,11 @@ export default function HomePage() {
           <div className="text-center">
             <Button
               asChild
-              className="glass-card border border-[#b24ce2] text-[#b24ce2] hover:bg-[#b24ce2] hover:text-white px-8 py-4 rounded-xl font-semibold glow-hover"
+              className="glass-card border border-[#5B8DD9] text-[#5B8DD9] hover:bg-[#5B8DD9] hover:text-white px-8 py-4 rounded-xl font-semibold glow-hover"
             >
               <Link to="/collection">
-                View All Products
-                <ChevronRight className="ml-2 h-5 w-5" />
+                {t("home.featured.viewAll")}
+                <ChevronRight className={`ms-2 h-5 w-5 ${isRTL ? "rotate-180" : ""}`} />
               </Link>
             </Button>
           </div>
@@ -278,35 +267,30 @@ export default function HomePage() {
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div className="space-y-8 animate-slide-up">
               <div>
-                <span className="inline-block text-[#b24ce2] text-sm font-semibold tracking-wider uppercase mb-4">
-                  Our Story
+                <span className="inline-block text-[#5B8DD9] text-sm font-semibold tracking-wider uppercase mb-4">
+                  {t("home.about.badge")}
                 </span>
                 <h2 className="text-5xl font-bold gradient-text mb-6">
-                  The Art of Shama
+                  {t("home.about.title")}
                 </h2>
-                <p className="text-white/80 text-lg leading-relaxed mb-6">
-                  Born from a passion for olfactory artistry, Shama represents
-                  the perfect harmony between traditional craftsmanship and
-                  modern innovation. Each fragrance is a carefully composed
-                  symphony of the world's finest ingredients.
+                <p className="dark:text-white/80 text-[#6B7B8D] text-lg leading-relaxed mb-6">
+                  {t("home.about.description1")}
                 </p>
-                <p className="text-white/70 leading-relaxed">
-                  Our master perfumers spend years perfecting each blend,
-                  ensuring that every bottle carries not just a scent, but an
-                  emotion, a memory, a piece of your story.
+                <p className="dark:text-white/70 text-[#6B7B8D] leading-relaxed">
+                  {t("home.about.description2")}
                 </p>
               </div>
 
               <div className="grid grid-cols-2 gap-6">
                 {[
-                  { label: "Premium Ingredients", desc: "Sourced globally" },
-                  { label: "Master Crafted", desc: "Years of expertise" },
+                  { label: t("home.about.premiumIngredients"), desc: t("home.about.sourcedGlobally") },
+                  { label: t("home.about.masterCrafted"), desc: t("home.about.yearsOfExpertise") },
                 ].map((feature, index) => (
                   <div key={index} className="glass-card p-6 rounded-xl">
-                    <div className="text-white font-semibold mb-2">
+                    <div className="dark:text-[#F5F5F5] text-[#323D50] font-semibold mb-2">
                       {feature.label}
                     </div>
-                    <div className="text-white/60 text-sm">{feature.desc}</div>
+                    <div className="dark:text-white/60 text-[#6B7B8D] text-sm">{feature.desc}</div>
                   </div>
                 ))}
               </div>
@@ -343,7 +327,7 @@ export default function HomePage() {
                           color: "#ffffff",
                         }}
                       >
-                        Welcome to Shama
+                        {t("home.about.welcomeToShama")}
                       </p>
                     </div>
                   }
@@ -355,7 +339,7 @@ export default function HomePage() {
                 <div className="absolute inset-8 bg-gradient-to-t from-black/50 to-transparent rounded-xl pointer-events-none" />
                 <div className="absolute bottom-12 left-12 text-white pointer-events-none">
                   {/* <div className="text-2xl font-bold mb-2">Artisan Crafted</div> */}
-                  <div className="text-white/80">Since 2024</div>
+                  <div className="text-white/80">{t("home.about.since2024")}</div>
                 </div>
               </div>
             </div>
@@ -363,19 +347,25 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Recently Viewed */}
+      <section className="relative z-10">
+        <div className="container mx-auto px-4">
+          <RecentlyViewed />
+        </div>
+      </section>
+
       {/* Enhanced Instagram Feed */}
       <section className="py-24 relative z-10">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16 animate-slide-up">
-            <span className="inline-block text-[#b24ce2] text-sm font-semibold tracking-wider uppercase mb-4">
-              Social Gallery
+            <span className="inline-block text-[#5B8DD9] text-sm font-semibold tracking-wider uppercase mb-4">
+              {t("home.social.badge")}
             </span>
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold gradient-text mb-4 sm:mb-6">
-              Follow @ShamaFragrance
+              {t("home.social.title")}
             </h2>
-            <p className="text-white/70 text-base sm:text-lg max-w-xs sm:max-w-lg md:max-w-2xl mx-auto px-4 sm:px-0">
-              Join our community and discover how Shama becomes part of your
-              daily ritual
+            <p className="dark:text-white/70 text-[#6B7B8D] text-base sm:text-lg max-w-xs sm:max-w-lg md:max-w-2xl mx-auto px-4 sm:px-0">
+              {t("home.social.description")}
             </p>
           </div>
 
@@ -435,16 +425,16 @@ export default function HomePage() {
           <div className="text-center mt-12">
             <Button
               asChild
-              className="glass-card border border-[#b24ce2] text-[#b24ce2] hover:bg-[#b24ce2] hover:text-white px-8 py-4 rounded-xl font-semibold glow-hover"
+              className="glass-card border border-[#5B8DD9] text-[#5B8DD9] hover:bg-[#5B8DD9] hover:text-white px-8 py-4 rounded-xl font-semibold glow-hover"
             >
               <a
                 href="https://www.instagram.com/shama._200/?igsh=dDcyZmc3ODByNHBl&utm_source=qr"
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                <Instagram className="mr-2 h-5 w-5" />
-                Follow Us
-                <ArrowRight className="ml-2 h-5 w-5" />
+                <Instagram className="me-2 h-5 w-5" />
+                {t("home.social.followUs")}
+                <ArrowRight className={`ms-2 h-5 w-5 ${isRTL ? "rotate-180" : ""}`} />
               </a>
             </Button>
           </div>

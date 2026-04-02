@@ -57,11 +57,12 @@ export type PendingConfirmation =
     }
   | { type: "delete"; payload: { id: string; name: string }; preview: string };
 
-// ─── Session (2 fields only) ───
+// ─── Session (3 fields) ───
 
 export interface BotSession {
   history: Content[];
   confirmation: PendingConfirmation | null;
+  language?: BotLanguage;  // "en" | "ar", defaults to "en"
 }
 
 // ─── Zod Tool Argument Schemas ───

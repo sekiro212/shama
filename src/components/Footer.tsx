@@ -1,4 +1,5 @@
 import { Instagram, Facebook } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 // Custom TikTok icon component
 const TikTokIcon = ({ className }: { className?: string }) => (
@@ -13,34 +14,36 @@ const TikTokIcon = ({ className }: { className?: string }) => (
 );
 
 export default function Footer() {
+  const { t } = useLanguage();
+
   return (
-    <footer className="bg-[#0a0815] border-t border-white/10 py-6 sm:py-8">
+    <footer className="bg-[#F8F9FB] dark:bg-[#1a2235] border-t dark:border-white/10 border-[#323D50]/10 py-6 sm:py-8">
       <div className="container mx-auto px-4">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-0">
-          <div className="flex items-center space-x-3 sm:space-x-4">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 glass rounded-xl overflow-hidden border border-white/10">
+          <div className="flex items-center space-x-3 sm:space-x-4 rtl:space-x-reverse">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 glass rounded-xl overflow-hidden border border-[#323D50]/10 dark:border-white/10">
               <img
                 src="https://p16-sign-va.tiktokcdn.com/tos-maliva-avt-0068/e159f380a3a42644f03ca7442d2864b0~tplv-tiktokx-cropcenter:1080:1080.jpeg?dr=14579&refresh_token=8be9595c&x-expires=1753538400&x-signature=%2BNcK7CjJZDsNOmd9K1lUKJvPE8M%3D&t=4d5b0474&ps=13740610&shp=a5d48078&shcp=81f88b70&idc=maliva"
                 alt="Shama Logo"
                 className="w-full h-full object-cover"
               />
             </div>
-            <div className="text-center sm:text-left">
-              <h3 className="text-lg sm:text-xl font-bold text-[#b24ce2] mb-1 sm:mb-2">
+            <div className="text-center sm:text-left rtl:sm:text-right">
+              <h3 className="text-lg sm:text-xl font-bold text-[#5B8DD9] mb-1 sm:mb-2">
                 Shama
               </h3>
-              <p className="text-white/60 text-xs sm:text-sm">
-                Luxury fragrances for the discerning individual
+              <p className="dark:text-white/60 text-[#6B7B8D] text-xs sm:text-sm">
+                {t("footer.tagline")}
               </p>
             </div>
           </div>
 
-          <div className="flex space-x-3 sm:space-x-4 mt-4 sm:mt-0">
+          <div className="flex space-x-3 sm:space-x-4 rtl:space-x-reverse mt-4 sm:mt-0">
             <a
               href="https://www.instagram.com/shama._200/?igsh=dDcyZmc3ODByNHBl&utm_source=qr"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-white/60 hover:text-[#b24ce2] transition-colors"
+              className="dark:text-white/60 text-[#6B7B8D] hover:text-[#5B8DD9] transition-colors"
             >
               <Instagram className="h-5 w-5" />
             </a>
@@ -48,7 +51,7 @@ export default function Footer() {
               href="https://www.facebook.com/profile.php?id=61575028689348&mibextid=wwXIfr&rdid=ziyFSHbQTmrIb4HW&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F1EqWpzXQyk%2F%3Fmibextid%3DwwXIfr"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-white/60 hover:text-[#b24ce2] transition-colors"
+              className="dark:text-white/60 text-[#6B7B8D] hover:text-[#5B8DD9] transition-colors"
             >
               <Facebook className="h-5 w-5" />
             </a>
@@ -56,15 +59,15 @@ export default function Footer() {
               href="https://www.tiktok.com/@shama_625?_r=1&_d=ehaiidj2573dih&sec_uid=MS4wLjABAAAAtWhwVbsiMc_T7iAluhIopScG5tmdWhTlCRauHrAVmp3Eo_PnjOOOITTHFURnrnqF&share_author_id=7492887353330516997&sharer_language=en&source=h5_m&u_code=ejkmi594adgdl5&ug_btm=b8727,b0&social_share_type=4&utm_source=copy&sec_user_id=MS4wLjABAAAAtWhwVbsiMc_T7iAluhIopScG5tmdWhTlCRauHrAVmp3Eo_PnjOOOITTHFURnrnqF&tt_from=copy&utm_medium=ios&utm_campaign=client_share&enable_checksum=1&user_id=7492887353330516997&share_link_id=87C185B6-D290-4FE5-876D-5F6E6C350F98&share_app_id=1233"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-white/60 hover:text-[#b24ce2] transition-colors"
+              className="dark:text-white/60 text-[#6B7B8D] hover:text-[#5B8DD9] transition-colors"
             >
               <TikTokIcon className="h-5 w-5" />
             </a>
           </div>
         </div>
 
-        <div className="border-t border-white/10 mt-6 pt-6 text-center text-white/60 text-sm">
-          <p>&copy; 2024 Shama. All rights reserved.</p>
+        <div className="border-t dark:border-white/10 border-[#323D50]/10 mt-6 pt-6 text-center dark:text-white/60 text-[#6B7B8D] text-sm">
+          <p>&copy; {t("footer.copyright")}</p>
         </div>
       </div>
     </footer>

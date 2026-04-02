@@ -7,11 +7,14 @@ export interface Order {
   email: string;
   phone: string;
   city: string;
-  place_name?: string; // Add this line
+  place_name?: string;
+  vanex_city_id?: number;
+  vanex_sub_city_id?: number;
+  vanex_package_code?: string;
   total: number;
   order_date: string;
   items: OrderItem[];
-  status: "pending" | "accepted" | "returned";
+  status: "pending" | "confirmed" | "processing" | "shipped" | "delivered" | "accepted" | "returned";
   processed_at?: string;
   created_at: string;
   updated_at: string;
@@ -217,6 +220,66 @@ export const getOrdersByDateRange = async (
   }
 };
 
+// Update order status (admin)
+export const updateOrderStatus = async (
+  id: string,
+  status: Order["status"]
+): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from("orders")
+      .update({
+        status,
+        processed_at: status !== "pending" ? new Date().toISOString() : null,
+      })
+      .eq("id", id);
+
+    if (error) {
+      console.error("Error updating order status:", error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error updating order status:", error);
+    return false;
+  }
+};
+
+// Track order by ID or email
+export const trackOrder = async (query: string): Promise<Order | null> => {
+  try {
+    const isEmail = query.includes("@");
+
+    let result;
+    if (isEmail) {
+      result = await supabase
+        .from("orders")
+        .select("*")
+        .eq("email", query.trim().toLowerCase())
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+    } else {
+      result = await supabase
+        .from("orders")
+        .select("*")
+        .eq("id", query.trim())
+        .single();
+    }
+
+    if (result.error) {
+      console.error("Error tracking order:", result.error);
+      return null;
+    }
+
+    return result.data;
+  } catch (error) {
+    console.error("Error tracking order:", error);
+    return null;
+  }
+};
+
 // Get orders count by status/city
 export const getOrdersAnalytics = async () => {
   try {
@@ -253,5 +316,33 @@ export const getOrdersAnalytics = async () => {
   } catch (error) {
     console.error("Error fetching orders analytics:", error);
     return null;
+  }
+};
+
+/**
+ * Save the Vanex package code to an order and mark it as shipped.
+ */
+export const saveVanexPackageCode = async (
+  orderId: string,
+  packageCode: string
+): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from("orders")
+      .update({
+        vanex_package_code: packageCode,
+        status: "shipped",
+        processed_at: new Date().toISOString(),
+      })
+      .eq("id", orderId);
+
+    if (error) {
+      console.error("Error saving Vanex package code:", error);
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.error("Error saving Vanex package code:", error);
+    return false;
   }
 };

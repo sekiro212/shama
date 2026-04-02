@@ -20,9 +20,16 @@ export interface PerfumeBottleSize {
 export interface Product {
   id: string;
   name: string;
+  name_ar: string;
   price: number;
   description: string;
+  description_ar: string;
   fragranceNotes: {
+    top: string[];
+    middle: string[];
+    base: string[];
+  };
+  fragranceNotes_ar: {
     top: string[];
     middle: string[];
     base: string[];
@@ -30,23 +37,19 @@ export interface Product {
   size: string;
   type: "bottle" | "sample" | "gift";
   rating: number;
-  reviews: {
-    name: string;
-    rating: number;
-    comment: string;
-    date: string;
-  }[];
   gender?: "men" | "women" | "unisex";
   stock_quantity?: number;
   is_active?: boolean;
   has_samples?: boolean;
   has_bottle_sizes?: boolean;
   images?: PerfumeImage[];
-  samples?: PerfumeSample[]; // New field for samples
-  bottle_sizes?: PerfumeBottleSize[]; // New field for bottle sizes
+  samples?: PerfumeSample[];
+  bottle_sizes?: PerfumeBottleSize[];
 }
 
 // Transform database product to Product interface
+const defaultNotes = { top: [], middle: [], base: [] };
+
 const transformDatabaseProduct = (
   dbProduct: any,
   images?: PerfumeImage[],
@@ -55,13 +58,15 @@ const transformDatabaseProduct = (
 ): Product => ({
   id: dbProduct.id,
   name: dbProduct.name,
+  name_ar: dbProduct.name_ar || dbProduct.name,
   price: dbProduct.price,
   description: dbProduct.description,
-  fragranceNotes: dbProduct.fragrance_notes,
+  description_ar: dbProduct.description_ar || dbProduct.description,
+  fragranceNotes: dbProduct.fragrance_notes || defaultNotes,
+  fragranceNotes_ar: dbProduct.fragrance_notes_ar || dbProduct.fragrance_notes || defaultNotes,
   size: dbProduct.size,
   type: dbProduct.type,
   rating: dbProduct.rating,
-  reviews: dbProduct.reviews || [],
   gender: dbProduct.gender,
   stock_quantity: dbProduct.stock_quantity,
   is_active: dbProduct.is_active,
@@ -247,7 +252,7 @@ export const searchProducts = async (query: string): Promise<Product[]> => {
       .from("perfumes")
       .select("*")
       .eq("is_active", true)
-      .ilike("name", `%${query}%`)
+      .or(`name.ilike.%${query}%,name_ar.ilike.%${query}%`)
       .order("name");
 
     if (error) {

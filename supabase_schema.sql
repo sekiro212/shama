@@ -96,6 +96,11 @@ CREATE TABLE orders (
 -- Add place_name to orders table (nullable)
 ALTER TABLE orders ADD COLUMN place_name VARCHAR(255);
 
+-- Vanex delivery integration columns
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS vanex_city_id integer;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS vanex_sub_city_id integer;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS vanex_package_code varchar(100);
+
 -- Create updated_at trigger function
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
@@ -517,4 +522,72 @@ CREATE POLICY "Allow authenticated users to update perfume images" ON storage.ob
 
 CREATE POLICY "Allow authenticated users to delete perfume images" ON storage.objects
     FOR DELETE USING (bucket_id = 'perfume-images');
-GRANT ALL ON orders TO anon; 
+GRANT ALL ON orders TO anon;
+
+-- ============================================
+-- MIGRATION: Extend order status values
+-- Run this in Supabase SQL Editor if you already have the tables
+-- ============================================
+
+-- Drop the old check constraint and add new one with extended statuses
+ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_status_check;
+ALTER TABLE orders ADD CONSTRAINT orders_status_check
+  CHECK (status IN ('pending', 'confirmed', 'processing', 'shipped', 'delivered', 'accepted', 'returned'));
+
+-- Add update policy for orders (needed for admin status updates)
+CREATE POLICY "Allow update access to orders" ON orders
+    FOR UPDATE USING (true);
+
+-- Add index on order status for faster filtering
+CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
+-- ============================================
+-- MIGRATION: Reviews system
+-- Run this in Supabase SQL Editor
+-- ============================================
+
+CREATE TABLE reviews (
+    id           UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    perfume_id   UUID NOT NULL REFERENCES perfumes(id) ON DELETE CASCADE,
+    user_id      UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    user_email   VARCHAR(255) NOT NULL,
+    rating       INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
+    comment      TEXT NOT NULL CHECK (char_length(comment) >= 10),
+    status       VARCHAR(20) NOT NULL DEFAULT 'pending'
+                   CHECK (status IN ('pending', 'approved')),
+    created_at   TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at   TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE (perfume_id, user_id)
+);
+
+CREATE INDEX idx_reviews_perfume_approved ON reviews(perfume_id, status) WHERE status = 'approved';
+CREATE INDEX idx_reviews_status ON reviews(status, created_at DESC);
+
+CREATE TRIGGER update_reviews_updated_at
+    BEFORE UPDATE ON reviews
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE OR REPLACE FUNCTION recalculate_perfume_rating()
+RETURNS TRIGGER AS $$
+BEGIN
+    UPDATE perfumes
+    SET rating = (
+        SELECT COALESCE(AVG(r.rating::DECIMAL), perfumes.rating)
+        FROM reviews r
+        WHERE r.perfume_id = COALESCE(NEW.perfume_id, OLD.perfume_id)
+          AND r.status = 'approved'
+    )
+    WHERE id = COALESCE(NEW.perfume_id, OLD.perfume_id);
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER reviews_update_rating
+    AFTER INSERT OR UPDATE OF status OR DELETE ON reviews
+    FOR EACH ROW EXECUTE FUNCTION recalculate_perfume_rating();
+
+ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public read approved reviews" ON reviews FOR SELECT USING (status = 'approved');
+CREATE POLICY "Authenticated users insert reviews" ON reviews FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users read own reviews" ON reviews FOR SELECT USING (auth.uid() = user_id);
+GRANT ALL ON reviews TO anon;
+GRANT ALL ON reviews TO authenticated;

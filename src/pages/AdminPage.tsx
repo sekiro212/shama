@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   Plus,
   Edit,
@@ -20,6 +21,9 @@ import {
   Star,
   Check,
   RotateCcw,
+  Sparkles,
+  Truck,
+  ClipboardCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/ui/loading-button";
@@ -64,9 +68,20 @@ import {
   fetchOrders,
   getOrderStats,
   deleteOrder,
+  updateOrderStatus,
+  saveVanexPackageCode,
   Order,
   OrderStats,
 } from "@/services/ordersService";
+import { createVanexPackage } from "@/services/vanexService";
+import { generateProductDescription } from "@/services/aiService";
+import {
+  fetchAllReviews,
+  approveReview,
+  deleteReview,
+  fetchPendingReviewCount,
+  Review,
+} from "@/services/reviewsService";
 import {
   uploadPerfumeImage,
   deletePerfumeImage,
@@ -95,9 +110,16 @@ interface PerfumeBottleSize {
 interface Perfume {
   id: string;
   name: string;
+  name_ar: string;
   price: number;
   description: string;
+  description_ar: string;
   fragrance_notes: {
+    top: string[];
+    middle: string[];
+    base: string[];
+  };
+  fragrance_notes_ar: {
     top: string[];
     middle: string[];
     base: string[];
@@ -112,22 +134,29 @@ interface Perfume {
   has_bottle_sizes: boolean;
   created_at: string;
   updated_at: string;
-  images?: PerfumeImage[]; // Product images
-  samples?: PerfumeSample[]; // Sample variants
-  bottle_sizes?: PerfumeBottleSize[]; // Bottle size variants
+  images?: PerfumeImage[];
+  samples?: PerfumeSample[];
+  bottle_sizes?: PerfumeBottleSize[];
 }
 
 const initialPerfumeData: Omit<Perfume, "id" | "created_at" | "updated_at"> = {
   name: "",
+  name_ar: "",
   price: 0,
   description: "",
+  description_ar: "",
   fragrance_notes: {
     top: [],
     middle: [],
     base: [],
   },
+  fragrance_notes_ar: {
+    top: [],
+    middle: [],
+    base: [],
+  },
   size: "",
-  type: "bottle", // Always default to bottle for perfumes with bottle sizes
+  type: "bottle",
   rating: 4.5,
   gender: "unisex",
   stock_quantity: 0,
@@ -137,6 +166,8 @@ const initialPerfumeData: Omit<Perfume, "id" | "created_at" | "updated_at"> = {
 };
 
 export default function AdminPage() {
+  const { t, isRTL } = useLanguage();
+
   // Authentication state
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showLoginDialog, setShowLoginDialog] = useState(false);
@@ -219,8 +250,16 @@ export default function AdminPage() {
   const [acceptingOrder, setAcceptingOrder] = useState<string | null>(null);
   const [returningOrder, setReturningOrder] = useState<string | null>(null);
   const [deletingOrder, setDeletingOrder] = useState<string | null>(null);
+  const [sendingToVanex, setSendingToVanex] = useState<string | null>(null);
   const [settingPrimary, setSettingPrimary] = useState<string | null>(null);
   const [deletingImage, setDeletingImage] = useState<string | null>(null);
+  const [generatingDescription, setGeneratingDescription] = useState(false);
+  const [updatingOrderStatus, setUpdatingOrderStatus] = useState<string | null>(null);
+  const [reviews, setReviews] = useState<(Review & { perfume_name: string })[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [pendingReviewCount, setPendingReviewCount] = useState(0);
+  const [approvingReview, setApprovingReview] = useState<string | null>(null);
+  const [deletingReview, setDeletingReview] = useState<string | null>(null);
 
   // Check authentication on mount
   useEffect(() => {
@@ -241,7 +280,50 @@ export default function AdminPage() {
   }, []);
 
   const loadData = async () => {
-    await Promise.all([loadPerfumes(), loadOrders(), loadOrderStats()]);
+    await Promise.all([loadPerfumes(), loadOrders(), loadOrderStats(), loadReviews()]);
+  };
+
+  const loadReviews = async () => {
+    setReviewsLoading(true);
+    try {
+      const [allReviews, pendingCount] = await Promise.all([
+        fetchAllReviews(),
+        fetchPendingReviewCount(),
+      ]);
+      setReviews(allReviews);
+      setPendingReviewCount(pendingCount);
+    } catch {
+      toast.error(t("admin.reviews.toast.loadFailed"));
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
+
+  const handleApproveReview = async (reviewId: string) => {
+    setApprovingReview(reviewId);
+    try {
+      await approveReview(reviewId);
+      await loadReviews();
+      toast.success(t("admin.reviews.toast.approved"));
+    } catch {
+      toast.error(t("admin.reviews.toast.approveFailed"));
+    } finally {
+      setApprovingReview(null);
+    }
+  };
+
+  const handleDeleteReview = async (reviewId: string) => {
+    if (!window.confirm(t("admin.reviews.confirm.delete"))) return;
+    setDeletingReview(reviewId);
+    try {
+      await deleteReview(reviewId);
+      await loadReviews();
+      toast.success(t("admin.reviews.toast.deleted"));
+    } catch {
+      toast.error(t("admin.reviews.toast.deleteFailed"));
+    } finally {
+      setDeletingReview(null);
+    }
   };
 
   const loadPerfumes = async () => {
@@ -268,7 +350,7 @@ export default function AdminPage() {
       setPerfumes(perfumesWithImages);
     } catch (error) {
       console.error("Error loading perfumes:", error);
-      toast.error("Failed to load perfumes");
+      toast.error(t("admin.toast.loadPerfumesFailed"));
     } finally {
       setLoading(false);
     }
@@ -281,7 +363,7 @@ export default function AdminPage() {
       setOrders(fetchedOrders);
     } catch (error) {
       console.error("Error loading orders:", error);
-      toast.error("Failed to load orders");
+      toast.error(t("admin.toast.loadOrdersFailed"));
     } finally {
       setOrdersLoading(false);
     }
@@ -306,14 +388,14 @@ export default function AdminPage() {
         setCurrentAdmin(result.user);
         setShowLoginDialog(false);
         setLoginCredentials({ username: "", password: "" });
-        toast.success("Login successful!");
+        toast.success(t("admin.login.loginSuccess"));
         loadData();
       } else {
-        toast.error(result.error || "Login failed");
+        toast.error(result.error || t("admin.login.loginFailed"));
       }
     } catch (error) {
       console.error("Login error:", error);
-      toast.error("Login failed");
+      toast.error(t("admin.login.loginFailed"));
     } finally {
       setLoginLoading(false);
     }
@@ -324,37 +406,61 @@ export default function AdminPage() {
     setIsAuthenticated(false);
     setCurrentAdmin(null);
     setShowLoginDialog(true);
-    toast.success("Logged out successfully");
+    toast.success(t("admin.logoutSuccess"));
   };
 
   const handleDeleteOrder = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this order?")) return;
+    if (!confirm(t("admin.confirm.deleteOrder"))) return;
 
     try {
       setDeletingOrder(id);
       const success = await deleteOrder(id);
       if (success) {
-        toast.success("Order deleted successfully!");
+        toast.success(t("admin.toast.orderDeletedSuccess"));
         loadOrders();
         loadOrderStats();
       } else {
-        toast.error("Failed to delete order");
+        toast.error(t("admin.toast.orderDeleteFailed"));
       }
     } catch (error) {
       console.error("Error deleting order:", error);
-      toast.error("Failed to delete order");
+      toast.error(t("admin.toast.orderDeleteFailed"));
     } finally {
       setDeletingOrder(null);
     }
   };
 
+  const handleSendToVanex = async (order: Order) => {
+    if (!confirm("Send this order to Vanex? This will create a delivery package and mark the order as Shipped.")) return;
+
+    try {
+      setSendingToVanex(order.id);
+      const packageCode = await createVanexPackage(order);
+
+      if (!packageCode) {
+        toast.error("Failed to create Vanex package. Check your token and order data.");
+        return;
+      }
+
+      const saved = await saveVanexPackageCode(order.id, packageCode);
+      if (!saved) {
+        toast.error("Package created but failed to save code. Code: " + packageCode);
+        return;
+      }
+
+      toast.success(`Sent to Vanex! Package code: ${packageCode}`);
+      loadOrders();
+      loadOrderStats();
+    } catch (error) {
+      console.error("Error sending to Vanex:", error);
+      toast.error("Error sending to Vanex.");
+    } finally {
+      setSendingToVanex(null);
+    }
+  };
+
   const handleAcceptOrder = async (order: Order) => {
-    if (
-      !confirm(
-        "Are you sure you want to accept this order? This will decrease stock quantities."
-      )
-    )
-      return;
+    if (!confirm(t("admin.confirm.acceptOrder"))) return;
 
     try {
       setAcceptingOrder(order.id);
@@ -394,25 +500,20 @@ export default function AdminPage() {
         if (updateError) throw updateError;
       }
 
-      toast.success("Order accepted successfully! Stock quantities updated.");
+      toast.success(t("admin.toast.orderAcceptedSuccess"));
       loadOrders();
       loadOrderStats();
       loadPerfumes();
     } catch (error) {
       console.error("Error accepting order:", error);
-      toast.error("Failed to accept order");
+      toast.error(t("admin.toast.orderAcceptFailed"));
     } finally {
       setAcceptingOrder(null);
     }
   };
 
   const handleBackOrder = async (order: Order) => {
-    if (
-      !confirm(
-        "Are you sure you want to process this return? This will increase stock quantities."
-      )
-    )
-      return;
+    if (!confirm(t("admin.confirm.returnOrder"))) return;
 
     try {
       setReturningOrder(order.id);
@@ -452,13 +553,13 @@ export default function AdminPage() {
         if (updateError) throw updateError;
       }
 
-      toast.success("Return processed successfully! Stock quantities updated.");
+      toast.success(t("admin.toast.returnProcessedSuccess"));
       loadOrders();
       loadOrderStats();
       loadPerfumes();
     } catch (error) {
       console.error("Error processing return:", error);
-      toast.error("Failed to process return");
+      toast.error(t("admin.toast.returnProcessFailed"));
     } finally {
       setReturningOrder(null);
     }
@@ -474,6 +575,53 @@ export default function AdminPage() {
     setShowImageModal(true);
   };
 
+  const handleGenerateDescription = async () => {
+    if (!formData.name) {
+      toast.error(t("admin.toast.enterPerfumeName"));
+      return;
+    }
+
+    try {
+      setGeneratingDescription(true);
+      const notes = {
+        top: topNotes.split(",").map((n) => n.trim()).filter(Boolean),
+        middle: middleNotes.split(",").map((n) => n.trim()).filter(Boolean),
+        base: baseNotes.split(",").map((n) => n.trim()).filter(Boolean),
+      };
+      const description = await generateProductDescription(
+        formData.name,
+        notes,
+        formData.gender
+      );
+      handleInputChange("description", description);
+      toast.success(t("admin.toast.aiDescriptionGenerated"));
+    } catch (error) {
+      console.error("Error generating description:", error);
+      toast.error(t("admin.toast.aiDescriptionFailed"));
+    } finally {
+      setGeneratingDescription(false);
+    }
+  };
+
+  const handleStatusChange = async (order: Order, newStatus: Order["status"]) => {
+    try {
+      setUpdatingOrderStatus(order.id);
+      const success = await updateOrderStatus(order.id, newStatus);
+      if (success) {
+        toast.success(`${t("admin.toast.orderStatusUpdated")} ${t("admin.status." + newStatus)}`);
+        loadOrders();
+        loadOrderStats();
+      } else {
+        toast.error(t("admin.toast.orderStatusFailed"));
+      }
+    } catch (error) {
+      console.error("Error updating order status:", error);
+      toast.error(t("admin.toast.orderStatusFailed"));
+    } finally {
+      setUpdatingOrderStatus(null);
+    }
+  };
+
   // Perfume CRUD operations (keeping existing ones)
   const handleInputChange = (field: string, value: any) => {
     setFormData((prev) => ({
@@ -485,7 +633,7 @@ export default function AdminPage() {
   const handleSubmit = async () => {
     try {
       if (!formData.name || !formData.price || !formData.description) {
-        toast.error("Please fill in all required fields");
+        toast.error(t("admin.toast.fillRequiredFields"));
         return;
       }
 
@@ -493,12 +641,12 @@ export default function AdminPage() {
       if (formData.has_bottle_sizes && perfumeBottleSizes.length > 0) {
         for (const bottleSize of perfumeBottleSizes) {
           if (!bottleSize.price || bottleSize.price <= 0) {
-            toast.error(`Please set a valid price for ${bottleSize.size}`);
+            toast.error(`${t("admin.toast.invalidPrice")} ${bottleSize.size}`);
             return;
           }
           if (bottleSize.stock_quantity < 0) {
             toast.error(
-              `Please set a valid stock quantity for ${bottleSize.size}`
+              `${t("admin.toast.invalidStock")} ${bottleSize.size}`
             );
             return;
           }
@@ -507,7 +655,7 @@ export default function AdminPage() {
 
       // Ensure bottle size perfumes are type "bottle"
       if (formData.has_bottle_sizes && formData.type !== "bottle") {
-        toast.error("Perfumes with bottle sizes must be type 'bottle'");
+        toast.error(t("admin.toast.bottleSizeTypeError"));
         return;
       }
 
@@ -575,7 +723,7 @@ export default function AdminPage() {
 
           if (deleteError) {
             console.error("Error deleting existing samples:", deleteError);
-            toast.error("Failed to update samples");
+            toast.error(t("admin.toast.bottleSizesUpdateFailed"));
             return;
           }
         }
@@ -595,7 +743,7 @@ export default function AdminPage() {
 
         if (samplesError) {
           console.error("Error inserting samples:", samplesError);
-          toast.error("Perfume saved but failed to save samples");
+          toast.error(t("admin.toast.samplesSaveFailed"));
         } else {
           console.log("Samples saved successfully:", samplesToInsert.length);
         }
@@ -610,7 +758,7 @@ export default function AdminPage() {
 
           if (deleteError) {
             console.error("Error deleting samples:", deleteError);
-            toast.error("Failed to remove samples");
+            toast.error(t("admin.toast.samplesRemoveFailed"));
           }
         }
       }
@@ -639,7 +787,7 @@ export default function AdminPage() {
 
           if (deleteError) {
             console.error("Error deleting existing bottle sizes:", deleteError);
-            toast.error("Failed to update bottle sizes");
+            toast.error(t("admin.toast.bottleSizesUpdateFailed"));
             return;
           }
         }
@@ -663,14 +811,14 @@ export default function AdminPage() {
 
         if (bottleSizesError) {
           console.error("Error inserting bottle sizes:", bottleSizesError);
-          toast.error("Perfume saved but failed to save bottle sizes");
+          toast.error(t("admin.toast.bottleSizesSaveFailed"));
         } else {
           console.log(
             "Bottle sizes created successfully:",
             insertedBottleSizes
           );
           toast.success(
-            `${insertedBottleSizes?.length || 0} bottle sizes saved`
+            `${insertedBottleSizes?.length || 0} ${t("admin.toast.bottleSizesSaved")}`
           );
         }
       } else if (editingPerfume && !formData.has_bottle_sizes) {
@@ -684,12 +832,12 @@ export default function AdminPage() {
 
           if (deleteError) {
             console.error("Error deleting bottle sizes:", deleteError);
-            toast.error("Failed to remove bottle sizes");
+            toast.error(t("admin.toast.bottleSizesRemoveFailed"));
           }
         }
       } else if (formData.has_bottle_sizes && perfumeBottleSizes.length === 0) {
         console.warn("Bottle sizes enabled but no bottle sizes provided");
-        toast.warning("Bottle sizes enabled but no sizes were added");
+        toast.warning(t("admin.toast.bottleSizesNoSizes"));
       } else {
         console.log("Bottle sizes not handled because:", {
           has_bottle_sizes: formData.has_bottle_sizes,
@@ -700,15 +848,15 @@ export default function AdminPage() {
 
       toast.success(
         editingPerfume
-          ? "Perfume updated successfully!"
-          : "Perfume created successfully!"
+          ? t("admin.toast.perfumeUpdatedSuccess")
+          : t("admin.toast.perfumeCreatedSuccess")
       );
       setIsDialogOpen(false);
       resetForm();
       loadPerfumes();
     } catch (error) {
       console.error("Error saving perfume:", error);
-      toast.error("Failed to save perfume");
+      toast.error(t("admin.toast.perfumeSaveFailed"));
     } finally {
       setSubmitLoading(false);
     }
@@ -851,7 +999,7 @@ export default function AdminPage() {
         }
       } catch (error) {
         console.error("Error uploading images:", error);
-        toast.error("Failed to upload some images");
+        toast.error(t("admin.toast.imageUploadFailed"));
       } finally {
         setImageUploading(false);
       }
@@ -868,7 +1016,7 @@ export default function AdminPage() {
 
       if (validFiles.length > 0) {
         setPendingImages((prev) => [...prev, ...validFiles]);
-        toast.success(`${validFiles.length} image(s) ready to upload`);
+        toast.success(`${validFiles.length} ${t("admin.toast.imagesReadyToUpload")}`);
       }
     }
   };
@@ -888,12 +1036,12 @@ export default function AdminPage() {
 
       if (successfulUploads.length > 0) {
         toast.success(
-          `${successfulUploads.length} image(s) uploaded successfully`
+          `${successfulUploads.length} ${t("admin.toast.imagesUploadedSuccess")}`
         );
       }
     } catch (error) {
       console.error("Error uploading pending images:", error);
-      toast.error("Failed to upload some images");
+      toast.error(t("admin.toast.imageUploadFailed"));
     } finally {
       setImageUploading(false);
     }
@@ -904,7 +1052,7 @@ export default function AdminPage() {
   };
 
   const handleImageDelete = async (imageId: string) => {
-    if (!confirm("Are you sure you want to delete this image?")) return;
+    if (!confirm(t("admin.confirm.deleteImage"))) return;
 
     try {
       setDeletingImage(imageId);
@@ -940,9 +1088,12 @@ export default function AdminPage() {
     setEditingPerfume(perfume);
     setFormData({
       name: perfume.name,
+      name_ar: perfume.name_ar || "",
       price: perfume.price,
       description: perfume.description,
+      description_ar: perfume.description_ar || "",
       fragrance_notes: perfume.fragrance_notes,
+      fragrance_notes_ar: perfume.fragrance_notes_ar || { top: [], middle: [], base: [] },
       size: perfume.size,
       type: perfume.type,
       rating: perfume.rating,
@@ -965,7 +1116,7 @@ export default function AdminPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this perfume?")) return;
+    if (!confirm(t("admin.confirm.deletePerfume"))) return;
 
     try {
       setDeletingPerfume(id);
@@ -973,11 +1124,11 @@ export default function AdminPage() {
 
       if (error) throw error;
 
-      toast.success("Perfume deleted successfully!");
+      toast.success(t("admin.toast.perfumeDeletedSuccess"));
       loadPerfumes();
     } catch (error) {
       console.error("Error deleting perfume:", error);
-      toast.error("Failed to delete perfume");
+      toast.error(t("admin.toast.perfumeDeleteFailed"));
     } finally {
       setDeletingPerfume(null);
     }
@@ -994,12 +1145,12 @@ export default function AdminPage() {
       if (error) throw error;
 
       toast.success(
-        `Perfume ${!currentStatus ? "activated" : "deactivated"} successfully!`
+        !currentStatus ? t("admin.toast.perfumeActivated") : t("admin.toast.perfumeDeactivated")
       );
       loadPerfumes();
     } catch (error) {
       console.error("Error updating perfume status:", error);
-      toast.error("Failed to update perfume status");
+      toast.error(t("admin.toast.perfumeStatusFailed"));
     } finally {
       setTogglingStatus(null);
     }
@@ -1019,18 +1170,18 @@ export default function AdminPage() {
   // Authentication dialog
   const renderLoginDialog = () => (
     <Dialog open={showLoginDialog} onOpenChange={() => {}}>
-      <DialogContent className="glass-card bg-[#0e0a1d] border-white/10 text-white max-w-md">
+      <DialogContent className="glass-card bg-[#F8F9FB] dark:bg-[#1a2235] border-[#323D50]/10 dark:border-white/10 text-[#323D50] dark:text-white max-w-md">
         <DialogHeader>
           <DialogTitle className="gradient-text text-center">
             <Lock className="w-8 h-8 mx-auto mb-2" />
-            Admin Login
+            {t("admin.login.title")}
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="username" className="text-white/80">
-              Username
+            <Label htmlFor="username" className="text-[#323D50] dark:text-white/80">
+              {t("admin.login.username")}
             </Label>
             <Input
               id="username"
@@ -1042,15 +1193,15 @@ export default function AdminPage() {
                   username: e.target.value,
                 }))
               }
-              className="glass bg-white/5 border-white/20 text-white"
-              placeholder="Enter username"
+              className="glass bg-white dark:bg-white/5 border-[#323D50]/15 dark:border-white/20 text-white"
+              placeholder={t("admin.login.enterUsername")}
               disabled={loginLoading}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password" className="text-white/80">
-              Password
+            <Label htmlFor="password" className="text-[#323D50] dark:text-white/80">
+              {t("admin.login.password")}
             </Label>
             <Input
               id="password"
@@ -1062,8 +1213,8 @@ export default function AdminPage() {
                   password: e.target.value,
                 }))
               }
-              className="glass bg-white/5 border-white/20 text-white"
-              placeholder="Enter password"
+              className="glass bg-white dark:bg-white/5 border-[#323D50]/15 dark:border-white/20 text-white"
+              placeholder={t("admin.login.enterPassword")}
               disabled={loginLoading}
               onKeyDown={(e) => e.key === "Enter" && handleLogin()}
             />
@@ -1072,11 +1223,11 @@ export default function AdminPage() {
           <LoadingButton
             onClick={handleLogin}
             loading={loginLoading}
-            loadingText="Logging in..."
+            loadingText={t("admin.login.loggingIn")}
             disabled={!loginCredentials.username || !loginCredentials.password}
-            className="w-full bg-[#b24ce2] hover:bg-[#9a3bc7] text-white"
+            className="w-full bg-[#5B8DD9] hover:bg-[#3E6BB5] text-white"
           >
-            Login
+            {t("admin.login.loginButton")}
           </LoadingButton>
         </div>
       </DialogContent>
@@ -1086,10 +1237,10 @@ export default function AdminPage() {
   // Order details dialog
   const renderOrderDetailsDialog = () => (
     <Dialog open={showOrderDetails} onOpenChange={setShowOrderDetails}>
-      <DialogContent className="glass-card bg-[#0e0a1d] border-white/10 text-white max-w-4xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="glass-card bg-[#F8F9FB] dark:bg-[#1a2235] border-[#323D50]/10 dark:border-white/10 text-[#323D50] dark:text-white max-w-4xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="gradient-text text-xl">
-            Order Details
+            {t("admin.orderDetails.title")}
           </DialogTitle>
         </DialogHeader>
 
@@ -1097,35 +1248,35 @@ export default function AdminPage() {
           <div className="space-y-6">
             {/* Customer Information */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card className="glass-card border-white/10">
+              <Card className="glass-card border-[#323D50]/10 dark:border-white/10">
                 <CardHeader>
-                  <CardTitle className="text-white text-lg">
-                    Customer Information
+                  <CardTitle className="text-[#323D50] dark:text-white text-lg">
+                    {t("admin.orderDetails.customerInfo")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex justify-between">
-                    <span className="text-white/60">Name:</span>
-                    <span className="text-white font-medium">
+                    <span className="text-[#6B7B8D] dark:text-white/60">{t("admin.orderDetails.nameLabel")}</span>
+                    <span className="text-[#323D50] dark:text-white font-medium">
                       {selectedOrder.first_name} {selectedOrder.last_name}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-white/60">Email:</span>
-                    <span className="text-white">{selectedOrder.email}</span>
+                    <span className="text-[#6B7B8D] dark:text-white/60">{t("admin.orderDetails.emailLabel")}</span>
+                    <span className="text-[#323D50] dark:text-white">{selectedOrder.email}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-white/60">Phone:</span>
-                    <span className="text-white">{selectedOrder.phone}</span>
+                    <span className="text-[#6B7B8D] dark:text-white/60">{t("admin.orderDetails.phoneLabel")}</span>
+                    <span className="text-[#323D50] dark:text-white">{selectedOrder.phone}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-white/60">City:</span>
-                    <span className="text-white">{selectedOrder.city}</span>
+                    <span className="text-[#6B7B8D] dark:text-white/60">{t("admin.orderDetails.cityLabel")}</span>
+                    <span className="text-[#323D50] dark:text-white">{selectedOrder.city}</span>
                   </div>
                   {selectedOrder.place_name && (
                     <div className="flex justify-between">
-                      <span className="text-white/60">Place Name:</span>
-                      <span className="text-white">
+                      <span className="text-[#6B7B8D] dark:text-white/60">{t("admin.orderDetails.placeNameLabel")}</span>
+                      <span className="text-[#323D50] dark:text-white">
                         {selectedOrder.place_name}
                       </span>
                     </div>
@@ -1133,34 +1284,34 @@ export default function AdminPage() {
                 </CardContent>
               </Card>
 
-              <Card className="glass-card border-white/10">
+              <Card className="glass-card border-[#323D50]/10 dark:border-white/10">
                 <CardHeader>
-                  <CardTitle className="text-white text-lg">
-                    Order Information
+                  <CardTitle className="text-[#323D50] dark:text-white text-lg">
+                    {t("admin.orderDetails.orderInfo")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex justify-between">
-                    <span className="text-white/60">Order ID:</span>
-                    <span className="text-white font-mono text-sm">
+                    <span className="text-[#6B7B8D] dark:text-white/60">{t("admin.orderDetails.orderIdLabel")}</span>
+                    <span className="text-[#323D50] dark:text-white font-mono text-sm">
                       {selectedOrder.id}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-white/60">Order Date:</span>
-                    <span className="text-white">
+                    <span className="text-[#6B7B8D] dark:text-white/60">{t("admin.orderDetails.orderDateLabel")}</span>
+                    <span className="text-[#323D50] dark:text-white">
                       {new Date(selectedOrder.order_date).toLocaleDateString()}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-white/60">Total Items:</span>
-                    <span className="text-white">
+                    <span className="text-[#6B7B8D] dark:text-white/60">{t("admin.orderDetails.totalItemsLabel")}</span>
+                    <span className="text-[#323D50] dark:text-white">
                       {selectedOrder.items.length}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-white/60">Total Amount:</span>
-                    <span className="text-[#b24ce2] font-bold text-lg">
+                    <span className="text-[#6B7B8D] dark:text-white/60">{t("admin.orderDetails.totalAmountLabel")}</span>
+                    <span className="text-[#5B8DD9] font-bold text-lg">
                       {selectedOrder.total.toFixed(2)} LYD
                     </span>
                   </div>
@@ -1169,10 +1320,10 @@ export default function AdminPage() {
             </div>
 
             {/* Order Items */}
-            <Card className="glass-card border-white/10">
+            <Card className="glass-card border-[#323D50]/10 dark:border-white/10">
               <CardHeader>
-                <CardTitle className="text-white text-lg">
-                  Order Items
+                <CardTitle className="text-[#323D50] dark:text-white text-lg">
+                  {t("admin.orderDetails.orderItems")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -1180,7 +1331,7 @@ export default function AdminPage() {
                   {selectedOrder.items.map((item) => (
                     <div
                       key={item.id}
-                      className="flex items-center gap-4 p-4 bg-white/5 rounded-lg border border-white/10 hover:bg-white/10 transition-colors"
+                      className="flex items-center gap-4 p-4 bg-white dark:bg-white/5 rounded-lg border border-[#323D50]/10 dark:border-white/10 hover:bg-white/10 transition-colors"
                     >
                       <div className="flex-shrink-0">
                         <div
@@ -1190,7 +1341,7 @@ export default function AdminPage() {
                           <img
                             src={item.image}
                             alt={item.name}
-                            className="w-20 h-20 object-cover rounded-md border border-white/20 transition-transform group-hover:scale-105"
+                            className="w-20 h-20 object-cover rounded-md border border-[#323D50]/15 dark:border-white/20 transition-transform group-hover:scale-105"
                             onError={(e) => {
                               const target = e.target as HTMLImageElement;
                               target.src =
@@ -1204,10 +1355,10 @@ export default function AdminPage() {
                         </div>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="text-white font-medium text-lg truncate">
+                        <h4 className="text-[#323D50] dark:text-white font-medium text-lg truncate">
                           {item.name}
                         </h4>
-                        <p className="text-white/60 text-sm">{item.size}</p>
+                        <p className="text-[#6B7B8D] dark:text-white/60 text-sm">{item.size}</p>
                         <div className="flex items-center gap-2 mt-1">
                           <Badge variant="outline" className="text-xs">
                             ID: {item.id.slice(0, 8)}...
@@ -1216,19 +1367,19 @@ export default function AdminPage() {
                       </div>
                       <div className="text-right">
                         <div className="mb-2">
-                          <p className="text-white/60 text-sm">
-                            Quantity:{" "}
-                            <span className="text-white font-medium">
+                          <p className="text-[#6B7B8D] dark:text-white/60 text-sm">
+                            {t("admin.orderDetails.quantity")}{" "}
+                            <span className="text-[#323D50] dark:text-white font-medium">
                               {item.quantity}
                             </span>
                           </p>
-                          <p className="text-[#b24ce2] font-semibold">
-                            {item.price.toFixed(2)} LYD each
+                          <p className="text-[#5B8DD9] font-semibold">
+                            {item.price.toFixed(2)} {t("admin.orderDetails.eachSuffix")}
                           </p>
                         </div>
-                        <div className="bg-[#b24ce2]/10 px-3 py-1 rounded-md">
-                          <p className="text-white font-medium">
-                            Subtotal: {(item.price * item.quantity).toFixed(2)}{" "}
+                        <div className="bg-[#5B8DD9]/10 px-3 py-1 rounded-md">
+                          <p className="text-[#323D50] dark:text-white font-medium">
+                            {t("admin.orderDetails.subtotal")} {(item.price * item.quantity).toFixed(2)}{" "}
                             LYD
                           </p>
                         </div>
@@ -1238,10 +1389,10 @@ export default function AdminPage() {
                 </div>
 
                 {/* Order Summary */}
-                <div className="mt-6 pt-4 border-t border-white/10">
+                <div className="mt-6 pt-4 border-t border-[#323D50]/10 dark:border-white/10">
                   <div className="flex justify-between items-center">
-                    <span className="text-white/60">Total Items:</span>
-                    <span className="text-white">
+                    <span className="text-[#6B7B8D] dark:text-white/60">{t("admin.orderDetails.totalItemsLabel")}</span>
+                    <span className="text-[#323D50] dark:text-white">
                       {selectedOrder.items.reduce(
                         (sum, item) => sum + item.quantity,
                         0
@@ -1249,8 +1400,8 @@ export default function AdminPage() {
                     </span>
                   </div>
                   <div className="flex justify-between items-center mt-2">
-                    <span className="text-white/60">Order Total:</span>
-                    <span className="text-[#b24ce2] font-bold text-xl">
+                    <span className="text-[#6B7B8D] dark:text-white/60">{t("admin.orderDetails.orderTotal")}</span>
+                    <span className="text-[#5B8DD9] font-bold text-xl">
                       {selectedOrder.total.toFixed(2)} LYD
                     </span>
                   </div>
@@ -1266,9 +1417,9 @@ export default function AdminPage() {
   // Image modal dialog
   const renderImageModal = () => (
     <Dialog open={showImageModal} onOpenChange={setShowImageModal}>
-      <DialogContent className="glass-card bg-[#0e0a1d] border-white/10 text-white max-w-2xl">
+      <DialogContent className="glass-card bg-[#F8F9FB] dark:bg-[#1a2235] border-[#323D50]/10 dark:border-white/10 text-[#323D50] dark:text-white max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="gradient-text">Product Image</DialogTitle>
+          <DialogTitle className="gradient-text">{t("admin.imageDialog.title")}</DialogTitle>
         </DialogHeader>
 
         {selectedImage && (
@@ -1276,7 +1427,7 @@ export default function AdminPage() {
             <img
               src={selectedImage}
               alt="Product"
-              className="max-w-full max-h-96 object-contain rounded-lg border border-white/20"
+              className="max-w-full max-h-96 object-contain rounded-lg border border-[#323D50]/15 dark:border-white/20"
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
                 target.src =
@@ -1290,9 +1441,9 @@ export default function AdminPage() {
           <Button
             variant="outline"
             onClick={() => setShowImageModal(false)}
-            className="border-white/20 text-white hover:bg-white/10"
+            className="border-[#323D50]/15 dark:border-white/20 text-white hover:bg-white/10"
           >
-            Close
+            {t("admin.orderDetails.close")}
           </Button>
         </div>
       </DialogContent>
@@ -1302,14 +1453,14 @@ export default function AdminPage() {
   // Loading and authentication checks
   if (!isAuthenticated) {
     return (
-      <div className="container mx-auto px-4 py-20 text-center bg-[#0e0a1d] min-h-screen flex items-center justify-center">
+      <div className="container mx-auto px-4 py-20 text-center bg-[#F8F9FB] dark:bg-[#1a2235] min-h-screen flex items-center justify-center">
         <div className="glass-card p-12 rounded-2xl text-center max-w-md">
-          <Lock className="w-16 h-16 text-[#b24ce2] mx-auto mb-6" />
+          <Lock className="w-16 h-16 text-[#5B8DD9] mx-auto mb-6" />
           <h2 className="text-2xl font-bold gradient-text mb-4">
-            Authentication Required
+            {t("admin.authRequired")}
           </h2>
-          <p className="text-white/60">
-            Please login to access the admin panel.
+          <p className="text-[#6B7B8D] dark:text-white/60">
+            {t("admin.authMessage")}
           </p>
         </div>
         {renderLoginDialog()}
@@ -1319,60 +1470,72 @@ export default function AdminPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-20 text-center bg-[#0e0a1d] min-h-screen flex items-center justify-center">
+      <div className="container mx-auto px-4 py-20 text-center bg-[#F8F9FB] dark:bg-[#1a2235] min-h-screen flex items-center justify-center">
         <div className="glass-card p-12 rounded-2xl text-center">
-          <Package className="w-16 h-16 text-[#b24ce2] mx-auto mb-6 animate-pulse" />
-          <h2 className="text-2xl font-bold gradient-text mb-4">Loading...</h2>
-          <p className="text-white/60">Fetching data...</p>
+          <Package className="w-16 h-16 text-[#5B8DD9] mx-auto mb-6 animate-pulse" />
+          <h2 className="text-2xl font-bold gradient-text mb-4">{t("admin.loadingTitle")}</h2>
+          <p className="text-[#6B7B8D] dark:text-white/60">{t("admin.fetchingData")}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 pt-[80px] md:pt-24 pb-20 bg-[#0e0a1d] min-h-screen">
+    <div className="container mx-auto px-4 pt-[80px] md:pt-24 pb-20 bg-[#F8F9FB] dark:bg-[#1a2235] min-h-screen">
       <div className="max-w-7xl mx-auto">
         <div className="mb-8 flex justify-between items-center">
           <div>
             <h1 className="text-4xl font-bold gradient-text mb-4">
-              Admin Dashboard
+              {t("admin.dashboard")}
             </h1>
-            <p className="text-white/60">
-              Welcome back, {currentAdmin?.username}
+            <p className="text-[#6B7B8D] dark:text-white/60">
+              {t("admin.welcomeBack")} {currentAdmin?.username}
             </p>
           </div>
           <Button
             variant="outline"
             onClick={handleLogout}
-            className="border-white/20 text-white hover:bg-red-500/20"
+            className="border-[#323D50]/15 dark:border-white/20 text-white hover:bg-red-500/20"
           >
-            <LogOut className="w-4 h-4 mr-2" />
-            Logout
+            <LogOut className={`w-4 h-4 ${isRTL ? "ms-2" : "me-2"}`} />
+            {t("admin.logout")}
           </Button>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 glass bg-white/5 border-white/20">
+          <TabsList className="grid w-full grid-cols-4 glass bg-white dark:bg-white/5 border-[#323D50]/15 dark:border-white/20">
             <TabsTrigger
               value="overview"
-              className="data-[state=active]:bg-[#b24ce2]"
+              className="data-[state=active]:bg-[#5B8DD9]"
             >
-              <Package className="w-4 h-4 mr-2" />
-              Overview
+              <Package className={`w-4 h-4 ${isRTL ? "ms-2" : "me-2"}`} />
+              {t("admin.tabs.overview")}
             </TabsTrigger>
             <TabsTrigger
               value="perfumes"
-              className="data-[state=active]:bg-[#b24ce2]"
+              className="data-[state=active]:bg-[#5B8DD9]"
             >
-              <Package className="w-4 h-4 mr-2" />
-              Perfumes
+              <Package className={`w-4 h-4 ${isRTL ? "ms-2" : "me-2"}`} />
+              {t("admin.tabs.perfumes")}
             </TabsTrigger>
             <TabsTrigger
               value="orders"
-              className="data-[state=active]:bg-[#b24ce2]"
+              className="data-[state=active]:bg-[#5B8DD9]"
             >
-              <ShoppingCart className="w-4 h-4 mr-2" />
-              Orders
+              <ShoppingCart className={`w-4 h-4 ${isRTL ? "ms-2" : "me-2"}`} />
+              {t("admin.tabs.orders")}
+            </TabsTrigger>
+            <TabsTrigger
+              value="reviews"
+              className="data-[state=active]:bg-[#5B8DD9]"
+            >
+              <Star className={`w-4 h-4 ${isRTL ? "ms-2" : "me-2"}`} />
+              {t("admin.tabs.reviews")}
+              {pendingReviewCount > 0 && (
+                <Badge className="ms-2 bg-amber-500 text-white text-xs px-1.5 py-0">
+                  {pendingReviewCount}
+                </Badge>
+              )}
             </TabsTrigger>
           </TabsList>
 
@@ -1380,24 +1543,24 @@ export default function AdminPage() {
             <div className="space-y-6">
               {/* Stats Cards */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <Card className="glass-card border-white/10">
+                <Card className="glass-card border-[#323D50]/10 dark:border-white/10">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-white/60 text-sm">Total Orders</p>
-                        <p className="text-2xl font-bold text-white">
+                        <p className="text-[#6B7B8D] dark:text-white/60 text-sm">{t("admin.stats.totalOrders")}</p>
+                        <p className="text-2xl font-bold text-[#323D50] dark:text-white">
                           {orderStats.totalOrders}
                         </p>
                       </div>
-                      <ShoppingCart className="w-8 h-8 text-[#b24ce2]" />
+                      <ShoppingCart className="w-8 h-8 text-[#5B8DD9]" />
                     </div>
                   </CardContent>
                 </Card>
-                <Card className="glass-card border-white/10">
+                <Card className="glass-card border-[#323D50]/10 dark:border-white/10">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-white/60 text-sm">Total Revenue</p>
+                        <p className="text-[#6B7B8D] dark:text-white/60 text-sm">{t("admin.stats.totalRevenue")}</p>
                         <p className="text-2xl font-bold text-green-400">
                           {orderStats.totalRevenue.toFixed(2)} LYD
                         </p>
@@ -1406,11 +1569,11 @@ export default function AdminPage() {
                     </div>
                   </CardContent>
                 </Card>
-                <Card className="glass-card border-white/10">
+                <Card className="glass-card border-[#323D50]/10 dark:border-white/10">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-white/60 text-sm">Avg Order Value</p>
+                        <p className="text-[#6B7B8D] dark:text-white/60 text-sm">{t("admin.stats.avgOrderValue")}</p>
                         <p className="text-2xl font-bold text-blue-400">
                           {orderStats.averageOrderValue.toFixed(2)} LYD
                         </p>
@@ -1419,44 +1582,44 @@ export default function AdminPage() {
                     </div>
                   </CardContent>
                 </Card>
-                <Card className="glass-card border-white/10">
+                <Card className="glass-card border-[#323D50]/10 dark:border-white/10">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-white/60 text-sm">Total Perfumes</p>
-                        <p className="text-2xl font-bold text-white">
+                        <p className="text-[#6B7B8D] dark:text-white/60 text-sm">{t("admin.stats.totalPerfumes")}</p>
+                        <p className="text-2xl font-bold text-[#323D50] dark:text-white">
                           {perfumes.length}
                         </p>
                       </div>
-                      <Package className="w-8 h-8 text-[#b24ce2]" />
+                      <Package className="w-8 h-8 text-[#5B8DD9]" />
                     </div>
                   </CardContent>
                 </Card>
               </div>
 
               {/* Recent Orders */}
-              <Card className="glass-card border-white/10">
+              <Card className="glass-card border-[#323D50]/10 dark:border-white/10">
                 <CardHeader>
-                  <CardTitle className="text-white">Recent Orders</CardTitle>
+                  <CardTitle className="text-[#323D50] dark:text-white">{t("admin.recentOrders")}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     {orderStats.recentOrders.map((order) => (
                       <div
                         key={order.id}
-                        className="flex items-center justify-between p-4 bg-white/5 rounded-lg"
+                        className="flex items-center justify-between p-4 bg-white dark:bg-white/5 rounded-lg"
                       >
                         <div>
-                          <p className="text-white font-medium">
+                          <p className="text-[#323D50] dark:text-white font-medium">
                             {order.first_name} {order.last_name}
                           </p>
-                          <p className="text-white/60 text-sm">{order.email}</p>
+                          <p className="text-[#6B7B8D] dark:text-white/60 text-sm">{order.email}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-[#b24ce2] font-semibold">
+                          <p className="text-[#5B8DD9] font-semibold">
                             {order.total} LYD
                           </p>
-                          <p className="text-white/60 text-sm">
+                          <p className="text-[#6B7B8D] dark:text-white/60 text-sm">
                             {new Date(order.order_date).toLocaleDateString()}
                           </p>
                         </div>
@@ -1472,24 +1635,24 @@ export default function AdminPage() {
             <div className="space-y-6">
               {/* Perfume Stats */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <Card className="glass-card border-white/10">
+                <Card className="glass-card border-[#323D50]/10 dark:border-white/10">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-white/60 text-sm">Total Perfumes</p>
-                        <p className="text-2xl font-bold text-white">
+                        <p className="text-[#6B7B8D] dark:text-white/60 text-sm">{t("admin.stats.totalPerfumes")}</p>
+                        <p className="text-2xl font-bold text-[#323D50] dark:text-white">
                           {perfumes.length}
                         </p>
                       </div>
-                      <Package className="w-8 h-8 text-[#b24ce2]" />
+                      <Package className="w-8 h-8 text-[#5B8DD9]" />
                     </div>
                   </CardContent>
                 </Card>
-                <Card className="glass-card border-white/10">
+                <Card className="glass-card border-[#323D50]/10 dark:border-white/10">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-white/60 text-sm">Active</p>
+                        <p className="text-[#6B7B8D] dark:text-white/60 text-sm">{t("admin.stats.active")}</p>
                         <p className="text-2xl font-bold text-green-400">
                           {perfumes.filter((p) => p.is_active).length}
                         </p>
@@ -1498,11 +1661,11 @@ export default function AdminPage() {
                     </div>
                   </CardContent>
                 </Card>
-                <Card className="glass-card border-white/10">
+                <Card className="glass-card border-[#323D50]/10 dark:border-white/10">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-white/60 text-sm">Inactive</p>
+                        <p className="text-[#6B7B8D] dark:text-white/60 text-sm">{t("admin.stats.inactive")}</p>
                         <p className="text-2xl font-bold text-red-400">
                           {perfumes.filter((p) => !p.is_active).length}
                         </p>
@@ -1511,11 +1674,11 @@ export default function AdminPage() {
                     </div>
                   </CardContent>
                 </Card>
-                <Card className="glass-card border-white/10">
+                <Card className="glass-card border-[#323D50]/10 dark:border-white/10">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-white/60 text-sm">Low Stock</p>
+                        <p className="text-[#6B7B8D] dark:text-white/60 text-sm">{t("admin.stats.lowStock")}</p>
                         <p className="text-2xl font-bold text-orange-400">
                           {perfumes.filter((p) => p.stock_quantity < 10).length}
                         </p>
@@ -1530,12 +1693,12 @@ export default function AdminPage() {
               <div className="flex flex-col md:flex-row gap-4">
                 <div className="flex-1">
                   <div className="relative">
-                    <Search className="absolute left-3 top-3 w-4 h-4 text-white/40" />
+                    <Search className={`absolute ${isRTL ? "right-3" : "left-3"} top-3 w-4 h-4 text-[#6B7B8D] dark:text-white/40`} />
                     <Input
-                      placeholder="Search perfumes..."
+                      placeholder={t("admin.search.searchPerfumes")}
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10 glass bg-white/5 border-white/20 text-white"
+                      className={`${isRTL ? "pr-10" : "pl-10"} glass bg-white dark:bg-white/5 border-[#323D50]/15 dark:border-white/20 text-white`}
                     />
                   </div>
                 </div>
@@ -1543,52 +1706,53 @@ export default function AdminPage() {
                   value={filterType}
                   onValueChange={(value: any) => setFilterType(value)}
                 >
-                  <SelectTrigger className="w-40 glass bg-white/5 border-white/20 text-white">
-                    <SelectValue placeholder="Filter by type" />
+                  <SelectTrigger className="w-40 glass bg-white dark:bg-white/5 border-[#323D50]/15 dark:border-white/20 text-white">
+                    <SelectValue placeholder={t("admin.filters.filterByType")} />
                   </SelectTrigger>
-                  <SelectContent className="glass bg-[#0e0a1d] border-white/20">
-                    <SelectItem value="all">All Types</SelectItem>
-                    <SelectItem value="bottle">Bottles</SelectItem>
-                    <SelectItem value="sample">Samples</SelectItem>
-                    <SelectItem value="gift">Gift Sets</SelectItem>
+                  <SelectContent className="glass bg-[#F8F9FB] dark:bg-[#1a2235] border-[#323D50]/15 dark:border-white/20">
+                    <SelectItem value="all">{t("admin.filters.allTypes")}</SelectItem>
+                    <SelectItem value="bottle">{t("admin.filters.bottles")}</SelectItem>
+                    <SelectItem value="sample">{t("admin.filters.samples")}</SelectItem>
+                    <SelectItem value="gift">{t("admin.filters.giftSets")}</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select
                   value={filterGender}
                   onValueChange={(value: any) => setFilterGender(value)}
                 >
-                  <SelectTrigger className="w-40 glass bg-white/5 border-white/20 text-white">
-                    <SelectValue placeholder="Filter by gender" />
+                  <SelectTrigger className="w-40 glass bg-white dark:bg-white/5 border-[#323D50]/15 dark:border-white/20 text-white">
+                    <SelectValue placeholder={t("admin.filters.filterByGender")} />
                   </SelectTrigger>
-                  <SelectContent className="glass bg-[#0e0a1d] border-white/20">
-                    <SelectItem value="all">All Genders</SelectItem>
-                    <SelectItem value="men">Men</SelectItem>
-                    <SelectItem value="women">Women</SelectItem>
-                    <SelectItem value="unisex">Unisex</SelectItem>
+                  <SelectContent className="glass bg-[#F8F9FB] dark:bg-[#1a2235] border-[#323D50]/15 dark:border-white/20">
+                    <SelectItem value="all">{t("admin.filters.allGenders")}</SelectItem>
+                    <SelectItem value="men">{t("admin.filters.men")}</SelectItem>
+                    <SelectItem value="women">{t("admin.filters.women")}</SelectItem>
+                    <SelectItem value="unisex">{t("admin.filters.unisex")}</SelectItem>
                   </SelectContent>
                 </Select>
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                   <DialogTrigger asChild>
                     <Button
-                      className="bg-[#b24ce2] hover:bg-[#9a3bc7] text-white"
+                      className="bg-[#5B8DD9] hover:bg-[#3E6BB5] text-white"
                       onClick={resetForm}
                     >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add Perfume
+                      <Plus className={`w-4 h-4 ${isRTL ? "ms-2" : "me-2"}`} />
+                      {t("admin.form.addPerfume")}
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="glass-card bg-[#0e0a1d] border-white/10 text-white max-w-2xl max-h-[80vh] overflow-y-auto">
+                  <DialogContent className="glass-card bg-[#F8F9FB] dark:bg-[#1a2235] border-[#323D50]/10 dark:border-white/10 text-[#323D50] dark:text-white max-w-2xl max-h-[80vh] overflow-y-auto">
                     <DialogHeader>
                       <DialogTitle className="gradient-text">
-                        {editingPerfume ? "Edit Perfume" : "Add New Perfume"}
+                        {editingPerfume ? t("admin.form.editPerfume") : t("admin.form.addNewPerfume")}
                       </DialogTitle>
                     </DialogHeader>
 
                     <div className="space-y-4">
+                      {/* English Name + Arabic Name */}
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="name" className="text-white/80">
-                            Name *
+                          <Label htmlFor="name" className="text-[#323D50] dark:text-white/80">
+                            {t("admin.form.name")} (EN) *
                           </Label>
                           <Input
                             id="name"
@@ -1596,13 +1760,32 @@ export default function AdminPage() {
                             onChange={(e) =>
                               handleInputChange("name", e.target.value)
                             }
-                            className="glass bg-white/5 border-white/20 text-white"
-                            placeholder="Enter perfume name"
+                            className="glass bg-white dark:bg-white/5 border-[#323D50]/15 dark:border-white/20 text-white"
+                            placeholder={t("admin.form.enterPerfumeName")}
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="price" className="text-white/80">
-                            Price *
+                          <Label htmlFor="name_ar" className="text-[#323D50] dark:text-white/80">
+                            {t("admin.form.name")} (AR)
+                          </Label>
+                          <Input
+                            id="name_ar"
+                            dir="rtl"
+                            value={formData.name_ar}
+                            onChange={(e) =>
+                              handleInputChange("name_ar", e.target.value)
+                            }
+                            className="glass bg-white dark:bg-white/5 border-[#323D50]/15 dark:border-white/20 text-white"
+                            placeholder="اسم العطر بالعربية"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Price */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="price" className="text-[#323D50] dark:text-white/80">
+                            {t("admin.form.price")} *
                           </Label>
                           <Input
                             id="price"
@@ -1615,32 +1798,64 @@ export default function AdminPage() {
                                 parseFloat(e.target.value)
                               )
                             }
-                            className="glass bg-white/5 border-white/20 text-white"
-                            placeholder="Enter price"
+                            className="glass bg-white dark:bg-white/5 border-[#323D50]/15 dark:border-white/20 text-white"
+                            placeholder={t("admin.form.enterPrice")}
                           />
                         </div>
                       </div>
 
+                      {/* English Description */}
                       <div className="space-y-2">
-                        <Label htmlFor="description" className="text-white/80">
-                          Description *
-                        </Label>
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="description" className="text-[#323D50] dark:text-white/80">
+                            {t("admin.form.description")} (EN) *
+                          </Label>
+                          <LoadingButton
+                            type="button"
+                            size="sm"
+                            onClick={handleGenerateDescription}
+                            loading={generatingDescription}
+                            loadingText={t("admin.form.generating")}
+                            className="h-7 px-3 text-xs bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] hover:from-[#3E6BB5] hover:to-[#5B8DD9] text-white border-0"
+                          >
+                            <Sparkles className={`w-3 h-3 ${isRTL ? "ms-1" : "me-1"}`} />
+                            {t("admin.form.generateWithAI")}
+                          </LoadingButton>
+                        </div>
                         <Textarea
                           id="description"
                           value={formData.description}
                           onChange={(e) =>
                             handleInputChange("description", e.target.value)
                           }
-                          className="glass bg-white/5 border-white/20 text-white"
-                          placeholder="Enter description"
+                          className="glass bg-white dark:bg-white/5 border-[#323D50]/15 dark:border-white/20 text-white"
+                          placeholder={t("admin.form.enterDescription")}
+                          rows={3}
+                        />
+                      </div>
+
+                      {/* Arabic Description */}
+                      <div className="space-y-2">
+                        <Label htmlFor="description_ar" className="text-[#323D50] dark:text-white/80">
+                          {t("admin.form.description")} (AR)
+                        </Label>
+                        <Textarea
+                          id="description_ar"
+                          dir="rtl"
+                          value={formData.description_ar}
+                          onChange={(e) =>
+                            handleInputChange("description_ar", e.target.value)
+                          }
+                          className="glass bg-white dark:bg-white/5 border-[#323D50]/15 dark:border-white/20 text-white"
+                          placeholder="وصف العطر بالعربية"
                           rows={3}
                         />
                       </div>
 
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="size" className="text-white/80">
-                            Size
+                          <Label htmlFor="size" className="text-[#323D50] dark:text-white/80">
+                            {t("admin.form.size")}
                           </Label>
                           <Input
                             id="size"
@@ -1648,13 +1863,13 @@ export default function AdminPage() {
                             onChange={(e) =>
                               handleInputChange("size", e.target.value)
                             }
-                            className="glass bg-white/5 border-white/20 text-white"
-                            placeholder="e.g. 100ml"
+                            className="glass bg-white dark:bg-white/5 border-[#323D50]/15 dark:border-white/20 text-white"
+                            placeholder={t("admin.form.sizePlaceholder")}
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="type" className="text-white/80">
-                            Type
+                          <Label htmlFor="type" className="text-[#323D50] dark:text-white/80">
+                            {t("admin.form.type")}
                           </Label>
                           <Select
                             value={formData.type}
@@ -1662,15 +1877,15 @@ export default function AdminPage() {
                               handleInputChange("type", value)
                             }
                           >
-                            <SelectTrigger className="glass bg-white/5 border-white/20 text-white">
+                            <SelectTrigger className="glass bg-white dark:bg-white/5 border-[#323D50]/15 dark:border-white/20 text-white">
                               <SelectValue />
                             </SelectTrigger>
-                            <SelectContent className="glass bg-[#0e0a1d] border-white/20">
+                            <SelectContent className="glass bg-[#F8F9FB] dark:bg-[#1a2235] border-[#323D50]/15 dark:border-white/20">
                               <SelectItem value="bottle">
-                                Single Perfume
+                                {t("admin.form.typeSingle")}
                               </SelectItem>
-                              <SelectItem value="sample">Sample</SelectItem>
-                              <SelectItem value="gift">Gift Set</SelectItem>
+                              <SelectItem value="sample">{t("admin.form.typeSample")}</SelectItem>
+                              <SelectItem value="gift">{t("admin.form.typeGift")}</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -1678,8 +1893,8 @@ export default function AdminPage() {
 
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="gender" className="text-white/80">
-                            Gender
+                          <Label htmlFor="gender" className="text-[#323D50] dark:text-white/80">
+                            {t("admin.form.gender")}
                           </Label>
                           <Select
                             value={formData.gender}
@@ -1687,13 +1902,13 @@ export default function AdminPage() {
                               handleInputChange("gender", value)
                             }
                           >
-                            <SelectTrigger className="glass bg-white/5 border-white/20 text-white">
+                            <SelectTrigger className="glass bg-white dark:bg-white/5 border-[#323D50]/15 dark:border-white/20 text-white">
                               <SelectValue />
                             </SelectTrigger>
-                            <SelectContent className="glass bg-[#0e0a1d] border-white/20">
-                              <SelectItem value="men">Men</SelectItem>
-                              <SelectItem value="women">Women</SelectItem>
-                              <SelectItem value="unisex">Unisex</SelectItem>
+                            <SelectContent className="glass bg-[#F8F9FB] dark:bg-[#1a2235] border-[#323D50]/15 dark:border-white/20">
+                              <SelectItem value="men">{t("admin.form.men")}</SelectItem>
+                              <SelectItem value="women">{t("admin.form.women")}</SelectItem>
+                              <SelectItem value="unisex">{t("admin.form.unisex")}</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -1703,9 +1918,9 @@ export default function AdminPage() {
                         <div className="space-y-2">
                           <Label
                             htmlFor="stock_quantity"
-                            className="text-white/80"
+                            className="text-[#323D50] dark:text-white/80"
                           >
-                            Stock Quantity
+                            {t("admin.form.stockQuantity")}
                           </Label>
                           <Input
                             id="stock_quantity"
@@ -1717,13 +1932,13 @@ export default function AdminPage() {
                                 parseInt(e.target.value)
                               )
                             }
-                            className="glass bg-white/5 border-white/20 text-white"
-                            placeholder="Enter stock quantity"
+                            className="glass bg-white dark:bg-white/5 border-[#323D50]/15 dark:border-white/20 text-white"
+                            placeholder={t("admin.form.enterStockQuantity")}
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="rating" className="text-white/80">
-                            Rating
+                          <Label htmlFor="rating" className="text-[#323D50] dark:text-white/80">
+                            {t("admin.form.rating")}
                           </Label>
                           <Input
                             id="rating"
@@ -1738,32 +1953,32 @@ export default function AdminPage() {
                                 parseFloat(e.target.value)
                               )
                             }
-                            className="glass bg-white/5 border-white/20 text-white"
-                            placeholder="Enter rating (0-5)"
+                            className="glass bg-white dark:bg-white/5 border-[#323D50]/15 dark:border-white/20 text-white"
+                            placeholder={t("admin.form.enterRating")}
                           />
                         </div>
                       </div>
 
                       <div className="space-y-4">
-                        <Label className="text-white/80">Fragrance Notes</Label>
+                        <Label className="text-[#323D50] dark:text-white/80">{t("admin.form.fragranceNotes")}</Label>
                         <div className="space-y-2">
                           <Input
                             value={topNotes}
                             onChange={(e) => setTopNotes(e.target.value)}
-                            className="glass bg-white/5 border-white/20 text-white"
-                            placeholder="Top notes (comma separated)"
+                            className="glass bg-white dark:bg-white/5 border-[#323D50]/15 dark:border-white/20 text-white"
+                            placeholder={t("admin.form.topNotes")}
                           />
                           <Input
                             value={middleNotes}
                             onChange={(e) => setMiddleNotes(e.target.value)}
-                            className="glass bg-white/5 border-white/20 text-white"
-                            placeholder="Middle notes (comma separated)"
+                            className="glass bg-white dark:bg-white/5 border-[#323D50]/15 dark:border-white/20 text-white"
+                            placeholder={t("admin.form.middleNotes")}
                           />
                           <Input
                             value={baseNotes}
                             onChange={(e) => setBaseNotes(e.target.value)}
-                            className="glass bg-white/5 border-white/20 text-white"
-                            placeholder="Base notes (comma separated)"
+                            className="glass bg-white dark:bg-white/5 border-[#323D50]/15 dark:border-white/20 text-white"
+                            placeholder={t("admin.form.baseNotes")}
                           />
                         </div>
                       </div>
@@ -1778,31 +1993,31 @@ export default function AdminPage() {
                             onChange={(e) =>
                               handleInputChange("has_samples", e.target.checked)
                             }
-                            className="rounded border-white/20 bg-white/5"
+                            className="rounded border-[#323D50]/15 dark:border-white/20 bg-white/5"
                           />
                           <Label
                             htmlFor="has_samples"
-                            className="text-white/80"
+                            className="text-[#323D50] dark:text-white/80"
                           >
-                            Has Sample Variants
+                            {t("admin.samples.hasSampleVariants")}
                           </Label>
                         </div>
 
                         {formData.has_samples && (
                           <div className="space-y-4">
                             <div className="flex items-center justify-between">
-                              <Label className="text-white/80">
-                                Sample Variants
+                              <Label className="text-[#323D50] dark:text-white/80">
+                                {t("admin.samples.sampleVariants")}
                               </Label>
                               <Button
                                 type="button"
                                 variant="outline"
                                 size="sm"
                                 onClick={addSample}
-                                className="border-white/20 text-white hover:bg-white/10"
+                                className="border-[#323D50]/15 dark:border-white/20 text-white hover:bg-white/10"
                               >
-                                <Plus className="w-4 h-4 mr-2" />
-                                Add Sample
+                                <Plus className={`w-4 h-4 ${isRTL ? "ms-2" : "me-2"}`} />
+                                {t("admin.samples.addSample")}
                               </Button>
                             </div>
 
@@ -1811,7 +2026,7 @@ export default function AdminPage() {
                                 {perfumeSamples.map((sample, index) => (
                                   <div
                                     key={index}
-                                    className="grid grid-cols-4 gap-3 p-3 bg-white/5 rounded-lg border border-white/10"
+                                    className="grid grid-cols-4 gap-3 p-3 bg-white dark:bg-white/5 rounded-lg border border-[#323D50]/10 dark:border-white/10"
                                   >
                                     <Select
                                       value={sample.size}
@@ -1819,10 +2034,10 @@ export default function AdminPage() {
                                         updateSample(index, "size", value)
                                       }
                                     >
-                                      <SelectTrigger className="glass bg-white/5 border-white/20 text-white">
+                                      <SelectTrigger className="glass bg-white dark:bg-white/5 border-[#323D50]/15 dark:border-white/20 text-white">
                                         <SelectValue />
                                       </SelectTrigger>
-                                      <SelectContent className="glass bg-[#0e0a1d] border-white/20">
+                                      <SelectContent className="glass bg-[#F8F9FB] dark:bg-[#1a2235] border-[#323D50]/15 dark:border-white/20">
                                         {sampleSizes.map((size) => (
                                           <SelectItem key={size} value={size}>
                                             {size}
@@ -1842,8 +2057,8 @@ export default function AdminPage() {
                                           parseFloat(e.target.value) || 0
                                         )
                                       }
-                                      className="glass bg-white/5 border-white/20 text-white"
-                                      placeholder="Price"
+                                      className="glass bg-white dark:bg-white/5 border-[#323D50]/15 dark:border-white/20 text-white"
+                                      placeholder={t("admin.samples.pricePlaceholder")}
                                     />
 
                                     <Input
@@ -1856,8 +2071,8 @@ export default function AdminPage() {
                                           parseInt(e.target.value) || 0
                                         )
                                       }
-                                      className="glass bg-white/5 border-white/20 text-white"
-                                      placeholder="Stock"
+                                      className="glass bg-white dark:bg-white/5 border-[#323D50]/15 dark:border-white/20 text-white"
+                                      placeholder={t("admin.samples.stockPlaceholder")}
                                     />
 
                                     <Button
@@ -1873,11 +2088,11 @@ export default function AdminPage() {
                                 ))}
                               </div>
                             ) : (
-                              <div className="text-center py-4 text-white/40">
+                              <div className="text-center py-4 text-[#6B7B8D] dark:text-white/40">
                                 <Package className="w-8 h-8 mx-auto mb-2" />
-                                <p>No samples added yet</p>
+                                <p>{t("admin.samples.noSamplesYet")}</p>
                                 <p className="text-xs">
-                                  Click "Add Sample" to create sample variants
+                                  {t("admin.samples.clickAddSample")}
                                 </p>
                               </div>
                             )}
@@ -1898,31 +2113,31 @@ export default function AdminPage() {
                                 e.target.checked
                               )
                             }
-                            className="rounded border-white/20 bg-white/5"
+                            className="rounded border-[#323D50]/15 dark:border-white/20 bg-white/5"
                           />
                           <Label
                             htmlFor="has_bottle_sizes"
-                            className="text-white/80"
+                            className="text-[#323D50] dark:text-white/80"
                           >
-                            Has Bottle Size Variants
+                            {t("admin.bottleSizes.hasBottleSizeVariants")}
                           </Label>
                         </div>
 
                         {formData.has_bottle_sizes && (
                           <div className="space-y-4">
                             <div className="flex items-center justify-between">
-                              <Label className="text-white/80">
-                                Bottle Size Variants
+                              <Label className="text-[#323D50] dark:text-white/80">
+                                {t("admin.bottleSizes.bottleSizeVariants")}
                               </Label>
                               <Button
                                 type="button"
                                 variant="outline"
                                 size="sm"
                                 onClick={addBottleSize}
-                                className="border-white/20 text-white hover:bg-white/10"
+                                className="border-[#323D50]/15 dark:border-white/20 text-white hover:bg-white/10"
                               >
-                                <Plus className="w-4 h-4 mr-2" />
-                                Add Bottle Size
+                                <Plus className={`w-4 h-4 ${isRTL ? "ms-2" : "me-2"}`} />
+                                {t("admin.bottleSizes.addBottleSize")}
                               </Button>
                             </div>
 
@@ -1931,7 +2146,7 @@ export default function AdminPage() {
                                 {perfumeBottleSizes.map((bottleSize, index) => (
                                   <div
                                     key={index}
-                                    className="grid grid-cols-4 gap-3 p-3 bg-white/5 rounded-lg border border-white/10"
+                                    className="grid grid-cols-4 gap-3 p-3 bg-white dark:bg-white/5 rounded-lg border border-[#323D50]/10 dark:border-white/10"
                                   >
                                     <Select
                                       value={bottleSize.size}
@@ -1939,10 +2154,10 @@ export default function AdminPage() {
                                         updateBottleSize(index, "size", value)
                                       }
                                     >
-                                      <SelectTrigger className="glass bg-white/5 border-white/20 text-white">
+                                      <SelectTrigger className="glass bg-white dark:bg-white/5 border-[#323D50]/15 dark:border-white/20 text-white">
                                         <SelectValue />
                                       </SelectTrigger>
-                                      <SelectContent className="glass bg-[#0e0a1d] border-white/20">
+                                      <SelectContent className="glass bg-[#F8F9FB] dark:bg-[#1a2235] border-[#323D50]/15 dark:border-white/20">
                                         {bottleSizes.map((size) => (
                                           <SelectItem key={size} value={size}>
                                             {size}
@@ -1962,8 +2177,8 @@ export default function AdminPage() {
                                           parseFloat(e.target.value) || 0
                                         )
                                       }
-                                      className="glass bg-white/5 border-white/20 text-white"
-                                      placeholder="Price"
+                                      className="glass bg-white dark:bg-white/5 border-[#323D50]/15 dark:border-white/20 text-white"
+                                      placeholder={t("admin.bottleSizes.pricePlaceholder")}
                                     />
 
                                     <Input
@@ -1976,8 +2191,8 @@ export default function AdminPage() {
                                           parseInt(e.target.value) || 0
                                         )
                                       }
-                                      className="glass bg-white/5 border-white/20 text-white"
-                                      placeholder="Stock"
+                                      className="glass bg-white dark:bg-white/5 border-[#323D50]/15 dark:border-white/20 text-white"
+                                      placeholder={t("admin.bottleSizes.stockPlaceholder")}
                                     />
 
                                     <Button
@@ -1993,12 +2208,11 @@ export default function AdminPage() {
                                 ))}
                               </div>
                             ) : (
-                              <div className="text-center py-4 text-white/40">
+                              <div className="text-center py-4 text-[#6B7B8D] dark:text-white/40">
                                 <Package className="w-8 h-8 mx-auto mb-2" />
-                                <p>No bottle sizes added yet</p>
+                                <p>{t("admin.bottleSizes.noBottleSizesYet")}</p>
                                 <p className="text-xs">
-                                  Click "Add Bottle Size" to create bottle size
-                                  variants
+                                  {t("admin.bottleSizes.clickAddBottleSize")}
                                 </p>
                               </div>
                             )}
@@ -2010,9 +2224,9 @@ export default function AdminPage() {
                       {
                         <div className="space-y-4">
                           <div className="flex items-center justify-between">
-                            <Label className="text-white/80">
-                              <ImageIcon className="w-4 h-4 mr-2 inline" />
-                              Perfume Images
+                            <Label className="text-[#323D50] dark:text-white/80">
+                              <ImageIcon className={`w-4 h-4 ${isRTL ? "ms-2" : "me-2"} inline`} />
+                              {t("admin.images.perfumeImages")}
                             </Label>
                             <Button
                               type="button"
@@ -2020,10 +2234,10 @@ export default function AdminPage() {
                               size="sm"
                               onClick={() => fileInputRef.current?.click()}
                               disabled={imageUploading}
-                              className="border-white/20 text-white hover:bg-white/10"
+                              className="border-[#323D50]/15 dark:border-white/20 text-white hover:bg-white/10"
                             >
-                              <Upload className="w-4 h-4 mr-2" />
-                              {imageUploading ? "Uploading..." : "Add Images"}
+                              <Upload className={`w-4 h-4 ${isRTL ? "ms-2" : "me-2"}`} />
+                              {imageUploading ? t("admin.images.uploading") : t("admin.images.addImages")}
                             </Button>
                           </div>
 
@@ -2042,7 +2256,7 @@ export default function AdminPage() {
                               {perfumeImages.map((image) => (
                                 <div
                                   key={image.id}
-                                  className="relative group bg-white/5 rounded-lg p-2 border border-white/10"
+                                  className="relative group bg-white dark:bg-white/5 rounded-lg p-2 border border-[#323D50]/10 dark:border-white/10"
                                 >
                                   <img
                                     src={image.image_url}
@@ -2051,9 +2265,9 @@ export default function AdminPage() {
                                   />
 
                                   {image.is_primary && (
-                                    <div className="absolute top-1 left-1 bg-[#b24ce2] text-white px-2 py-1 rounded-full text-xs flex items-center">
-                                      <Star className="w-3 h-3 mr-1" />
-                                      Primary
+                                    <div className={`absolute top-1 ${isRTL ? "right-1" : "left-1"} bg-[#5B8DD9] text-white px-2 py-1 rounded-full text-xs flex items-center`}>
+                                      <Star className={`w-3 h-3 ${isRTL ? "ms-1" : "me-1"}`} />
+                                      {t("admin.images.primary")}
                                     </div>
                                   )}
 
@@ -2068,8 +2282,8 @@ export default function AdminPage() {
                                         }
                                         loading={settingPrimary === image.id}
                                         loadingText=""
-                                        className="h-6 w-6 p-0 bg-[#b24ce2] hover:bg-[#9a3bc7] border-none"
-                                        title="Set as primary"
+                                        className="h-6 w-6 p-0 bg-[#5B8DD9] hover:bg-[#3E6BB5] border-none"
+                                        title={t("admin.images.setAsPrimary")}
                                       >
                                         <Star className="w-3 h-3" />
                                       </LoadingButton>
@@ -2084,13 +2298,13 @@ export default function AdminPage() {
                                       loading={deletingImage === image.id}
                                       loadingText=""
                                       className="h-6 w-6 p-0 bg-red-500 hover:bg-red-600 border-none"
-                                      title="Delete image"
+                                      title={t("admin.images.deleteImage")}
                                     >
                                       <Trash2 className="w-3 h-3" />
                                     </LoadingButton>
                                   </div>
 
-                                  <div className="mt-2 text-xs text-white/60 text-center truncate">
+                                  <div className="mt-2 text-xs text-[#6B7B8D] dark:text-white/60 text-center truncate">
                                     {image.image_name}
                                   </div>
                                 </div>
@@ -2104,7 +2318,7 @@ export default function AdminPage() {
                               {pendingImages.map((file, index) => (
                                 <div
                                   key={index}
-                                  className="relative group bg-white/5 rounded-lg p-2 border border-white/10"
+                                  className="relative group bg-white dark:bg-white/5 rounded-lg p-2 border border-[#323D50]/10 dark:border-white/10"
                                 >
                                   <img
                                     src={URL.createObjectURL(file)}
@@ -2113,9 +2327,9 @@ export default function AdminPage() {
                                   />
 
                                   {index === 0 && (
-                                    <div className="absolute top-1 left-1 bg-[#b24ce2] text-white px-2 py-1 rounded-full text-xs flex items-center">
-                                      <Star className="w-3 h-3 mr-1" />
-                                      Primary
+                                    <div className={`absolute top-1 ${isRTL ? "right-1" : "left-1"} bg-[#5B8DD9] text-white px-2 py-1 rounded-full text-xs flex items-center`}>
+                                      <Star className={`w-3 h-3 ${isRTL ? "ms-1" : "me-1"}`} />
+                                      {t("admin.images.primary")}
                                     </div>
                                   )}
 
@@ -2126,13 +2340,13 @@ export default function AdminPage() {
                                       size="sm"
                                       onClick={() => removePendingImage(index)}
                                       className="h-6 w-6 p-0 bg-red-500 hover:bg-red-600 border-none"
-                                      title="Remove image"
+                                      title={t("admin.images.removeImage")}
                                     >
                                       <Trash2 className="w-3 h-3" />
                                     </Button>
                                   </div>
 
-                                  <div className="mt-2 text-xs text-white/60 text-center truncate">
+                                  <div className="mt-2 text-xs text-[#6B7B8D] dark:text-white/60 text-center truncate">
                                     {file.name}
                                   </div>
                                 </div>
@@ -2144,15 +2358,13 @@ export default function AdminPage() {
                           {((editingPerfume && perfumeImages.length === 0) ||
                             (!editingPerfume &&
                               pendingImages.length === 0)) && (
-                            <div className="text-center py-8 text-white/40">
+                            <div className="text-center py-8 text-[#6B7B8D] dark:text-white/40">
                               <ImageIcon className="w-12 h-12 mx-auto mb-2" />
                               <p>
-                                No images{" "}
-                                {editingPerfume ? "uploaded" : "selected"} yet
+                                {editingPerfume ? t("admin.images.noImagesUploaded") : t("admin.images.noImagesSelected")}
                               </p>
                               <p className="text-xs">
-                                Click "Add Images" to{" "}
-                                {editingPerfume ? "upload" : "select"} photos
+                                {editingPerfume ? t("admin.images.clickAddToUpload") : t("admin.images.clickAddToSelect")}
                               </p>
                             </div>
                           )}
@@ -2164,20 +2376,20 @@ export default function AdminPage() {
                           onClick={handleSubmit}
                           loading={submitLoading}
                           loadingText={
-                            editingPerfume ? "Updating..." : "Creating..."
+                            editingPerfume ? t("admin.form.updating") : t("admin.form.creating")
                           }
-                          className="flex-1 bg-[#b24ce2] hover:bg-[#9a3bc7] text-white"
+                          className="flex-1 bg-[#5B8DD9] hover:bg-[#3E6BB5] text-white"
                         >
-                          <Save className="w-4 h-4 mr-2" />
-                          {editingPerfume ? "Update" : "Create"}
+                          <Save className={`w-4 h-4 ${isRTL ? "ms-2" : "me-2"}`} />
+                          {editingPerfume ? t("admin.form.update") : t("admin.form.create")}
                         </LoadingButton>
                         <Button
                           variant="outline"
                           onClick={() => setIsDialogOpen(false)}
-                          className="flex-1 border-white/20 text-white hover:bg-white/10"
+                          className="flex-1 border-[#323D50]/15 dark:border-white/20 text-white hover:bg-white/10"
                         >
-                          <X className="w-4 h-4 mr-2" />
-                          Cancel
+                          <X className={`w-4 h-4 ${isRTL ? "ms-2" : "me-2"}`} />
+                          {t("admin.form.cancel")}
                         </Button>
                       </div>
                     </div>
@@ -2190,23 +2402,23 @@ export default function AdminPage() {
                 <div className="overflow-x-auto">
                   <Table className="min-w-full">
                     <TableHeader>
-                      <TableRow className="border-white/10">
-                        <TableHead className="text-white/80">Image</TableHead>
-                        <TableHead className="text-white/80">Name</TableHead>
-                        <TableHead className="text-white/80">Price</TableHead>
-                        <TableHead className="text-white/80">Type</TableHead>
-                        <TableHead className="text-white/80">Gender</TableHead>
-                        <TableHead className="text-white/80">Stock</TableHead>
-                        <TableHead className="text-white/80">Images</TableHead>
-                        <TableHead className="text-white/80">Status</TableHead>
-                        <TableHead className="text-white/80 text-center">
-                          Actions
+                      <TableRow className="border-[#323D50]/10 dark:border-white/10">
+                        <TableHead className="text-[#323D50] dark:text-white/80">{t("admin.table.image")}</TableHead>
+                        <TableHead className="text-[#323D50] dark:text-white/80">{t("admin.table.name")}</TableHead>
+                        <TableHead className="text-[#323D50] dark:text-white/80">{t("admin.table.price")}</TableHead>
+                        <TableHead className="text-[#323D50] dark:text-white/80">{t("admin.table.type")}</TableHead>
+                        <TableHead className="text-[#323D50] dark:text-white/80">{t("admin.table.gender")}</TableHead>
+                        <TableHead className="text-[#323D50] dark:text-white/80">{t("admin.table.stock")}</TableHead>
+                        <TableHead className="text-[#323D50] dark:text-white/80">{t("admin.table.images")}</TableHead>
+                        <TableHead className="text-[#323D50] dark:text-white/80">{t("admin.table.status")}</TableHead>
+                        <TableHead className="text-[#323D50] dark:text-white/80 text-center">
+                          {t("admin.table.actions")}
                         </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {filteredPerfumes.map((perfume) => (
-                        <TableRow key={perfume.id} className="border-white/10">
+                        <TableRow key={perfume.id} className="border-[#323D50]/10 dark:border-white/10">
                           <TableCell>
                             <img
                               src={
@@ -2222,10 +2434,10 @@ export default function AdminPage() {
                               }}
                             />
                           </TableCell>
-                          <TableCell className="text-white font-medium">
+                          <TableCell className="text-[#323D50] dark:text-white font-medium">
                             {perfume.name}
                           </TableCell>
-                          <TableCell className="text-[#b24ce2] font-semibold">
+                          <TableCell className="text-[#5B8DD9] font-semibold">
                             {perfume.price} LYD
                           </TableCell>
                           <TableCell>
@@ -2249,7 +2461,7 @@ export default function AdminPage() {
                               className={`${
                                 perfume.stock_quantity < 10
                                   ? "text-orange-400"
-                                  : "text-white"
+                                  : "text-[#323D50] dark:text-white"
                               }`}
                             >
                               {perfume.stock_quantity}
@@ -2257,8 +2469,8 @@ export default function AdminPage() {
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
-                              <ImageIcon className="w-4 h-4 text-white/60" />
-                              <span className="text-white">
+                              <ImageIcon className="w-4 h-4 text-[#6B7B8D] dark:text-white/60" />
+                              <span className="text-[#323D50] dark:text-white">
                                 {perfume.images?.length || 0}
                               </span>
                             </div>
@@ -2269,7 +2481,7 @@ export default function AdminPage() {
                                 perfume.is_active ? "default" : "destructive"
                               }
                             >
-                              {perfume.is_active ? "Active" : "Inactive"}
+                              {perfume.is_active ? t("admin.status.active") : t("admin.status.inactive")}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-center">
@@ -2282,9 +2494,9 @@ export default function AdminPage() {
                                 }
                                 loading={togglingStatus === perfume.id}
                                 loadingText=""
-                                className="h-8 px-3 border-white/20 text-white hover:bg-white/10 transition-colors"
+                                className="h-8 px-3 border-[#323D50]/15 dark:border-white/20 text-white hover:bg-white/10 transition-colors"
                                 title={
-                                  perfume.is_active ? "Deactivate" : "Activate"
+                                  perfume.is_active ? t("admin.actions.deactivate") : t("admin.actions.activate")
                                 }
                               >
                                 {perfume.is_active ? (
@@ -2297,8 +2509,8 @@ export default function AdminPage() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => handleEdit(perfume)}
-                                className="h-8 px-3 border-white/20 text-white hover:bg-blue-500/20 hover:border-blue-500/40 transition-colors"
-                                title="Edit"
+                                className="h-8 px-3 border-[#323D50]/15 dark:border-white/20 text-white hover:bg-blue-500/20 hover:border-blue-500/40 transition-colors"
+                                title={t("admin.actions.edit")}
                               >
                                 <Edit className="w-3 h-3" />
                               </Button>
@@ -2308,8 +2520,8 @@ export default function AdminPage() {
                                 onClick={() => handleDelete(perfume.id)}
                                 loading={deletingPerfume === perfume.id}
                                 loadingText=""
-                                className="h-8 px-3 border-white/20 text-white hover:bg-red-500/20 hover:border-red-500/40 transition-colors"
-                                title="Delete"
+                                className="h-8 px-3 border-[#323D50]/15 dark:border-white/20 text-white hover:bg-red-500/20 hover:border-red-500/40 transition-colors"
+                                title={t("admin.actions.delete")}
                               >
                                 <Trash2 className="w-3 h-3" />
                               </LoadingButton>
@@ -2327,15 +2539,15 @@ export default function AdminPage() {
           <TabsContent value="orders" className="mt-6">
             <div className="space-y-6">
               <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-white">
-                  Orders Management
+                <h2 className="text-2xl font-bold text-[#323D50] dark:text-white">
+                  {t("admin.ordersManagement")}
                 </h2>
                 <Button
                   onClick={loadOrders}
                   variant="outline"
-                  className="border-white/20 text-white hover:bg-white/10"
+                  className="border-[#323D50]/15 dark:border-white/20 text-white hover:bg-white/10"
                 >
-                  Refresh Orders
+                  {t("admin.refreshOrders")}
                 </Button>
               </div>
 
@@ -2344,92 +2556,123 @@ export default function AdminPage() {
                 <div className="overflow-x-auto">
                   <Table className="min-w-full">
                     <TableHeader>
-                      <TableRow className="border-white/10">
-                        <TableHead className="text-white/80">
-                          Order ID
+                      <TableRow className="border-[#323D50]/10 dark:border-white/10">
+                        <TableHead className="text-[#323D50] dark:text-white/80">
+                          {t("admin.table.orderId")}
                         </TableHead>
-                        <TableHead className="text-white/80">
-                          Customer
+                        <TableHead className="text-[#323D50] dark:text-white/80">
+                          {t("admin.table.customer")}
                         </TableHead>
-                        <TableHead className="text-white/80">Email</TableHead>
-                        <TableHead className="text-white/80">Phone</TableHead>
-                        <TableHead className="text-white/80">City</TableHead>
-                        <TableHead className="text-white/80">
-                          Place Name
+                        <TableHead className="text-[#323D50] dark:text-white/80">{t("admin.table.email")}</TableHead>
+                        <TableHead className="text-[#323D50] dark:text-white/80">{t("admin.table.phone")}</TableHead>
+                        <TableHead className="text-[#323D50] dark:text-white/80">{t("admin.table.city")}</TableHead>
+                        <TableHead className="text-[#323D50] dark:text-white/80">
+                          {t("admin.table.placeName")}
                         </TableHead>
-                        <TableHead className="text-white/80">Total</TableHead>
-                        <TableHead className="text-white/80">Date</TableHead>
-                        <TableHead className="text-white/80">Items</TableHead>
-                        <TableHead className="text-white/80">Status</TableHead>
-                        <TableHead className="text-white/80 text-center">
-                          Actions
+                        <TableHead className="text-[#323D50] dark:text-white/80">{t("admin.table.total")}</TableHead>
+                        <TableHead className="text-[#323D50] dark:text-white/80">{t("admin.table.date")}</TableHead>
+                        <TableHead className="text-[#323D50] dark:text-white/80">{t("admin.table.items")}</TableHead>
+                        <TableHead className="text-[#323D50] dark:text-white/80">{t("admin.table.status")}</TableHead>
+                        <TableHead className="text-[#323D50] dark:text-white/80">Vanex Code</TableHead>
+                        <TableHead className="text-[#323D50] dark:text-white/80 text-center">
+                          {t("admin.table.actions")}
                         </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {ordersLoading ? (
                         <TableRow>
-                          <TableCell colSpan={10} className="text-center py-8">
-                            <div className="text-white/60">
-                              Loading orders...
+                          <TableCell colSpan={11} className="text-center py-8">
+                            <div className="text-[#6B7B8D] dark:text-white/60">
+                              {t("admin.orders.loadingOrders")}
                             </div>
                           </TableCell>
                         </TableRow>
                       ) : orders.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={10} className="text-center py-8">
-                            <div className="text-white/60">No orders found</div>
+                          <TableCell colSpan={11} className="text-center py-8">
+                            <div className="text-[#6B7B8D] dark:text-white/60">{t("admin.orders.noOrders")}</div>
                           </TableCell>
                         </TableRow>
                       ) : (
                         orders.map((order) => (
-                          <TableRow key={order.id} className="border-white/10">
-                            <TableCell className="text-white font-mono text-sm">
+                          <TableRow key={order.id} className="border-[#323D50]/10 dark:border-white/10">
+                            <TableCell className="text-[#323D50] dark:text-white font-mono text-sm">
                               {order.id.slice(0, 8)}...
                             </TableCell>
-                            <TableCell className="text-white font-medium">
+                            <TableCell className="text-[#323D50] dark:text-white font-medium">
                               {order.first_name} {order.last_name}
                             </TableCell>
-                            <TableCell className="text-white/80">
+                            <TableCell className="text-[#323D50] dark:text-white/80">
                               {order.email}
                             </TableCell>
-                            <TableCell className="text-white/80">
+                            <TableCell className="text-[#323D50] dark:text-white/80">
                               {order.phone}
                             </TableCell>
-                            <TableCell className="text-white/80">
+                            <TableCell className="text-[#323D50] dark:text-white/80">
                               {order.city}
                             </TableCell>
-                            <TableCell className="text-white/80">
+                            <TableCell className="text-[#323D50] dark:text-white/80">
                               {order.place_name || "-"}
                             </TableCell>
-                            <TableCell className="text-[#b24ce2] font-semibold">
+                            <TableCell className="text-[#5B8DD9] font-semibold">
                               {order.total.toFixed(2)} LYD
                             </TableCell>
-                            <TableCell className="text-white/80">
+                            <TableCell className="text-[#323D50] dark:text-white/80">
                               {new Date(order.order_date).toLocaleDateString()}
                             </TableCell>
-                            <TableCell className="text-white/80">
-                              {order.items.length} item(s)
+                            <TableCell className="text-[#323D50] dark:text-white/80">
+                              {order.items.length} {t("admin.orders.itemCount")}
                             </TableCell>
                             <TableCell>
-                              <Badge
-                                variant={
-                                  order.status === "accepted"
-                                    ? "default"
-                                    : order.status === "returned"
-                                    ? "secondary"
-                                    : "outline"
+                              <Select
+                                value={order.status}
+                                onValueChange={(value) =>
+                                  handleStatusChange(order, value as Order["status"])
                                 }
-                                className={
-                                  order.status === "accepted"
+                                disabled={updatingOrderStatus === order.id}
+                              >
+                                <SelectTrigger className={`h-8 w-[130px] text-xs border-[#323D50]/15 dark:border-white/20 ${
+                                  order.status === "delivered"
                                     ? "bg-green-500/20 text-green-400 border-green-500/40"
+                                    : order.status === "shipped"
+                                    ? "bg-blue-500/20 text-blue-400 border-blue-500/40"
+                                    : order.status === "processing"
+                                    ? "bg-orange-500/20 text-orange-400 border-orange-500/40"
+                                    : order.status === "confirmed" || order.status === "accepted"
+                                    ? "bg-white/50/20 text-[#5B8DD9] border-[#5B8DD9]/40"
                                     : order.status === "returned"
                                     ? "bg-yellow-500/20 text-yellow-400 border-yellow-500/40"
-                                    : "bg-blue-500/20 text-blue-400 border-blue-500/40"
-                                }
-                              >
-                                {order.status}
-                              </Badge>
+                                    : "bg-white dark:bg-white/5 text-[#6B7B8D] dark:text-white/60 border-[#323D50]/15 dark:border-white/20"
+                                }`}>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className="glass bg-[#F8F9FB] dark:bg-[#1a2235] border-[#323D50]/15 dark:border-white/20">
+                                  <SelectItem value="pending" className="text-[#323D50] dark:text-white hover:bg-[#323D50]/10 dark:hover:bg-white/10 focus:bg-[#323D50]/10 dark:focus:bg-white/10">{t("admin.status.pending")}</SelectItem>
+                                  <SelectItem value="confirmed" className="text-[#323D50] dark:text-white hover:bg-[#323D50]/10 dark:hover:bg-white/10 focus:bg-[#323D50]/10 dark:focus:bg-white/10">{t("admin.status.confirmed")}</SelectItem>
+                                  <SelectItem value="processing" className="text-[#323D50] dark:text-white hover:bg-[#323D50]/10 dark:hover:bg-white/10 focus:bg-[#323D50]/10 dark:focus:bg-white/10">{t("admin.status.processing")}</SelectItem>
+                                  <SelectItem value="shipped" className="text-[#323D50] dark:text-white hover:bg-[#323D50]/10 dark:hover:bg-white/10 focus:bg-[#323D50]/10 dark:focus:bg-white/10">{t("admin.status.shipped")}</SelectItem>
+                                  <SelectItem value="delivered" className="text-[#323D50] dark:text-white hover:bg-[#323D50]/10 dark:hover:bg-white/10 focus:bg-[#323D50]/10 dark:focus:bg-white/10">{t("admin.status.delivered")}</SelectItem>
+                                  <SelectItem value="accepted" className="text-[#323D50] dark:text-white hover:bg-[#323D50]/10 dark:hover:bg-white/10 focus:bg-[#323D50]/10 dark:focus:bg-white/10">{t("admin.status.accepted")}</SelectItem>
+                                  <SelectItem value="returned" className="text-[#323D50] dark:text-white hover:bg-[#323D50]/10 dark:hover:bg-white/10 focus:bg-[#323D50]/10 dark:focus:bg-white/10">{t("admin.status.returned")}</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                            <TableCell>
+                              {order.vanex_package_code ? (
+                                <button
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(order.vanex_package_code!);
+                                    toast.success("Package code copied!");
+                                  }}
+                                  className="font-mono text-xs text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 rounded-lg px-2 py-1 transition-colors"
+                                  title="Click to copy"
+                                >
+                                  {order.vanex_package_code}
+                                </button>
+                              ) : (
+                                <span className="text-[#6B7B8D] dark:text-white/30 text-xs">—</span>
+                              )}
                             </TableCell>
                             <TableCell className="text-center">
                               <div className="flex items-center justify-center gap-1">
@@ -2437,19 +2680,33 @@ export default function AdminPage() {
                                   variant="outline"
                                   size="sm"
                                   onClick={() => handleViewOrderDetails(order)}
-                                  className="h-8 px-3 border-white/20 text-white hover:bg-blue-500/20 hover:border-blue-500/40 transition-colors"
-                                  title="View Details"
+                                  className="h-8 px-3 border-[#323D50]/15 dark:border-white/20 text-white hover:bg-blue-500/20 hover:border-blue-500/40 transition-colors"
+                                  title={t("admin.orders.viewDetails")}
                                 >
                                   <Eye className="w-3 h-3" />
                                 </Button>
+                                {/* Send to Vanex */}
+                                {!order.vanex_package_code && (
+                                  <LoadingButton
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleSendToVanex(order)}
+                                    loading={sendingToVanex === order.id}
+                                    loadingText=""
+                                    className="h-8 px-3 border-[#323D50]/15 dark:border-white/20 text-white hover:bg-[#5B8DD9]/20 hover:border-[#5B8DD9]/40 transition-colors"
+                                    title="Send to Vanex"
+                                  >
+                                    <Truck className="w-3 h-3" />
+                                  </LoadingButton>
+                                )}
                                 <LoadingButton
                                   variant="outline"
                                   size="sm"
                                   onClick={() => handleAcceptOrder(order)}
                                   loading={acceptingOrder === order.id}
                                   loadingText=""
-                                  className="h-8 px-3 border-white/20 text-white hover:bg-green-500/20 hover:border-green-500/40 transition-colors"
-                                  title="Accept Order"
+                                  className="h-8 px-3 border-[#323D50]/15 dark:border-white/20 text-white hover:bg-green-500/20 hover:border-green-500/40 transition-colors"
+                                  title={t("admin.orders.acceptOrder")}
                                 >
                                   <Check className="w-3 h-3" />
                                 </LoadingButton>
@@ -2459,8 +2716,8 @@ export default function AdminPage() {
                                   onClick={() => handleBackOrder(order)}
                                   loading={returningOrder === order.id}
                                   loadingText=""
-                                  className="h-8 px-3 border-white/20 text-white hover:bg-yellow-500/20 hover:border-yellow-500/40 transition-colors"
-                                  title="Back Order"
+                                  className="h-8 px-3 border-[#323D50]/15 dark:border-white/20 text-white hover:bg-yellow-500/20 hover:border-yellow-500/40 transition-colors"
+                                  title={t("admin.orders.returnOrder")}
                                 >
                                   <RotateCcw className="w-3 h-3" />
                                 </LoadingButton>
@@ -2470,8 +2727,8 @@ export default function AdminPage() {
                                   onClick={() => handleDeleteOrder(order.id)}
                                   loading={deletingOrder === order.id}
                                   loadingText=""
-                                  className="h-8 px-3 border-white/20 text-white hover:bg-red-500/20 hover:border-red-500/40 transition-colors"
-                                  title="Delete Order"
+                                  className="h-8 px-3 border-[#323D50]/15 dark:border-white/20 text-white hover:bg-red-500/20 hover:border-red-500/40 transition-colors"
+                                  title={t("admin.orders.deleteOrder")}
                                 >
                                   <Trash2 className="w-3 h-3" />
                                 </LoadingButton>
@@ -2484,6 +2741,194 @@ export default function AdminPage() {
                   </Table>
                 </div>
               </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="reviews" className="mt-6">
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-[#323D50] dark:text-white">
+                  {t("admin.reviews.title")}
+                </h2>
+                <div className="flex gap-3">
+                  <div className="glass-card px-4 py-2 rounded-xl text-sm dark:text-white/70 text-[#6B7B8D]">
+                    {t("admin.reviews.pendingCount")}:{" "}
+                    <span className="text-amber-500 font-bold">{pendingReviewCount}</span>
+                  </div>
+                  <div className="glass-card px-4 py-2 rounded-xl text-sm dark:text-white/70 text-[#6B7B8D]">
+                    {t("admin.reviews.totalReviews")}:{" "}
+                    <span className="text-[#5B8DD9] font-bold">{reviews.length}</span>
+                  </div>
+                </div>
+              </div>
+
+              {reviewsLoading ? (
+                <div className="text-center py-12 dark:text-white/50 text-[#6B7B8D]">
+                  {t("admin.loadingTitle")}
+                </div>
+              ) : (
+                <>
+                  {/* Pending Reviews */}
+                  <div className="glass-card rounded-2xl overflow-hidden">
+                    <div className="px-6 py-4 border-b dark:border-white/10 border-[#323D50]/10 flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                      <h3 className="font-semibold dark:text-white text-[#323D50]">
+                        {t("admin.reviews.pendingReviews")}
+                      </h3>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="dark:border-white/10 border-[#323D50]/10">
+                            <TableHead className="dark:text-white/60 text-[#6B7B8D]">{t("admin.reviews.product")}</TableHead>
+                            <TableHead className="dark:text-white/60 text-[#6B7B8D]">{t("admin.reviews.user")}</TableHead>
+                            <TableHead className="dark:text-white/60 text-[#6B7B8D]">{t("admin.reviews.rating")}</TableHead>
+                            <TableHead className="dark:text-white/60 text-[#6B7B8D]">{t("admin.reviews.comment")}</TableHead>
+                            <TableHead className="dark:text-white/60 text-[#6B7B8D]">{t("admin.reviews.date")}</TableHead>
+                            <TableHead className="dark:text-white/60 text-[#6B7B8D]">{t("admin.table.actions")}</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {reviews.filter((r) => r.status === "pending").length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={6} className="text-center py-8 dark:text-white/40 text-[#6B7B8D]">
+                                {t("admin.reviews.noPendingReviews")}
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            reviews
+                              .filter((r) => r.status === "pending")
+                              .map((review) => (
+                                <TableRow key={review.id} className="dark:border-white/10 border-[#323D50]/10">
+                                  <TableCell className="dark:text-white/80 text-[#323D50] font-medium max-w-[120px] truncate">
+                                    {review.perfume_name}
+                                  </TableCell>
+                                  <TableCell className="dark:text-white/60 text-[#6B7B8D] text-sm">
+                                    {review.user_email}
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="flex gap-0.5">
+                                      {[1, 2, 3, 4, 5].map((s) => (
+                                        <Star
+                                          key={s}
+                                          className={`w-3.5 h-3.5 ${s <= review.rating ? "text-amber-400 fill-amber-400" : "dark:text-white/20 text-[#6B7B8D]/30"}`}
+                                        />
+                                      ))}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="dark:text-white/60 text-[#6B7B8D] text-sm max-w-[200px] truncate">
+                                    {review.comment}
+                                  </TableCell>
+                                  <TableCell className="dark:text-white/50 text-[#6B7B8D] text-xs">
+                                    {new Date(review.created_at).toLocaleDateString()}
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="flex gap-2">
+                                      <LoadingButton
+                                        size="sm"
+                                        onClick={() => handleApproveReview(review.id)}
+                                        loading={approvingReview === review.id}
+                                        loadingText={t("admin.reviews.approving")}
+                                        className="h-8 bg-green-600 hover:bg-green-700 text-white text-xs"
+                                      >
+                                        <Check className="w-3 h-3 me-1" />
+                                        {t("admin.reviews.approve")}
+                                      </LoadingButton>
+                                      <LoadingButton
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handleDeleteReview(review.id)}
+                                        loading={deletingReview === review.id}
+                                        loadingText=""
+                                        className="h-8 px-3 border-[#323D50]/15 dark:border-white/20 text-white hover:bg-red-500/20 hover:border-red-500/40 transition-colors"
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </LoadingButton>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              ))
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+
+                  {/* Approved Reviews */}
+                  <div className="glass-card rounded-2xl overflow-hidden">
+                    <div className="px-6 py-4 border-b dark:border-white/10 border-[#323D50]/10 flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
+                      <h3 className="font-semibold dark:text-white text-[#323D50]">
+                        {t("admin.reviews.approvedReviews")}
+                      </h3>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="dark:border-white/10 border-[#323D50]/10">
+                            <TableHead className="dark:text-white/60 text-[#6B7B8D]">{t("admin.reviews.product")}</TableHead>
+                            <TableHead className="dark:text-white/60 text-[#6B7B8D]">{t("admin.reviews.user")}</TableHead>
+                            <TableHead className="dark:text-white/60 text-[#6B7B8D]">{t("admin.reviews.rating")}</TableHead>
+                            <TableHead className="dark:text-white/60 text-[#6B7B8D]">{t("admin.reviews.comment")}</TableHead>
+                            <TableHead className="dark:text-white/60 text-[#6B7B8D]">{t("admin.reviews.date")}</TableHead>
+                            <TableHead className="dark:text-white/60 text-[#6B7B8D]">{t("admin.table.actions")}</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {reviews.filter((r) => r.status === "approved").length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={6} className="text-center py-8 dark:text-white/40 text-[#6B7B8D]">
+                                {t("admin.reviews.noApprovedReviews")}
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            reviews
+                              .filter((r) => r.status === "approved")
+                              .map((review) => (
+                                <TableRow key={review.id} className="dark:border-white/10 border-[#323D50]/10">
+                                  <TableCell className="dark:text-white/80 text-[#323D50] font-medium max-w-[120px] truncate">
+                                    {review.perfume_name}
+                                  </TableCell>
+                                  <TableCell className="dark:text-white/60 text-[#6B7B8D] text-sm">
+                                    {review.user_email}
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="flex gap-0.5">
+                                      {[1, 2, 3, 4, 5].map((s) => (
+                                        <Star
+                                          key={s}
+                                          className={`w-3.5 h-3.5 ${s <= review.rating ? "text-amber-400 fill-amber-400" : "dark:text-white/20 text-[#6B7B8D]/30"}`}
+                                        />
+                                      ))}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="dark:text-white/60 text-[#6B7B8D] text-sm max-w-[200px] truncate">
+                                    {review.comment}
+                                  </TableCell>
+                                  <TableCell className="dark:text-white/50 text-[#6B7B8D] text-xs">
+                                    {new Date(review.created_at).toLocaleDateString()}
+                                  </TableCell>
+                                  <TableCell>
+                                    <LoadingButton
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleDeleteReview(review.id)}
+                                      loading={deletingReview === review.id}
+                                      loadingText=""
+                                      className="h-8 px-3 border-[#323D50]/15 dark:border-white/20 text-white hover:bg-red-500/20 hover:border-red-500/40 transition-colors"
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                    </LoadingButton>
+                                  </TableCell>
+                                </TableRow>
+                              ))
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </TabsContent>
         </Tabs>

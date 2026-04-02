@@ -12,6 +12,7 @@ import {
   Eye,
 } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { Input } from "@/components/ui/input";
@@ -34,94 +35,24 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { Link } from "react-router-dom";
+import {
+  fetchVanexCities,
+  fetchVanexSubCities,
+  VanexCity,
+  VanexSubCity,
+} from "@/services/vanexService";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface CartSidebarProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const libyaCities = [
-  "طرابلس",
-  "ضواحي طرابلس",
-  "السواني",
-  "الزهراء",
-  "الساعدية",
-  "العزيزية",
-  "خلة الفرجان",
-  "سوق الأحد",
-  "قصر بن غشير",
-  "السبيعة",
-  "سوق الخميس",
-  "القرة بولي",
-  "قماطة أو قصر خيار",
-  "الخمس",
-  "زليتن",
-  "مصراتة",
-  "الزاوية",
-  "صرمان",
-  "صبراته",
-  "زوارة",
-  "توصيل نسائي ضواحي طرابلس",
-  "ترهونة",
-  "بني وليد",
-  "مسلاتة",
-  "ورشفانة",
-  "العجيلات",
-  "الجميل",
-  "رقدالين",
-  "زلطن",
-  "رأس جدير",
-  "بنغازي",
-  "المرج",
-  "طبرق",
-  "درنة",
-  "الأيبار",
-  "البيضاء",
-  "شحات",
-  "القبة",
-  "جالو",
-  "أوجلة",
-  "الواحات",
-  "الكفرة",
-  "سبها",
-  "براك الشاطئ",
-  "أوباري",
-  "تراغن",
-  "مرزق",
-  "العوينات",
-  "غات",
-  "سرت",
-  "هرواة",
-  "بن جواد",
-  "النوفلية",
-  "رأس لانوف",
-  "العقيلة",
-  "اجدابيا",
-  "هون",
-  "الجفرة",
-  "سوكنة",
-  "غريان",
-  "الأصابعة",
-  "الرابطة",
-  "المشاشية",
-  "الزنتان",
-  "الريانية",
-  "يفرن",
-  "القلعة",
-  "الرجبان",
-  "الرحيبات",
-  "الرقيعات",
-  "جادو",
-  "كاباو",
-  "درج",
-  "نالوت",
-];
 
 export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
   const {
@@ -133,16 +64,64 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
     canAddToCart,
     getItemCount,
   } = useCart();
+  const { t, isRTL } = useLanguage();
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [lastOrderId, setLastOrderId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
     email: "",
     phone: "",
     city: "",
-    placeName: "", // Add placeName to formData
+    placeName: "",
+    vanexCityId: null as number | null,
+    vanexSubCityId: null as number | null,
   });
+
+  // Vanex city/sub-city state
+  const [vanexCities, setVanexCities] = useState<VanexCity[]>([]);
+  const [vanexSubCities, setVanexSubCities] = useState<VanexSubCity[]>([]);
+  const [citiesLoading, setCitiesLoading] = useState(false);
+  const [subCitiesLoading, setSubCitiesLoading] = useState(false);
+
+  // Load Vanex cities once when checkout opens
+  useEffect(() => {
+    if (!isCheckoutOpen || vanexCities.length > 0) return;
+    setCitiesLoading(true);
+    fetchVanexCities()
+      .then(setVanexCities)
+      .finally(() => setCitiesLoading(false));
+  }, [isCheckoutOpen, vanexCities.length]);
+
+  const handleCitySelect = async (cityId: string) => {
+    const id = Number(cityId);
+    const city = vanexCities.find((c) => c.id === id);
+    setFormData((prev) => ({
+      ...prev,
+      vanexCityId: id,
+      city: city ? `${city.name_en} / ${city.name}` : cityId,
+      vanexSubCityId: null,
+      placeName: "",
+    }));
+    setVanexSubCities([]);
+    setSubCitiesLoading(true);
+    const subs = await fetchVanexSubCities(id);
+    setVanexSubCities(subs);
+    setSubCitiesLoading(false);
+  };
+
+  const handleSubCitySelect = (subCityId: string) => {
+    const id = Number(subCityId);
+    const sub = vanexSubCities.find((s) => s.sub_city_id === id);
+    setFormData((prev) => ({
+      ...prev,
+      vanexSubCityId: id,
+      placeName: sub?.sub_city_name || subCityId,
+    }));
+  };
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({
@@ -159,7 +138,7 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
   ) => {
     // Check if the new quantity exceeds stock
     if (stockQuantity && newQuantity > stockQuantity) {
-      toast.error(`Only ${stockQuantity} items available in stock`);
+      toast.error(t("cart.onlyXAvailable").replace("{count}", String(stockQuantity)));
       return;
     }
 
@@ -185,10 +164,10 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
       !formData.lastName ||
       !formData.email ||
       !formData.phone ||
-      !formData.city ||
-      !formData.placeName // Require placeName
+      !formData.vanexCityId ||
+      !formData.vanexSubCityId
     ) {
-      toast.error("Please fill in all fields");
+      toast.error(t("cart.fillAllFields"));
       return;
     }
 
@@ -206,7 +185,7 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
     }
 
     if (stockErrors.length > 0) {
-      toast.error("Stock insufficient for some items:");
+      toast.error(t("cart.stockInsufItems"));
       stockErrors.forEach((error) => toast.error(error));
       return;
     }
@@ -214,7 +193,7 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
     // Additional validation for sold out items
     const soldOutItems = items.filter((item) => item.stock_quantity === 0);
     if (soldOutItems.length > 0) {
-      toast.error("Some items are sold out and cannot be ordered:");
+      toast.error(t("cart.soldOutItems"));
       soldOutItems.forEach((item) =>
         toast.error(`${item.name} (${item.size}) - Sold Out`)
       );
@@ -231,26 +210,33 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
         email: formData.email,
         phone: formData.phone,
         city: formData.city,
-        place_name: formData.placeName, // Add place_name
+        place_name: formData.placeName,
+        vanex_city_id: formData.vanexCityId,
+        vanex_sub_city_id: formData.vanexSubCityId,
         total: getTotalPrice(),
         order_date: new Date().toISOString(),
         items: items,
       };
 
       // Insert order into Supabase
-      const { error } = await supabase
+      const { data: insertedData, error } = await supabase
         .from("orders")
         .insert([orderData])
         .select();
 
       if (error) {
         console.error("Error inserting order:", error);
-        toast.error("Failed to place order. Please try again.");
+        toast.error(t("cart.orderFailed"));
         return;
       }
 
+      const orderId = insertedData?.[0]?.id;
+      if (orderId) {
+        setLastOrderId(orderId);
+      }
+
       // Success
-      toast.success("Order placed successfully!");
+      toast.success(t("cart.orderSuccess"));
 
       // Clear cart and close dialogs
       clearCart();
@@ -265,10 +251,13 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
         phone: "",
         city: "",
         placeName: "",
+        vanexCityId: null,
+        vanexSubCityId: null,
       });
+      setVanexSubCities([]);
     } catch (error) {
       console.error("Error placing order:", error);
-      toast.error("Failed to place order. Please try again.");
+      toast.error(t("cart.orderFailed"));
     } finally {
       setCheckoutLoading(false);
     }
@@ -277,21 +266,21 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent
-        side="right"
-        className="bg-[#0e0a1d] border-white/10 w-full sm:w-[480px] lg:w-[540px] px-4 sm:px-6"
+        side={isRTL ? "left" : "right"}
+        className="bg-[#F8F9FB] dark:bg-[#1a2235] dark:border-white/10 border-[#323D50]/10 w-full sm:w-[480px] lg:w-[540px] px-4 sm:px-6"
       >
         <SheetHeader className="pb-4 sm:pb-6 relative">
           <div className="flex items-center justify-between pr-2">
-            <div className="flex items-center space-x-3">
-              <SheetTitle className="text-white text-xl sm:text-2xl font-bold gradient-text">
-                Shopping Cart
+            <div className="flex items-center space-x-3 rtl:space-x-reverse">
+              <SheetTitle className="dark:text-[#F5F5F5] text-[#323D50] text-xl sm:text-2xl font-bold gradient-text">
+                {t("cart.title")}
               </SheetTitle>
               {items.length > 0 && (
-                <div className="flex items-center space-x-2">
-                  <span className="text-white/70 text-sm font-medium">
-                    {getItemCount()} {getItemCount() === 1 ? "item" : "items"}
+                <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                  <span className="dark:text-white/70 text-[#6B7B8D] text-sm font-medium">
+                    {getItemCount()} {getItemCount() === 1 ? t("cart.item") : t("cart.items")}
                   </span>
-                  <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-r from-[#b24ce2] to-[#8e2de2] rounded-full flex items-center justify-center shadow-lg">
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] rounded-full flex items-center justify-center shadow-lg">
                     <span className="text-white text-xs sm:text-sm font-bold">
                       {getItemCount()}
                     </span>
@@ -306,28 +295,63 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
         <div className="flex flex-col h-full">
           {items.length === 0 ? (
             <div className="flex-1 flex items-center justify-center flex-col text-center px-4 sm:px-8">
-              <div className="glass-card bg-white/5 border border-white/10 rounded-3xl p-6 sm:p-12 max-w-sm w-full">
-                <div className="relative mb-6">
-                  <ShoppingBag className="h-12 w-12 sm:h-16 sm:w-16 text-white/40 mx-auto" />
-                  <div className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 w-6 h-6 sm:w-8 sm:h-8 bg-[#b24ce2] rounded-full flex items-center justify-center">
-                    <span className="text-white text-xs sm:text-sm font-bold">
-                      0
-                    </span>
-                  </div>
-                </div>
-                <h3 className="text-white font-semibold text-lg sm:text-xl mb-2">
-                  Your cart is empty
-                </h3>
-                <p className="text-white/60 text-sm mb-6">
-                  Discover our luxurious fragrances and add them to your cart
-                </p>
-                <Button
-                  onClick={onClose}
-                  className="w-full glass bg-gradient-to-r from-[#b24ce2] to-[#8e2de2] hover:from-[#8e2de2] hover:to-[#b24ce2] text-white border-0 rounded-xl px-6 py-3 font-semibold transition-all duration-300 hover:scale-105"
-                >
-                  <ShoppingBag className="w-4 h-4 mr-2" />
-                  Start Shopping
-                </Button>
+              <div className="glass-card dark:bg-white/5 bg-white border dark:border-white/10 border-[#323D50]/10 rounded-3xl p-6 sm:p-12 max-w-sm w-full">
+                {lastOrderId ? (
+                  <>
+                    <div className="relative mb-6">
+                      <div className="w-16 h-16 mx-auto bg-green-500/20 rounded-full flex items-center justify-center">
+                        <ShoppingBag className="h-8 w-8 text-green-400" />
+                      </div>
+                    </div>
+                    <h3 className="dark:text-[#F5F5F5] text-[#323D50] font-semibold text-lg sm:text-xl mb-2">
+                      {t("cart.orderPlaced")}
+                    </h3>
+                    <p className="dark:text-white/60 text-[#6B7B8D] text-sm mb-2">
+                      {t("cart.yourOrderId")}
+                    </p>
+                    <p className="text-[#5B8DD9] font-mono text-xs mb-4 bg-white dark:bg-white/5 rounded-lg px-3 py-2 break-all">
+                      {lastOrderId}
+                    </p>
+                    <Link
+                      to="/track-order"
+                      onClick={onClose}
+                      className="block w-full glass bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] hover:from-[#3E6BB5] hover:to-[#5B8DD9] text-white border-0 rounded-xl px-6 py-3 font-semibold transition-all duration-300 hover:scale-105 text-center mb-3"
+                    >
+                      {t("cart.trackOrder")}
+                    </Link>
+                    <Button
+                      onClick={() => { setLastOrderId(null); onClose(); }}
+                      variant="ghost"
+                      className="w-full text-[#6B7B8D] dark:text-white/60 hover:text-[#323D50] dark:hover:text-white"
+                    >
+                      {t("cart.continueShopping")}
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <div className="relative mb-6">
+                      <ShoppingBag className="h-12 w-12 sm:h-16 sm:w-16 text-[#323D50]/40 dark:text-white/40 mx-auto" />
+                      <div className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 w-6 h-6 sm:w-8 sm:h-8 bg-[#5B8DD9] rounded-full flex items-center justify-center">
+                        <span className="text-white text-xs sm:text-sm font-bold">
+                          0
+                        </span>
+                      </div>
+                    </div>
+                    <h3 className="dark:text-[#F5F5F5] text-[#323D50] font-semibold text-lg sm:text-xl mb-2">
+                      {t("cart.empty")}
+                    </h3>
+                    <p className="dark:text-white/60 text-[#6B7B8D] text-sm mb-6">
+                      {t("cart.emptyDesc")}
+                    </p>
+                    <Button
+                      onClick={onClose}
+                      className="w-full glass bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] hover:from-[#3E6BB5] hover:to-[#5B8DD9] text-white border-0 rounded-xl px-6 py-3 font-semibold transition-all duration-300 hover:scale-105"
+                    >
+                      <ShoppingBag className="w-4 h-4 me-2" />
+                      {t("cart.startShopping")}
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           ) : (
@@ -337,15 +361,15 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                 {items.map((item) => (
                   <div
                     key={`${item.id}-${item.size}`}
-                    className="glass-card bg-white/5 border border-white/10 rounded-2xl p-3 sm:p-4 hover:bg-white/10 transition-all duration-300 hover:scale-[1.01] hover:shadow-lg hover:shadow-[#b24ce2]/20 focus-within:ring-2 focus-within:ring-[#b24ce2]/50 focus-within:border-[#b24ce2]/50"
+                    className="glass-card dark:bg-white/5 bg-white border dark:border-white/10 border-[#323D50]/10 rounded-2xl p-3 sm:p-4 dark:hover:bg-white/10 hover:bg-[#EDF1F7] transition-all duration-300 hover:scale-[1.01] hover:shadow-lg hover:shadow-[#5B8DD9]/20 focus-within:ring-2 focus-within:ring-[#5B8DD9]/50 focus-within:border-[#5B8DD9]/50"
                   >
-                    <div className="flex items-start space-x-3 sm:space-x-4">
+                    <div className="flex items-start space-x-3 sm:space-x-4 rtl:space-x-reverse">
                       {/* Product Image */}
                       <div className="relative flex-shrink-0">
                         <img
                           src={item.image}
                           alt={item.name}
-                          className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-xl border border-white/10"
+                          className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-xl border border-[#323D50]/10 dark:border-white/10"
                         />
                         {item.stock_quantity && item.stock_quantity < 10 && (
                           <div className="absolute -top-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-orange-500 rounded-full flex items-center justify-center">
@@ -358,10 +382,10 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex-1">
-                            <h4 className="text-white font-semibold text-base sm:text-lg leading-tight mb-1">
+                            <h4 className="dark:text-[#F5F5F5] text-[#323D50] font-semibold text-base sm:text-lg leading-tight mb-1">
                               {item.name}
                             </h4>
-                            <p className="text-white/60 text-sm mb-2">
+                            <p className="dark:text-white/60 text-[#6B7B8D] text-sm mb-2">
                               {item.size}
                             </p>
                             <div className="flex items-center gap-2 flex-wrap">
@@ -371,20 +395,20 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                               {item.stock_quantity &&
                                 item.stock_quantity < 10 && (
                                   <span className="text-orange-300 text-xs bg-orange-500/30 px-2 py-1 rounded-full border border-orange-500/50">
-                                    Low stock
+                                    {t("cart.lowStock")}
                                   </span>
                                 )}
                             </div>
                           </div>
 
                           {/* Action Buttons */}
-                          <div className="flex items-center space-x-1.5 sm:space-x-2">
+                          <div className="flex items-center space-x-1.5 sm:space-x-2 rtl:space-x-reverse">
                             <Button
                               asChild
                               variant="default"
                               size="sm"
-                              className="bg-[#b24ce2] hover:bg-[#9a3bc7] text-white border-0 rounded-xl px-2 sm:px-3 py-2 h-8 sm:h-10 transition-all duration-200 hover:scale-105"
-                              title="View Product"
+                              className="bg-[#5B8DD9] hover:bg-[#3E6BB5] text-white border-0 rounded-xl px-2 sm:px-3 py-2 h-8 sm:h-10 transition-all duration-200 hover:scale-105"
+                              title={t("cart.viewProduct")}
                             >
                               <Link
                                 to={`/product/${
@@ -399,7 +423,7 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                               size="sm"
                               className="bg-red-500 hover:bg-red-600 text-white border-0 rounded-xl px-2 sm:px-3 py-2 h-8 sm:h-10 transition-all duration-200 hover:scale-105"
                               onClick={() => removeFromCart(item.id, item.size)}
-                              title="Remove from cart"
+                              title={t("cart.removeFromCart")}
                             >
                               <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                             </Button>
@@ -408,11 +432,11 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
 
                         {/* Quantity Controls */}
                         <div className="flex items-center justify-between mt-3 flex-wrap gap-2">
-                          <div className="flex items-center space-x-1.5 bg-white/5 rounded-xl p-1">
+                          <div className="flex items-center space-x-1.5 rtl:space-x-reverse dark:bg-white/5 bg-white/10 rounded-xl p-1">
                             <Button
                               variant="default"
                               size="sm"
-                              className="bg-white/10 hover:bg-white/20 text-white border-0 rounded-lg h-7 w-7 sm:h-8 sm:w-8 p-0 transition-all duration-200 hover:scale-105"
+                              className="dark:bg-white/10 bg-[#EDF1F7] dark:hover:bg-white/20 hover:bg-[#EDF1F7] dark:text-[#F5F5F5] text-[#323D50] border-0 rounded-lg h-7 w-7 sm:h-8 sm:w-8 p-0 transition-all duration-200 hover:scale-105"
                               onClick={() =>
                                 handleQuantityChange(
                                   item.id,
@@ -424,13 +448,13 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                             >
                               <Minus className="h-3 w-3" />
                             </Button>
-                            <span className="text-white font-bold text-sm sm:text-base w-8 sm:w-10 text-center bg-white/10 rounded-lg py-1">
+                            <span className="dark:text-[#F5F5F5] text-[#323D50] font-bold text-sm sm:text-base w-8 sm:w-10 text-center dark:bg-white/10 bg-[#EDF1F7] rounded-lg py-1">
                               {item.quantity}
                             </span>
                             <Button
                               variant="default"
                               size="sm"
-                              className="bg-white/10 hover:bg-white/20 text-white border-0 rounded-lg h-7 w-7 sm:h-8 sm:w-8 p-0 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="dark:bg-white/10 bg-[#EDF1F7] dark:hover:bg-white/20 hover:bg-[#EDF1F7] dark:text-[#F5F5F5] text-[#323D50] border-0 rounded-lg h-7 w-7 sm:h-8 sm:w-8 p-0 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
                               onClick={() =>
                                 handleQuantityChange(
                                   item.id,
@@ -447,8 +471,8 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
 
                           {/* Item Total */}
                           <div className="text-right">
-                            <p className="text-white/70 text-sm font-medium">
-                              Total
+                            <p className="dark:text-white/70 text-[#6B7B8D] text-sm font-medium">
+                              {t("cart.totalLabel")}
                             </p>
                             <p className="text-[#e879f9] font-bold text-lg drop-shadow-sm">
                               {(item.price * item.quantity).toFixed(2)} LYD
@@ -462,8 +486,7 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                             <div className="mt-3 bg-red-500/20 border border-red-500/30 rounded-xl p-3">
                               <div className="flex items-center justify-between">
                                 <p className="text-red-300 text-xs sm:text-sm font-medium">
-                                  ⚠️ Only {item.stock_quantity} available in
-                                  stock
+                                  {`⚠️ ${t("cart.onlyAvailable").replace("{count}", String(item.stock_quantity))}`}
                                 </p>
                                 <Button
                                   size="sm"
@@ -478,7 +501,7 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                                     )
                                   }
                                 >
-                                  Fix
+                                  {t("cart.fix")}
                                 </Button>
                               </div>
                             </div>
@@ -490,22 +513,22 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
               </div>
 
               {/* Sticky Checkout Section */}
-              <div className="sticky bottom-0 bg-[#0e0a1d] border-t border-white/10 pt-4 pb-4 px-4 sm:px-6 -mx-4 sm:-mx-6 z-10">
+              <div className="sticky bottom-0 bg-[#F8F9FB] dark:bg-[#1a2235] border-t dark:border-white/10 border-[#323D50]/10 pt-4 pb-4 px-4 sm:px-6 -mx-4 sm:-mx-6 z-10">
                 {/* Order Summary */}
-                <div className="glass-card bg-white/5 border border-white/10 rounded-2xl p-4 sm:p-6 mb-4">
-                  <h3 className="text-white font-semibold text-lg mb-4">
-                    Order Summary
+                <div className="glass-card dark:bg-white/5 bg-white border dark:border-white/10 border-[#323D50]/10 rounded-2xl p-4 sm:p-6 mb-4">
+                  <h3 className="dark:text-[#F5F5F5] text-[#323D50] font-semibold text-lg mb-4">
+                    {t("cart.orderSummary")}
                   </h3>
 
                   <div className="space-y-3">
-                    <div className="flex justify-between text-white/80 font-medium">
-                      <span>Items ({getItemCount()})</span>
+                    <div className="flex justify-between dark:text-white/80 text-[#6B7B8D] font-medium">
+                      <span>{`${t("cart.items")} (${getItemCount()})`}</span>
                       <span>{getTotalPrice().toFixed(2)} LYD</span>
                     </div>
 
-                    <div className="border-t border-white/10 pt-3 pb-3 ">
+                    <div className="border-t dark:border-white/10 border-[#323D50]/10 pt-3 pb-3 ">
                       <div className="flex justify-between text-lg sm:text-xl font-bold">
-                        <span className="text-white">Total:</span>
+                        <span className="dark:text-[#F5F5F5] text-[#323D50]">{t("cart.total")}</span>
                         <span className="text-[#e879f9] drop-shadow-sm">
                           {getTotalPrice().toFixed(2)} LYD
                         </span>
@@ -513,44 +536,52 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                     </div>
                   </div>
 
+                  <div className="space-y-3">
+                    {!isStockAvailable() && (
+                      <div className="bg-red-500/20 border border-red-500/30 rounded-xl p-3">
+                        <p className="text-red-300 text-sm font-medium mb-2">
+                          {`⚠️ ${t("cart.stockExceed")}`}
+                        </p>
+                        <ul className="text-red-300 text-xs space-y-1">
+                          {getStockErrorItems().map((item, index) => (
+                            <li key={index}>
+                              • {item.name} ({item.size}): {item.quantity}{" "}
+                              {t("cart.requested")}, {item.stock_quantity} {t("cart.available")}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    <Button
+                      disabled={!isStockAvailable()}
+                      onClick={() => {
+                        if (!user) {
+                          toast.info(t("auth.signInToCheckout"));
+                          onClose();
+                          navigate("/login", { state: { from: "/" } });
+                          return;
+                        }
+                        setIsCheckoutOpen(true);
+                      }}
+                      className="w-full flex items-center justify-center gap-2 glass bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] hover:from-[#3E6BB5] hover:to-[#5B8DD9] text-white border-0 rounded-2xl py-4 font-semibold text-lg transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-[#5B8DD9]/25 focus:ring-2 focus:ring-[#5B8DD9]/50 focus:ring-offset-2 focus:ring-offset-[#1a2235] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                    >
+                      <CreditCard className="w-5 h-5" />
+                      <span>
+                        {isStockAvailable()
+                          ? t("cart.proceedToCheckout")
+                          : t("cart.stockInsufficient")}
+                      </span>
+                    </Button>
+                  </div>
+
                   <Dialog
                     open={isCheckoutOpen}
                     onOpenChange={setIsCheckoutOpen}
                   >
-                    <DialogTrigger asChild>
-                      <div className="space-y-3">
-                        {!isStockAvailable() && (
-                          <div className="bg-red-500/20 border border-red-500/30 rounded-xl p-3">
-                            <p className="text-red-300 text-sm font-medium mb-2">
-                              ⚠️ Some items exceed available stock:
-                            </p>
-                            <ul className="text-red-300 text-xs space-y-1">
-                              {getStockErrorItems().map((item, index) => (
-                                <li key={index}>
-                                  • {item.name} ({item.size}): {item.quantity}{" "}
-                                  requested, {item.stock_quantity} available
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                        <Button
-                          disabled={!isStockAvailable()}
-                          className="w-full flex items-center justify-center gap-2 glass bg-gradient-to-r from-[#b24ce2] to-[#8e2de2] hover:from-[#8e2de2] hover:to-[#b24ce2] text-white border-0 rounded-2xl py-4 font-semibold text-lg transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-[#b24ce2]/25 focus:ring-2 focus:ring-[#b24ce2]/50 focus:ring-offset-2 focus:ring-offset-[#0e0a1d] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                        >
-                          <CreditCard className="w-5 h-5" />
-                          <span>
-                            {isStockAvailable()
-                              ? "Proceed to Checkout"
-                              : "Stock Insufficient"}
-                          </span>
-                        </Button>
-                      </div>
-                    </DialogTrigger>
-                    <DialogContent className="glass-card bg-[#0e0a1d] border-white/10 text-white max-w-md mx-4 sm:mx-auto">
+                    <DialogContent className="glass-card bg-[#F8F9FB] dark:bg-[#1a2235] dark:border-white/10 border-[#323D50]/10 dark:text-[#F5F5F5] text-[#323D50] max-w-md mx-4 sm:mx-auto">
                       <DialogHeader>
-                        <DialogTitle className="text-white gradient-text text-xl sm:text-2xl">
-                          Complete Your Order
+                        <DialogTitle className="dark:text-[#F5F5F5] text-[#323D50] gradient-text text-xl sm:text-2xl">
+                          {t("cart.completeOrder")}
                         </DialogTitle>
                       </DialogHeader>
 
@@ -559,10 +590,10 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                           <div className="space-y-2">
                             <Label
                               htmlFor="firstName"
-                              className="text-white/90 font-medium"
+                              className="dark:text-white/90 text-[#6B7B8D] dark:text-[#D6D6D6] font-medium"
                             >
-                              <User className="w-4 h-4 inline mr-2" />
-                              First Name
+                              <User className="w-4 h-4 inline me-2" />
+                              {t("cart.firstName")}
                             </Label>
                             <Input
                               id="firstName"
@@ -570,16 +601,16 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                               onChange={(e) =>
                                 handleInputChange("firstName", e.target.value)
                               }
-                              className="glass bg-white/10 border-white/30 text-white placeholder:text-white/60 focus:border-[#b24ce2] focus:ring-[#b24ce2] rounded-xl h-11"
-                              placeholder="Enter first name"
+                              className="glass dark:bg-white/10 bg-white/80 dark:border-white/30 border-[#323D50]/15 dark:text-[#F5F5F5] text-[#323D50] dark:placeholder:text-white/60 placeholder:text-[#6B7B8D] dark:text-[#D6D6D6] focus:border-[#5B8DD9] focus:ring-[#5B8DD9] rounded-xl h-11"
+                              placeholder={t("cart.enterFirstName")}
                             />
                           </div>
                           <div className="space-y-2">
                             <Label
                               htmlFor="lastName"
-                              className="text-white/90 font-medium"
+                              className="dark:text-white/90 text-[#6B7B8D] dark:text-[#D6D6D6] font-medium"
                             >
-                              Last Name
+                              {t("cart.lastName")}
                             </Label>
                             <Input
                               id="lastName"
@@ -587,8 +618,8 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                               onChange={(e) =>
                                 handleInputChange("lastName", e.target.value)
                               }
-                              className="glass bg-white/10 border-white/30 text-white placeholder:text-white/60 focus:border-[#b24ce2] focus:ring-[#b24ce2] rounded-xl h-11"
-                              placeholder="Enter last name"
+                              className="glass dark:bg-white/10 bg-white/80 dark:border-white/30 border-[#323D50]/15 dark:text-[#F5F5F5] text-[#323D50] dark:placeholder:text-white/60 placeholder:text-[#6B7B8D] dark:text-[#D6D6D6] focus:border-[#5B8DD9] focus:ring-[#5B8DD9] rounded-xl h-11"
+                              placeholder={t("cart.enterLastName")}
                             />
                           </div>
                         </div>
@@ -596,10 +627,10 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                         <div className="space-y-2">
                           <Label
                             htmlFor="email"
-                            className="text-white/90 font-medium"
+                            className="dark:text-white/90 text-[#6B7B8D] dark:text-[#D6D6D6] font-medium"
                           >
-                            <Mail className="w-4 h-4 inline mr-2" />
-                            Email
+                            <Mail className="w-4 h-4 inline me-2" />
+                            {t("cart.email")}
                           </Label>
                           <Input
                             id="email"
@@ -608,18 +639,18 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                             onChange={(e) =>
                               handleInputChange("email", e.target.value)
                             }
-                            className="glass bg-white/10 border-white/30 text-white placeholder:text-white/60 focus:border-[#b24ce2] focus:ring-[#b24ce2] rounded-xl h-11"
-                            placeholder="Enter email address"
+                            className="glass dark:bg-white/10 bg-white/80 dark:border-white/30 border-[#323D50]/15 dark:text-[#F5F5F5] text-[#323D50] dark:placeholder:text-white/60 placeholder:text-[#6B7B8D] dark:text-[#D6D6D6] focus:border-[#5B8DD9] focus:ring-[#5B8DD9] rounded-xl h-11"
+                            placeholder={t("cart.enterEmail")}
                           />
                         </div>
 
                         <div className="space-y-2">
                           <Label
                             htmlFor="phone"
-                            className="text-white/90 font-medium"
+                            className="dark:text-white/90 text-[#6B7B8D] dark:text-[#D6D6D6] font-medium"
                           >
-                            <Phone className="w-4 h-4 inline mr-2" />
-                            Phone Number
+                            <Phone className="w-4 h-4 inline me-2" />
+                            {t("cart.phone")}
                           </Label>
                           <Input
                             id="phone"
@@ -628,65 +659,108 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                             onChange={(e) =>
                               handleInputChange("phone", e.target.value)
                             }
-                            className="glass bg-white/10 border-white/30 text-white placeholder:text-white/60 focus:border-[#b24ce2] focus:ring-[#b24ce2] rounded-xl h-11"
-                            placeholder="Enter phone number"
+                            className="glass dark:bg-white/10 bg-white/80 dark:border-white/30 border-[#323D50]/15 dark:text-[#F5F5F5] text-[#323D50] dark:placeholder:text-white/60 placeholder:text-[#6B7B8D] dark:text-[#D6D6D6] focus:border-[#5B8DD9] focus:ring-[#5B8DD9] rounded-xl h-11"
+                            placeholder={t("cart.enterPhone")}
                           />
                         </div>
 
+                        {/* Vanex City Select */}
                         <div className="space-y-2">
                           <Label
                             htmlFor="city"
-                            className="text-white/90 font-medium"
+                            className="dark:text-white/90 text-[#6B7B8D] dark:text-[#D6D6D6] font-medium"
                           >
-                            <MapPin className="w-4 h-4 inline mr-2" />
-                            City
+                            <MapPin className="w-4 h-4 inline me-2" />
+                            {t("cart.city")}
                           </Label>
                           <Select
-                            value={formData.city}
-                            onValueChange={(value) =>
-                              handleInputChange("city", value)
-                            }
+                            value={formData.vanexCityId ? String(formData.vanexCityId) : ""}
+                            onValueChange={handleCitySelect}
+                            disabled={citiesLoading}
                           >
-                            <SelectTrigger className="glass bg-white/10 border-white/30 text-white focus:border-[#b24ce2] focus:ring-[#b24ce2] rounded-xl h-11">
-                              <SelectValue placeholder="Select your city" />
+                            <SelectTrigger className="glass dark:bg-white/10 bg-white/80 dark:border-white/30 border-[#323D50]/15 dark:text-[#F5F5F5] text-[#323D50] focus:border-[#5B8DD9] focus:ring-[#5B8DD9] rounded-xl h-11">
+                              <SelectValue
+                                placeholder={
+                                  citiesLoading
+                                    ? "Loading cities..."
+                                    : t("cart.selectCity")
+                                }
+                              />
                             </SelectTrigger>
-                            <SelectContent className="glass bg-[#0e0a1d] border-white/30 max-h-40 rounded-xl">
-                              {libyaCities.map((city) => (
+                            <SelectContent className="glass bg-[#F8F9FB] dark:bg-[#1a2235] dark:border-white/30 border-[#323D50]/15 max-h-48 rounded-xl">
+                              {vanexCities.map((city) => (
                                 <SelectItem
-                                  key={city}
-                                  value={city}
-                                  className="text-white hover:bg-white/10 focus:bg-white/10"
+                                  key={city.id}
+                                  value={String(city.id)}
+                                  className="dark:text-[#F5F5F5] text-[#323D50] dark:hover:bg-white/10 hover:bg-[#EDF1F7] dark:focus:bg-white/10 focus:bg-white/10"
                                 >
-                                  {city}
+                                  {city.name_en} / {city.name}
                                 </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
                         </div>
-                        {/* Place Name input, shown only if city is selected */}
-                        {formData.city && (
+
+                        {/* Vanex Sub-city (area) Select — shown after city chosen */}
+                        {formData.vanexCityId && (
                           <div className="space-y-2">
                             <Label
-                              htmlFor="placeName"
-                              className="text-white/90 font-medium"
+                              htmlFor="subCity"
+                              className="dark:text-white/90 text-[#6B7B8D] dark:text-[#D6D6D6] font-medium"
                             >
-                              Place Name (within city)
+                              <MapPin className="w-4 h-4 inline me-2" />
+                              {t("cart.placeName")}
                             </Label>
-                            <Input
-                              id="placeName"
-                              value={formData.placeName}
-                              onChange={(e) =>
-                                handleInputChange("placeName", e.target.value)
-                              }
-                              className="glass bg-white/10 border-white/30 text-white placeholder:text-white/60 focus:border-[#b24ce2] focus:ring-[#b24ce2] rounded-xl h-11"
-                              placeholder="Enter place name (e.g. street, area, landmark)"
-                            />
+                            {subCitiesLoading ? (
+                              <div className="h-11 rounded-xl glass dark:bg-white/10 bg-white/80 border dark:border-white/30 border-[#323D50]/15 flex items-center px-4 text-sm text-[#6B7B8D] dark:text-white/50">
+                                Loading areas...
+                              </div>
+                            ) : vanexSubCities.length > 0 ? (
+                              <Select
+                                value={
+                                  formData.vanexSubCityId
+                                    ? String(formData.vanexSubCityId)
+                                    : ""
+                                }
+                                onValueChange={handleSubCitySelect}
+                              >
+                                <SelectTrigger className="glass dark:bg-white/10 bg-white/80 dark:border-white/30 border-[#323D50]/15 dark:text-[#F5F5F5] text-[#323D50] focus:border-[#5B8DD9] focus:ring-[#5B8DD9] rounded-xl h-11">
+                                  <SelectValue placeholder={t("cart.enterPlaceName")} />
+                                </SelectTrigger>
+                                <SelectContent className="glass bg-[#F8F9FB] dark:bg-[#1a2235] dark:border-white/30 border-[#323D50]/15 max-h-48 rounded-xl">
+                                  {vanexSubCities.map((sub) => (
+                                    <SelectItem
+                                      key={sub.sub_city_id}
+                                      value={String(sub.sub_city_id)}
+                                      className="dark:text-[#F5F5F5] text-[#323D50] dark:hover:bg-white/10 hover:bg-[#EDF1F7] dark:focus:bg-white/10 focus:bg-white/10"
+                                    >
+                                      {sub.sub_city_name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            ) : (
+                              /* No sub-cities for this city — free text fallback */
+                              <Input
+                                id="placeName"
+                                value={formData.placeName}
+                                onChange={(e) =>
+                                  setFormData((prev) => ({
+                                    ...prev,
+                                    placeName: e.target.value,
+                                    vanexSubCityId: -1,
+                                  }))
+                                }
+                                className="glass dark:bg-white/10 bg-white/80 dark:border-white/30 border-[#323D50]/15 dark:text-[#F5F5F5] text-[#323D50] dark:placeholder:text-white/60 placeholder:text-[#6B7B8D] focus:border-[#5B8DD9] focus:ring-[#5B8DD9] rounded-xl h-11"
+                                placeholder={t("cart.enterPlaceName")}
+                              />
+                            )}
                           </div>
                         )}
 
-                        <div className="border-t border-white/10 pt-4 sm:pt-6">
+                        <div className="border-t dark:border-white/10 border-[#323D50]/10 pt-4 sm:pt-6">
                           <div className="flex justify-between text-lg sm:text-xl font-bold mb-4 sm:mb-6">
-                            <span className="text-white">Total:</span>
+                            <span className="dark:text-[#F5F5F5] text-[#323D50]">{t("cart.total")}</span>
                             <span className="text-[#e879f9] drop-shadow-sm">
                               {getTotalPrice().toFixed(2)} LYD
                             </span>
@@ -694,11 +768,11 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                           <LoadingButton
                             onClick={handleCheckout}
                             loading={checkoutLoading}
-                            loadingText="Placing Order..."
-                            className="w-full bg-gradient-to-r from-[#b24ce2] to-[#8e2de2] hover:from-[#8e2de2] hover:to-[#b24ce2] text-white border-0 rounded-xl py-3 sm:py-4 font-semibold text-base sm:text-lg transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-[#b24ce2]/25"
+                            loadingText={t("cart.placingOrder")}
+                            className="w-full bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] hover:from-[#3E6BB5] hover:to-[#5B8DD9] text-white border-0 rounded-xl py-3 sm:py-4 font-semibold text-base sm:text-lg transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-[#5B8DD9]/25"
                           >
-                            <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                            Place Order
+                            <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 me-2" />
+                            {t("cart.placeOrder")}
                           </LoadingButton>
                         </div>
                       </div>

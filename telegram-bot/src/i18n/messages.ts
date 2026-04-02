@@ -5,12 +5,12 @@ type MessageMap = Record<string, { en: string; ar: string }>;
 export const messages = {
   // ─── General ───
   welcome: {
-    en: "👋 Welcome to Shama Admin Bot! How can I help you today?",
-    ar: "👋 مرحباً بك في بوت إدارة شمّة! كيف يمكنني مساعدتك اليوم؟",
+    en: "👋 <b>Welcome to Shama AI Admin Bot!</b>\n\n<b>Commands:</b>\n/lang — 🌐 Set language\n/end — 🛑 Cancel current operation\n\n<b>Or just talk to me!</b>\n• <i>\"Update Bleu de Chanel price to 200\"</i>\n• <i>\"Delete Angel Share\"</i>\n• <i>\"Create Dior Sauvage 100ml for men at 300 LYD\"</i>\n• <i>\"Show orders from last 5 hours\"</i>\n• <i>\"How many products do I have?\"</i>\n\nI handle <b>typos</b> and <b>Arabic</b> names! ✨",
+    ar: "👋 <b>مرحباً بك في بوت شما الذكي!</b>\n\n<b>الأوامر:</b>\n/lang — 🌐 اختر اللغة\n/end — 🛑 إلغاء العملية الحالية\n\n<b>أو فقط تحدث معي!</b>\n• <i>\"حدّث سعر بلو دي شانيل إلى 200\"</i>\n• <i>\"احذف أنجل شير\"</i>\n• <i>\"أنشئ ديور سوفاج 100مل رجالي 300 دينار\"</i>\n• <i>\"أرني طلبات آخر 5 ساعات\"</i>\n\nأتعامل مع <b>الأخطاء الإملائية</b> والأسماء! ✨",
   },
   help: {
-    en: "I can help you manage products and orders. Just describe what you need — for example: \"Add a new perfume\", \"Update the price of Oud Rose\", \"Show today's orders\".",
-    ar: "يمكنني مساعدتك في إدارة المنتجات والطلبات. صف ما تحتاجه — مثلاً: \"أضف عطراً جديداً\"، \"حدّث سعر عود الورد\"، \"أظهر طلبات اليوم\".",
+    en: "<b>Shama AI Bot</b>\n\nJust type what you need:\n<b>Create:</b> \"Create Dior Sauvage 100ml men 300 LYD\"\n<b>Update:</b> \"Change Bleu de Chanel price to 200\"\n<b>Delete:</b> \"Delete Angel Share\"\n<b>Orders:</b> \"Show orders from last 3 hours\"\n<b>Search:</b> \"How many products?\" or \"Show men perfumes\"\n\n/lang — Change language\n/end — Cancel\n\nHandles typos &amp; Arabic! \"بلو شانيل\" → Bleu de Chanel ✨",
+    ar: "<b>بوت شما الذكي</b>\n\nفقط اكتب ما تريد:\n<b>إنشاء:</b> \"أنشئ ديور سوفاج 100مل رجالي 300 دينار\"\n<b>تحديث:</b> \"غير سعر بلو دي شانيل إلى 200\"\n<b>حذف:</b> \"احذف أنجل شير\"\n<b>طلبات:</b> \"أرني طلبات آخر 3 ساعات\"\n\n/lang — تغيير اللغة\n/end — إلغاء\n\nيتعامل مع الأخطاء الإملائية! ✨",
   },
 
   // ─── Confirmation prompts ───
