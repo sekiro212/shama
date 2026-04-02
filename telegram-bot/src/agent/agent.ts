@@ -42,6 +42,7 @@ export async function runAgent(
 
   for (let iteration = 0; iteration < MAX_ITERATIONS; iteration++) {
     // Step 2: Call Gemini with tools
+    // 25s timeout — Gemini with large context can take 10-15s
     const response = await withRetry(() =>
       withTimeout(() =>
         ai.models.generateContent({
@@ -51,7 +52,7 @@ export async function runAgent(
             tools: [{ functionDeclarations: toolDeclarations }],
             systemInstruction: buildSystemPrompt(lang),
           },
-        })
+        }), 25_000
       )
     );
 
@@ -65,6 +66,10 @@ export async function runAgent(
     const parts = candidate.content?.parts ?? [];
 
     // Step 4: Check for function call vs text response
+    // Note: only the first function call is processed per iteration.
+    // Gemini may return multiple in one response; we handle one at a time
+    // to keep the loop predictable. The confirmation pattern also requires
+    // a single pending action at a time.
     const functionCallPart = parts.find((p) => p.functionCall != null);
 
     if (!functionCallPart) {
@@ -101,6 +106,9 @@ export async function runAgent(
       await ctx.reply(result.confirmation.preview, { parse_mode: "HTML" });
       return;
     }
+
+    // Trim history between iterations to prevent unbounded growth
+    session.history = trimHistory(session.history);
 
     // No confirmation — loop back to let Gemini respond with text
   }

@@ -25,6 +25,9 @@ export async function executeTool(
 ): Promise<ToolResult> {
   // ── search_products ─────────────────────────────────────────────────────
   if (toolName === "search_products") {
+    if (typeof args.query !== "string" || !args.query) {
+      return { text: "Error: search query must be a non-empty string" };
+    }
     const query = args.query as string;
     const results = await searchProducts(query);
 
@@ -106,6 +109,9 @@ export async function executeTool(
 
   // ── create_product ───────────────────────────────────────────────────────
   if (toolName === "create_product") {
+    if (typeof args.name !== "string" || typeof args.price !== "number") {
+      return { text: "Error: create_product requires name (string) and price (number)" };
+    }
     const rawNotes = args.fragrance_notes as
       | { top?: string[]; middle?: string[]; base?: string[] }
       | undefined;
@@ -131,7 +137,7 @@ export async function executeTool(
       has_samples: (args.has_samples as boolean | undefined) ?? false,
       samples: [],
       fragrance_notes: fragranceNotes,
-      fragrance_notes_ar: fragranceNotes,
+      fragrance_notes_ar: fragranceNotes, // Arabic notes not exposed in tool API; defaults to English notes
     };
 
     const notesSummary =
@@ -162,40 +168,55 @@ export async function executeTool(
 
   // ── update_product ───────────────────────────────────────────────────────
   if (toolName === "update_product") {
+    if (typeof args.id !== "string" || typeof args.changes !== "object") {
+      return { text: "Error: update_product requires id (string) and changes (object)" };
+    }
     const id = args.id as string;
     const changes = args.changes as Record<string, unknown>;
 
-    const product = await getProductById(id);
-    const diff = formatUpdateDiff(product, changes, lang);
+    try {
+      const product = await getProductById(id);
+      const diff = formatUpdateDiff(product, changes, lang);
 
-    const preview = [
-      `✏️ Update "${product.name}":`,
-      diff,
-    ].join("\n");
+      const preview = [
+        `✏️ Update "${product.name}":`,
+        diff,
+      ].join("\n");
 
-    const confirmation: PendingConfirmation = {
-      type: "update",
-      payload: { id, name: product.name, changes, diff },
-      preview,
-    };
+      const confirmation: PendingConfirmation = {
+        type: "update",
+        payload: { id, name: product.name, changes, diff },
+        preview,
+      };
 
-    return { text: "update_product queued", confirmation };
+      return { text: "update_product queued", confirmation };
+    } catch (err) {
+      return { text: `Product not found or error: ${err instanceof Error ? err.message : String(err)}` };
+    }
   }
 
   // ── delete_product ───────────────────────────────────────────────────────
   if (toolName === "delete_product") {
+    if (typeof args.id !== "string") {
+      return { text: "Error: delete_product requires id (string)" };
+    }
     const id = args.id as string;
-    const product = await getProductById(id);
 
-    const preview = `⚠️ Delete "${product.name}"? (${product.stock_quantity} units in stock)`;
+    try {
+      const product = await getProductById(id);
 
-    const confirmation: PendingConfirmation = {
-      type: "delete",
-      payload: { id, name: product.name },
-      preview,
-    };
+      const preview = `⚠️ Delete "${product.name}"? (${product.stock_quantity} units in stock)`;
 
-    return { text: "delete_product queued", confirmation };
+      const confirmation: PendingConfirmation = {
+        type: "delete",
+        payload: { id, name: product.name },
+        preview,
+      };
+
+      return { text: "delete_product queued", confirmation };
+    } catch (err) {
+      return { text: `Product not found or error: ${err instanceof Error ? err.message : String(err)}` };
+    }
   }
 
   // ── unknown ──────────────────────────────────────────────────────────────
