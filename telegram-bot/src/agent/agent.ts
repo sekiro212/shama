@@ -12,6 +12,7 @@ import {
   trimHistory,
 } from "./memory";
 import { withRetry, withTimeout } from "../utils/retry";
+import { confirmKeyboard } from "../confirmation/keyboards";
 
 const ai = new GoogleGenAI({ apiKey: config.geminiApiKey });
 
@@ -110,7 +111,10 @@ export async function runAgent(
     if (result.confirmation) {
       session.confirmation = result.confirmation;
       session.history = trimHistory(session.history);
-      await ctx.reply(result.confirmation.preview, { parse_mode: "HTML" });
+      await ctx.reply(result.confirmation.preview, {
+        parse_mode: "HTML",
+        ...confirmKeyboard(result.confirmation.type),
+      });
       return;
     }
 
