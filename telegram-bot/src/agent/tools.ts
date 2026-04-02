@@ -54,8 +54,7 @@ export const toolDeclarations: FunctionDeclaration[] = [
   },
   {
     name: "create_product",
-    description:
-      "Create a new perfume product. Shows confirmation preview before saving.",
+    description: "Create a new perfume product. ONLY call this tool when you have ALL 5 required fields: name, price, size, gender, stock_quantity. If any required field is missing from the admin's message, ask for it FIRST — do not call this tool yet.",
     parameters: {
       type: Type.OBJECT,
       properties: {

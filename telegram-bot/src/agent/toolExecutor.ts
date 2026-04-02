@@ -8,6 +8,7 @@ import {
 } from "../services/products";
 import { fetchOrders, formatOrder } from "../services/orders";
 import { getAnalytics } from "../services/analytics";
+import { enrichProductData } from "../services/gemini";
 
 export interface ToolResult {
   text: string;
@@ -116,46 +117,63 @@ export async function executeTool(
       | { top?: string[]; middle?: string[]; base?: string[] }
       | undefined;
 
-    const fragranceNotes = rawNotes
+    let name = args.name as string;
+    const brand = (args.brand as string | undefined) ?? "";
+    let description = (args.description as string | undefined) ?? "";
+    let fragranceNotes = rawNotes
       ? {
           top: rawNotes.top ?? [],
           middle: rawNotes.middle ?? [],
           base: rawNotes.base ?? [],
         }
       : { top: [], middle: [], base: [] };
+    let nameAr = (args.name_ar as string | undefined) ?? "";
+    let descriptionAr = (args.description_ar as string | undefined) ?? "";
+    let fragranceNotesAr = { top: [], middle: [], base: [] } as { top: string[]; middle: string[]; base: string[] };
+
+    // Auto-enrich missing description / fragrance notes from Gemini knowledge
+    if (!description || !fragranceNotes.top.length) {
+      const enriched = await enrichProductData(name, brand);
+      if (!description) {
+        description = enriched.description;
+        descriptionAr = descriptionAr || enriched.description_ar;
+      }
+      if (!fragranceNotes.top.length) {
+        fragranceNotes = enriched.fragrance_notes;
+        fragranceNotesAr = enriched.fragrance_notes_ar;
+      }
+      if (!nameAr) nameAr = enriched.name_ar;
+    }
+
+    const hasSamples = (args.has_samples as boolean | undefined) ?? false;
+    const price = args.price as number;
+    const size = args.size as string;
+    const gender = args.gender as "men" | "women" | "unisex";
+    const stockQty = args.stock_quantity as number;
 
     const draft: ProductDraft = {
-      name: args.name as string,
-      name_ar: (args.name_ar as string | undefined) ?? "",
-      brand: (args.brand as string | undefined) ?? "",
-      price: args.price as number,
-      size: args.size as string,
-      gender: args.gender as "men" | "women" | "unisex",
-      stock_quantity: args.stock_quantity as number,
-      description: (args.description as string | undefined) ?? "",
-      description_ar: (args.description_ar as string | undefined) ?? "",
-      has_samples: (args.has_samples as boolean | undefined) ?? false,
+      name,
+      name_ar: nameAr,
+      brand,
+      price,
+      size,
+      gender,
+      stock_quantity: stockQty,
+      description,
+      description_ar: descriptionAr,
+      has_samples: hasSamples,
       samples: [],
       fragrance_notes: fragranceNotes,
-      fragrance_notes_ar: fragranceNotes, // Arabic notes not exposed in tool API; defaults to English notes
+      fragrance_notes_ar: fragranceNotesAr,
     };
 
-    const notesSummary =
-      fragranceNotes.top.length > 0
-        ? `\nNotes — Top: ${fragranceNotes.top.join(", ")} | Heart: ${fragranceNotes.middle.join(", ")} | Base: ${fragranceNotes.base.join(", ")}`
-        : "";
+    const notesLine = fragranceNotes.top.length
+      ? `\n🌿 Top: ${fragranceNotes.top.join(", ")}\n🌸 Heart: ${fragranceNotes.middle.join(", ")}\n🌰 Base: ${fragranceNotes.base.join(", ")}`
+      : "";
+    const descLine = description ? `\n📝 "${description.slice(0, 100)}${description.length > 100 ? "..." : ""}"` : "";
+    const arabicName = nameAr && nameAr !== name ? ` (${nameAr})` : "";
 
-    const preview = [
-      `✨ New product preview:`,
-      `Name: ${draft.name}${draft.name_ar ? ` / ${draft.name_ar}` : ""}`,
-      `Brand: ${draft.brand || "—"}`,
-      `Price: ${draft.price} LYD | Size: ${draft.size} | Gender: ${draft.gender}`,
-      `Stock: ${draft.stock_quantity} | Samples: ${draft.has_samples ? "✅" : "❌"}`,
-      draft.description ? `Description: ${draft.description.slice(0, 100)}${draft.description.length > 100 ? "..." : ""}` : "",
-      notesSummary,
-    ]
-      .filter(Boolean)
-      .join("\n");
+    const preview = `✨ New product preview:\nName: ${name}${arabicName}\nBrand: ${brand || "—"}\nPrice: ${price} LYD | Size: ${size} | Gender: ${gender}\nStock: ${stockQty} | Samples: ${hasSamples ? "✅" : "❌"}${notesLine}${descLine}`;
 
     const confirmation: PendingConfirmation = {
       type: "create",

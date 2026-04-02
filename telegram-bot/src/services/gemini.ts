@@ -1,7 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 import { config } from "../config";
 import { withRetry, withTimeout } from "../utils/retry";
-import type { ProductDraft } from "../types";
+import type { ProductDraft, FragranceNotes } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: config.geminiApiKey });
 
@@ -84,4 +84,60 @@ The Arabic fragrance notes should be proper Arabic names for each note.`;
       return parseGeminiJson(text);
     }, 30_000)
   );
+}
+
+// ─── Text-based product enrichment ───────────
+
+export async function enrichProductData(
+  name: string,
+  brand: string
+): Promise<{
+  description: string;
+  description_ar: string;
+  fragrance_notes: FragranceNotes;
+  fragrance_notes_ar: FragranceNotes;
+  name_ar: string;
+}> {
+  const SAFE_DEFAULT = {
+    description: "",
+    description_ar: "",
+    fragrance_notes: { top: [], middle: [], base: [] },
+    fragrance_notes_ar: { top: [], middle: [], base: [] },
+    name_ar: name,
+  };
+
+  try {
+    const prompt = `You are a perfume expert with encyclopedic knowledge of fragrances.
+Look up this perfume: "${name}" by "${brand || "Unknown brand"}".
+
+Return ONLY this JSON object with no extra text. You MUST provide content in BOTH English AND Arabic:
+${BILINGUAL_SCHEMA}
+
+The Arabic name should be a natural Arabic translation/transliteration.
+The Arabic description should be a unique marketing description in Arabic, not a direct translation.
+The Arabic fragrance notes should be proper Arabic names for each note.
+If fragrance notes are unknown, make educated guesses based on the brand and style.`;
+
+    return await withRetry(() =>
+      withTimeout(async () => {
+        const response = await ai.models.generateContent({
+          model: "gemini-3.1-flash-lite-preview",
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          config: { maxOutputTokens: 1200, temperature: 0.2 },
+        });
+        const text = response.text;
+        if (!text) return SAFE_DEFAULT;
+        const parsed = parseGeminiJson(text);
+        return {
+          description: (parsed.description as string) ?? "",
+          description_ar: (parsed.description_ar as string) ?? "",
+          fragrance_notes: (parsed.fragrance_notes as FragranceNotes) ?? SAFE_DEFAULT.fragrance_notes,
+          fragrance_notes_ar: (parsed.fragrance_notes_ar as FragranceNotes) ?? SAFE_DEFAULT.fragrance_notes_ar,
+          name_ar: (parsed.name_ar as string) ?? name,
+        };
+      }, 25_000)
+    );
+  } catch {
+    return SAFE_DEFAULT;
+  }
 }
