@@ -103,7 +103,7 @@ export default function HomePage() {
           <div className="absolute inset-0 bg-gradient-to-t from-[#F8F9FB] dark:from-[#1a2235] via-transparent to-transparent" />
         </div>
 
-        <BackgroundBeamsWithCollision beamColor="from-[#5B8DD9] via-[#5B8DD9] to-transparent">
+        <BackgroundBeamsWithCollision>
           {/* Floating Elements */}
           <div className="absolute inset-0 z-5">
             <div className="absolute top-1/4 left-1/4 w-2 h-2 bg-[#5B8DD9] rounded-full animate-pulse-glow" />

@@ -41,9 +41,12 @@ export default function SamplesPage() {
             return {
               id: p.id,
               name: p.name,
+              name_ar: p.name_ar || p.name,
               price: p.price,
               description: p.description,
+              description_ar: p.description_ar || p.description,
               fragranceNotes: p.fragrance_notes,
+              fragranceNotes_ar: p.fragrance_notes_ar || p.fragrance_notes,
               size: p.size,
               type: p.type,
               rating: p.rating,

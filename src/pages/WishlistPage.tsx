@@ -17,7 +17,6 @@ const WishlistPage = () => {
       price: item.price,
       image: item.image,
       size: item.size,
-      quantity: 1,
     });
     removeFromWishlist(item.id);
   };
