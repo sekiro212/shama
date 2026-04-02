@@ -46,7 +46,7 @@ export async function runAgent(
     const response = await withRetry(() =>
       withTimeout(() =>
         ai.models.generateContent({
-          model: "gemini-2.0-flash",
+          model: "gemini-3.1-flash-lite-preview",
           contents: session.history,
           config: {
             tools: [{ functionDeclarations: toolDeclarations }],

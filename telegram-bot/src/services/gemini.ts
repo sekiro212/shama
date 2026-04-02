@@ -61,7 +61,7 @@ The Arabic fragrance notes should be proper Arabic names for each note.`;
   return withRetry(() =>
     withTimeout(async () => {
       const response = await ai.models.generateContent({
-        model: "gemini-2.0-flash",
+        model: "gemini-3.1-flash-lite-preview",
         contents: [
           {
             role: "user",
