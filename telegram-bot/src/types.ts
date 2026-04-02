@@ -43,6 +43,7 @@ export interface ProductDraft {
   samples: SampleVariant[];
   imageBuffer?: Buffer;
   imageMimeType?: string;
+  telegramFileId?: string;  // legacy field — used by old wizard, removed in Phase 5
 }
 
 // ─── Pending Confirmation ───
@@ -76,6 +77,10 @@ export const CreateProductSchema = z.object({
   gender: z.enum(["men", "women", "unisex"]),
   stock_quantity: z.number().int().min(0),
   has_samples: z.boolean().optional().default(false),
+  samples: z.array(z.object({
+    size: z.string().min(1),
+    price: z.number().positive(),
+  })).optional().default([]),
   fragrance_notes: z
     .object({
       top: z.array(z.string()),
@@ -121,3 +126,41 @@ export type DeleteProductInput = z.infer<typeof DeleteProductSchema>;
 export type SearchProductsInput = z.infer<typeof SearchProductsSchema>;
 export type GetProductInfoInput = z.infer<typeof GetProductInfoSchema>;
 export type GetOrdersInput = z.infer<typeof GetOrdersSchema>;
+
+// ─── Migration bridges — remove in Phase 5 ───
+// These keep old files compiling while they await migration
+export type AIAction = {
+  type: "create" | "update" | "delete" | "orders" | "search" | "info";
+  productName?: string;
+  productId?: string;
+  changes?: Record<string, unknown>;
+  createData?: Partial<ProductDraft>;
+  ordersHours?: number;
+  searchQuery?: string;
+  confirmed?: boolean;
+};
+
+export interface BotSessionData {
+  language?: BotLanguage;
+  draft?: Partial<ProductDraft>;
+  awaitingTextFor?: string;
+  pendingSampleSizes?: string[];
+  currentSampleIndex?: number;
+  collectingSamplePrices?: boolean;
+  skipImageGeneration?: boolean;
+  awaitingPhoto?: boolean;
+  pendingCreateData?: Partial<ProductDraft>;
+  aiTriggeredCreate?: boolean;
+  pendingUpdateAction?: AIAction;
+  updateStep?: "preview" | "changes" | "continue";
+  pendingDeleteAction?: AIAction;
+  pendingDestructiveActions?: AIAction[];
+  currentDestructiveIndex?: number;
+  updateProductId?: string;
+  updateProductName?: string;
+  deleteProductId?: string;
+  pendingActions?: AIAction[];
+  // New fields for agent architecture
+  history?: import("@google/genai").Content[];
+  confirmation?: PendingConfirmation | null;
+}

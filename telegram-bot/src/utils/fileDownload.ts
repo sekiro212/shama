@@ -1,5 +1,4 @@
 import { Telegraf } from "telegraf";
-import { config } from "../config";
 
 /**
  * Downloads any Telegram file (photo, voice, document, etc.) to a Buffer.
@@ -15,7 +14,7 @@ export async function downloadTelegramFile(
     throw new Error(`No file_path returned for fileId: ${fileId}`);
   }
 
-  const token = (bot as unknown as { token: string }).token ?? config.telegramToken;
+  const token = bot.telegram.token;
   const url = `https://api.telegram.org/file/bot${token}/${file.file_path}`;
 
   const response = await fetch(url);
@@ -36,8 +35,11 @@ export async function downloadTelegramFile(
 function detectMimeType(filePath: string): string {
   const ext = filePath.split(".").pop()?.toLowerCase() ?? "";
   switch (ext) {
+    case "oga":
     case "ogg":
       return "audio/ogg";
+    case "m4a":
+      return "audio/mp4";
     case "mp3":
       return "audio/mpeg";
     case "wav":

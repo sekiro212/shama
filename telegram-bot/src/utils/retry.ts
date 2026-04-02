@@ -24,14 +24,13 @@ export async function withRetry<T>(
 /**
  * Rejects if `fn` doesn't resolve within `ms` milliseconds.
  */
-export async function withTimeout<T>(
-  fn: () => Promise<T>,
-  ms = 10_000
-): Promise<T> {
-  return Promise.race([
-    fn(),
-    new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error(`Operation timed out after ${ms}ms`)), ms)
-    ),
-  ]);
+export async function withTimeout<T>(fn: () => Promise<T>, ms = 10_000): Promise<T> {
+  let timerId: ReturnType<typeof setTimeout>;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timerId = setTimeout(
+      () => reject(new Error(`Operation timed out after ${ms}ms`)),
+      ms
+    );
+  });
+  return Promise.race([fn().finally(() => clearTimeout(timerId!)), timeoutPromise]);
 }
