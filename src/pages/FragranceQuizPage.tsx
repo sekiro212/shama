@@ -4,7 +4,7 @@ import { Sparkles, ArrowRight, ArrowLeft, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import QuizStep from "@/components/quiz/QuizStep";
 import QuizResults from "@/components/quiz/QuizResults";
-import { getQuizRecommendations } from "@/services/aiService";
+import { getQuizRecommendations, getScentDNACard, ScentDNACard } from "@/services/aiService";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 // Animation variants for slide transitions
@@ -102,6 +102,7 @@ export default function FragranceQuizPage() {
   const [recommendations, setRecommendations] = useState<
     { name: string; matchScore: number; reason: string }[]
   >([]);
+  const [dnaCard, setDnaCard] = useState<ScentDNACard | null>(null);
 
   const totalSteps = quizSteps.length;
   const progress = ((currentStep + 1) / totalSteps) * 100;
@@ -121,11 +122,16 @@ export default function FragranceQuizPage() {
         setShowResults(true);
         setIsLoading(true);
         try {
-          const results = await getQuizRecommendations(newAnswers);
+          const [results, dna] = await Promise.all([
+            getQuizRecommendations(newAnswers),
+            getScentDNACard(newAnswers),
+          ]);
           setRecommendations(results);
+          setDnaCard(dna);
         } catch (error) {
           console.error("Error getting recommendations:", error);
           setRecommendations([]);
+          setDnaCard(null);
         } finally {
           setIsLoading(false);
         }
@@ -151,6 +157,7 @@ export default function FragranceQuizPage() {
     setDirection(-1);
     setShowResults(false);
     setRecommendations([]);
+    setDnaCard(null);
     setIsLoading(false);
   };
 
@@ -300,6 +307,8 @@ export default function FragranceQuizPage() {
             <QuizResults
               recommendations={recommendations}
               isLoading={isLoading}
+              dnaCard={dnaCard}
+              quizAnswers={answers}
             />
 
             {/* Action buttons below results */}

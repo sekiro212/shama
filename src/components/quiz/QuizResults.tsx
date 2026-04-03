@@ -1,16 +1,19 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Sparkles, ShoppingBag, Eye } from "lucide-react";
+import { Sparkles, ShoppingBag, Eye, Download, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/contexts/CartContext";
 import { fetchProducts, Product } from "@/services/productsService";
 import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { ScentDNACard } from "@/services/aiService";
 
 interface QuizResultsProps {
   recommendations: { name: string; matchScore: number; reason: string }[];
   isLoading: boolean;
+  dnaCard?: ScentDNACard | null;
+  quizAnswers?: Record<string, string>;
 }
 
 const containerVariants = {
@@ -37,6 +40,8 @@ const cardVariants = {
 export default function QuizResults({
   recommendations,
   isLoading,
+  dnaCard,
+  quizAnswers: _quizAnswers,
 }: QuizResultsProps) {
   const { t, isRTL } = useLanguage();
   const { addToCart } = useCart();
@@ -92,6 +97,44 @@ export default function QuizResults({
     toast.success(`${product.name} ${t("product.addedToCart")}`, {
       className: "glass-card border-[#5B8DD9]",
     });
+  };
+
+  const handleDownloadCard = async () => {
+    const el = document.getElementById("scent-dna-card");
+    if (!el) return;
+    try {
+      const { toPng } = await import("html-to-image");
+      const dataUrl = await toPng(el, { quality: 0.95, pixelRatio: 2 });
+      const link = document.createElement("a");
+      link.download = "shama-scent-dna.png";
+      link.href = dataUrl;
+      link.click();
+    } catch {
+      toast.error(t("quiz.dna.downloadError"));
+    }
+  };
+
+  const handleShareCard = async () => {
+    const el = document.getElementById("scent-dna-card");
+    if (!el || !dnaCard) return;
+    try {
+      const { toPng } = await import("html-to-image");
+      const dataUrl = await toPng(el, { quality: 0.95, pixelRatio: 2 });
+      const caption = isRTL
+        ? `هويتي العطرية على شمة: "${dnaCard.archetypeAr}" 🌸✨ @shama_luxury`
+        : `My Shama Fragrance Identity: "${dnaCard.archetype}" 🌸✨ @shama_luxury`;
+      const res = await fetch(dataUrl);
+      const blob = await res.blob();
+      const file = new File([blob], "shama-scent-dna.png", { type: "image/png" });
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ title: "My Shama Fragrance Identity", text: caption, files: [file] });
+      } else {
+        await navigator.clipboard.writeText(caption);
+        toast.success(t("quiz.dna.copiedCaption"));
+      }
+    } catch {
+      toast.error(t("quiz.dna.shareError"));
+    }
   };
 
   // Loading state
@@ -344,6 +387,95 @@ export default function QuizResults({
           );
         })}
       </motion.div>
+
+      {/* Scent DNA Identity Card */}
+      {dnaCard && (
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6, duration: 0.6 }}
+          className="mt-12"
+        >
+          <div
+            id="scent-dna-card"
+            className="max-w-sm mx-auto glass-card p-8 rounded-2xl border border-[#5B8DD9]/30 bg-gradient-to-br from-[#0d1525] to-[#1a2235]"
+          >
+            {/* Header */}
+            <div className="text-center mb-6">
+              <div className="text-xs tracking-[0.2em] text-[#5B8DD9] uppercase font-semibold mb-3">
+                ✦ {t("quiz.dna.title")}
+              </div>
+              <p className="text-[#6B7B8D] text-sm mb-1">{t("quiz.dna.youAre")}</p>
+              <h3 className="text-xl font-bold text-[#F5F5F5]">
+                "{isRTL ? dnaCard.archetypeAr : dnaCard.archetype}"
+              </h3>
+            </div>
+
+            {/* Scent family bars */}
+            <div className="space-y-3 mb-6">
+              {dnaCard.families.map((fam) => (
+                <div key={fam.name}>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-[#F5F5F5]/80">
+                      {isRTL ? fam.nameAr : fam.name}
+                    </span>
+                    <span className="text-[#5B8DD9]">{fam.percent}%</span>
+                  </div>
+                  <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                    <motion.div
+                      className="h-full bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] rounded-full"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${fam.percent}%` }}
+                      transition={{ duration: 0.9, ease: "easeOut", delay: 0.2 }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Signature notes */}
+            <div className="flex flex-wrap gap-2 justify-center mb-4">
+              {dnaCard.signatureNotes.map((note) => (
+                <span
+                  key={note}
+                  className="text-xs bg-[#5B8DD9]/20 text-[#F5F5F5] px-3 py-1 rounded-full border border-[#5B8DD9]/20"
+                >
+                  {note}
+                </span>
+              ))}
+            </div>
+
+            {/* Best worn */}
+            <p className="text-center text-xs text-[#6B7B8D] mb-6">
+              {t("quiz.dna.bestWorn")}:{" "}
+              {isRTL ? dnaCard.bestTimeAr : dnaCard.bestTime} ·{" "}
+              {isRTL ? dnaCard.bestSeasonAr : dnaCard.bestSeason}
+            </p>
+          </div>
+
+          {/* Buttons outside the card (not included in PNG) */}
+          <div className="flex gap-3 justify-center mt-4">
+            <Button
+              onClick={handleDownloadCard}
+              variant="outline"
+              size="sm"
+              className="border-[#5B8DD9]/30 text-[#5B8DD9] hover:bg-[#5B8DD9]/10"
+            >
+              <Download className={`w-3 h-3 ${isRTL ? "ms-1" : "me-1"}`} />
+              {t("quiz.dna.download")}
+            </Button>
+            <Button
+              onClick={handleShareCard}
+              variant="outline"
+              size="sm"
+              className="border-[#5B8DD9]/30 text-[#5B8DD9] hover:bg-[#5B8DD9]/10"
+            >
+              <Share2 className={`w-3 h-3 ${isRTL ? "ms-1" : "me-1"}`} />
+              {t("quiz.dna.share")}
+            </Button>
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 }

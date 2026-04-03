@@ -58,6 +58,7 @@
     "framer-motion": "^12.23.9",
     "groq-sdk": "^0.29.0",
     "gsap": "^3.13.0",
+    "html-to-image": "^1.11.13",
     "input-otp": "^1.2.4",
     "lucide-react": "^0.562.0",
     "mime": "^4.0.7",

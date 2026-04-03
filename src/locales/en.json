@@ -523,6 +523,16 @@
       "soldOut": "Sold Out",
       "productNotFound": "Product not found in current catalog",
       "match": "Match"
+    },
+    "dna": {
+      "title": "SHAMA FRAGRANCE IDENTITY",
+      "youAre": "You are",
+      "bestWorn": "Best worn",
+      "download": "Download Card",
+      "share": "Share",
+      "downloadError": "Download failed. Please try again.",
+      "shareError": "Share failed. Please try again.",
+      "copiedCaption": "Caption copied to clipboard!"
     }
   },
   "tracking": {
