@@ -486,3 +486,58 @@ Return ONLY valid JSON, nothing else:
     return fallback;
   }
 }
+
+export interface ScentDNACard {
+  archetype: string;
+  archetypeAr: string;
+  families: { name: string; nameAr: string; percent: number }[];
+  signatureNotes: string[];
+  bestTime: string;
+  bestTimeAr: string;
+  bestSeason: string;
+  bestSeasonAr: string;
+}
+
+export async function getScentDNACard(
+  answers: Record<string, string>
+): Promise<ScentDNACard | null> {
+  if (!ai) return null;
+
+  try {
+    const prompt = `A person answered a fragrance quiz:
+- Occasion: ${answers.occasion || "daily"}
+- Season: ${answers.season || "spring"}
+- Scent Family: ${answers.scentFamily || "floral"}
+- Intensity: ${answers.intensity || "moderate"}
+- Gender Preference: ${answers.gender || "unisex"}
+
+Create a unique fragrance identity card for this person. Return ONLY valid JSON:
+{
+  "archetype": "English poetic archetype name (e.g. 'The Desert Wanderer', 'The Midnight Bloom', 'The Silk Road Dreamer')",
+  "archetypeAr": "Same name translated poetically to Arabic",
+  "families": [
+    {"name":"Oriental","nameAr":"شرقي","percent":60},
+    {"name":"Woody","nameAr":"خشبي","percent":40}
+  ],
+  "signatureNotes": ["Note1","Note2","Note3"],
+  "bestTime": "Evening",
+  "bestTimeAr": "المساء",
+  "bestSeason": "${answers.season || "Autumn"}",
+  "bestSeasonAr": "الخريف"
+}
+Rules: families must sum to 100, use 2-3 families, archetype must be evocative and poetic, signatureNotes should match the scent families chosen.`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.1-flash-lite-preview",
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      config: { maxOutputTokens: 400, temperature: 0.85 },
+    });
+
+    const text = response.text?.trim() || "{}";
+    const match = text.match(/\{[\s\S]*\}/);
+    if (!match) return null;
+    return JSON.parse(match[0]) as ScentDNACard;
+  } catch {
+    return null;
+  }
+}
