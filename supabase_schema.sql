@@ -639,3 +639,22 @@ CREATE POLICY "Users can insert their own gift orders"
 -- CREATE POLICY "Anyone can upload gift previews"
 --   ON storage.objects FOR INSERT
 --   WITH CHECK (bucket_id = 'gift-previews');
+
+-- ============================================================
+-- Migration: add_memories_table
+-- Scent Memory Wall — user-submitted scent memories
+-- ============================================================
+create table if not exists memories (
+  id uuid primary key default gen_random_uuid(),
+  perfume_id uuid references perfumes(id) on delete set null,
+  perfume_name text not null,
+  memory_text text not null check (char_length(memory_text) between 5 and 120),
+  author_name text,
+  status text not null default 'pending' check (status in ('pending', 'approved')),
+  created_at timestamptz not null default now()
+);
+alter table memories enable row level security;
+create policy "Anyone can submit a memory"
+  on memories for insert with check (status = 'pending');
+create policy "Anyone can read approved memories"
+  on memories for select using (status = 'approved');

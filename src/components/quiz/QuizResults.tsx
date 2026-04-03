@@ -309,7 +309,7 @@ export default function QuizResults({
                               cx="32"
                               cy="32"
                               r="28"
-                              stroke="url(#scoreGradient)"
+                              stroke={`url(#scoreGradient-${index})`}
                               strokeWidth="4"
                               fill="none"
                               strokeLinecap="round"
@@ -317,7 +317,7 @@ export default function QuizResults({
                             />
                             <defs>
                               <linearGradient
-                                id="scoreGradient"
+                                id={`scoreGradient-${index}`}
                                 x1="0%"
                                 y1="0%"
                                 x2="100%"
