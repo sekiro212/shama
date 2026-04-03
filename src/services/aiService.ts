@@ -443,3 +443,46 @@ export async function generateGiftImageBase64(prompt: string): Promise<string> {
   if (!imageBytes) throw new Error("No image generated");
   return imageBytes as string;
 }
+
+export async function generateTimelineDescriptions(
+  productName: string,
+  notes: { top: string[]; middle: string[]; base: string[] },
+  language: string
+): Promise<{ top: string; middle: string; base: string }> {
+  const fallback = {
+    top: notes.top.join(", ") || "—",
+    middle: notes.middle.join(", ") || "—",
+    base: notes.base.join(", ") || "—",
+  };
+  if (!ai) return fallback;
+
+  try {
+    const lang = language === "ar" ? "Arabic" : "English";
+    const prompt = `You are a luxury perfume writer. For the fragrance "${productName}", write one short poetic sentence per phase (max 15 words each) describing what the wearer experiences. Respond in ${lang}.
+
+Top notes (${notes.top.join(", ") || "none"}):
+Heart notes (${notes.middle.join(", ") || "none"}):
+Base notes (${notes.base.join(", ") || "none"}):
+
+Return ONLY valid JSON, nothing else:
+{"top":"sentence here","middle":"sentence here","base":"sentence here"}`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.1-flash-lite-preview",
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      config: { maxOutputTokens: 256, temperature: 0.75 },
+    });
+
+    const text = response.text?.trim() || "{}";
+    const match = text.match(/\{[\s\S]*\}/);
+    if (!match) return fallback;
+    const parsed = JSON.parse(match[0]);
+    return {
+      top: parsed.top || fallback.top,
+      middle: parsed.middle || fallback.middle,
+      base: parsed.base || fallback.base,
+    };
+  } catch {
+    return fallback;
+  }
+}
