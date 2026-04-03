@@ -802,5 +802,20 @@
     "errorSuggestions": "Failed to get product suggestions. Please try again.",
     "errorGenerating": "Failed to generate image. Please try again.",
     "errorOrder": "Failed to place order. Please try again."
+  },
+  "memories": {
+    "eyebrow": "MEMORIES OF SHAMA",
+    "title": "Scent Stories",
+    "subtitle": "Real moments, real people",
+    "shareButton": "Share Your Memory",
+    "modalTitle": "Share a Scent Memory",
+    "selectPerfume": "Choose a fragrance...",
+    "placeholder": "One sentence about a memory this scent evokes...",
+    "namePlaceholder": "Your name (optional)",
+    "submit": "Share Memory",
+    "submitSuccess": "Thank you! Your memory will appear after review.",
+    "submitError": "Failed to submit. Please try again.",
+    "validationError": "Please select a fragrance and write at least 5 characters.",
+    "empty": "Be the first to share a scent memory."
   }
 }
