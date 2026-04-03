@@ -132,7 +132,8 @@ export default function QuizResults({
         await navigator.clipboard.writeText(caption);
         toast.success(t("quiz.dna.copiedCaption"));
       }
-    } catch {
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") return;
       toast.error(t("quiz.dna.shareError"));
     }
   };
@@ -435,9 +436,9 @@ export default function QuizResults({
 
             {/* Signature notes */}
             <div className="flex flex-wrap gap-2 justify-center mb-4">
-              {dnaCard.signatureNotes.map((note) => (
+              {dnaCard.signatureNotes.map((note, i) => (
                 <span
-                  key={note}
+                  key={`${note}-${i}`}
                   className="text-xs bg-[#5B8DD9]/20 text-[#F5F5F5] px-3 py-1 rounded-full border border-[#5B8DD9]/20"
                 >
                   {note}

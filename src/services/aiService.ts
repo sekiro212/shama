@@ -522,8 +522,8 @@ Create a unique fragrance identity card for this person. Return ONLY valid JSON:
   "signatureNotes": ["Note1","Note2","Note3"],
   "bestTime": "Evening",
   "bestTimeAr": "المساء",
-  "bestSeason": "${answers.season || "Autumn"}",
-  "bestSeasonAr": "الخريف"
+  "bestSeason": "based on the season preference above",
+  "bestSeasonAr": "Arabic translation of the season above"
 }
 Rules: families must sum to 100, use 2-3 families, archetype must be evocative and poetic, signatureNotes should match the scent families chosen.`;
 
