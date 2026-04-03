@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { searchProducts, Product } from "@/services/productsService";
-import { aiSearch } from "@/services/aiService";
+import { smartSearch, SmartSearchResult } from "@/services/aiService";
 
 export function useSearch() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Product[]>([]);
-  const [aiResults, setAiResults] = useState<Product[]>([]);
+  const [aiResults, setAiResults] = useState<SmartSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isAiSearching, setIsAiSearching] = useState(false);
   const debounceTimer = useRef<ReturnType<typeof setTimeout>>();
@@ -29,10 +29,10 @@ export function useSearch() {
       if (textResults.length < 3 || searchQuery.split(" ").length > 2) {
         setIsAiSearching(true);
         try {
-          const smartResults = await aiSearch(searchQuery);
+          const smartResults = await smartSearch(searchQuery);
           // Filter out duplicates from text search
           const uniqueAiResults = smartResults.filter(
-            (ai) => !textResults.some((t) => t.id === ai.id)
+            (ai) => !textResults.some((t) => t.id === ai.product.id)
           );
           setAiResults(uniqueAiResults);
         } catch {
