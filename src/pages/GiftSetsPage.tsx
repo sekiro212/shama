@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Gift, Filter } from "lucide-react";
+import { Gift, Filter, Sparkles } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -10,12 +10,14 @@ import {
 import ProductCard from "@/components/ProductCard";
 import { filterProducts, Product } from "@/services/productsService";
 import { useLanguage } from "@/contexts/LanguageContext";
+import GiftWizard from "@/components/gift-builder/GiftWizard";
 
 export default function GiftSetsPage() {
   const { t } = useLanguage();
   const [genderFilter, setGenderFilter] = useState("all");
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showWizard, setShowWizard] = useState(false);
 
   useEffect(() => {
     const loadGiftSets = async () => {
@@ -58,6 +60,15 @@ export default function GiftSetsPage() {
           <p className="dark:text-white/70 text-[#6B7B8D] text-lg max-w-2xl mx-auto">
             {t("giftSets.description")}
           </p>
+          <div className="flex justify-center mt-6">
+            <button
+              onClick={() => setShowWizard(true)}
+              className="bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] hover:from-[#3E6BB5] hover:to-[#5B8DD9] text-white px-8 py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-105 flex items-center gap-2 shadow-lg shadow-[#5B8DD9]/30"
+            >
+              <Sparkles className="h-5 w-5" />
+              {t("giftBuilder.buildMyGift")}
+            </button>
+          </div>
         </div>
 
         {/* Filters */}
@@ -115,6 +126,7 @@ export default function GiftSetsPage() {
           </div>
         )}
       </div>
+      {showWizard && <GiftWizard onClose={() => setShowWizard(false)} />}
     </div>
   );
 }
