@@ -591,3 +591,51 @@ CREATE POLICY "Authenticated users insert reviews" ON reviews FOR INSERT WITH CH
 CREATE POLICY "Users read own reviews" ON reviews FOR SELECT USING (auth.uid() = user_id);
 GRANT ALL ON reviews TO anon;
 GRANT ALL ON reviews TO authenticated;
+
+-- ============================================================
+-- Migration: add_custom_gift_orders_table
+-- Gift Builder feature — stores custom gift orders placed
+-- through the AI gift builder wizard.
+-- ============================================================
+
+CREATE TABLE custom_gift_orders (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  products JSONB NOT NULL,
+  occasion VARCHAR(50),
+  box_color VARCHAR(30),
+  wrapping_style VARCHAR(30),
+  message_card TEXT,
+  recipient_name VARCHAR(100),
+  delivery_date DATE,
+  generated_image_url TEXT,
+  image_style VARCHAR(20),
+  status VARCHAR(20) DEFAULT 'pending',
+  total_price DECIMAL(10,2),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE custom_gift_orders ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view their own gift orders"
+  ON custom_gift_orders FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own gift orders"
+  ON custom_gift_orders FOR INSERT
+  WITH CHECK (auth.uid() = user_id OR user_id IS NULL);
+
+-- Storage bucket: gift-previews (public, for AI-generated gift images)
+-- Run via execute_sql (not apply_migration) because it touches storage schema:
+--
+-- INSERT INTO storage.buckets (id, name, public)
+-- VALUES ('gift-previews', 'gift-previews', true)
+-- ON CONFLICT (id) DO NOTHING;
+--
+-- CREATE POLICY "Public read gift previews"
+--   ON storage.objects FOR SELECT
+--   USING (bucket_id = 'gift-previews');
+--
+-- CREATE POLICY "Anyone can upload gift previews"
+--   ON storage.objects FOR INSERT
+--   WITH CHECK (bucket_id = 'gift-previews');
