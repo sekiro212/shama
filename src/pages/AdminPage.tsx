@@ -287,6 +287,8 @@ export default function AdminPage() {
   const [memories, setMemories] = useState<Memory[]>([]);
   const [memoriesLoading, setMemoriesLoading] = useState(false);
   const [pendingMemoryCount, setPendingMemoryCount] = useState(0);
+  const [approvingMemory, setApprovingMemory] = useState<string | null>(null);
+  const [deletingMemory, setDeletingMemory] = useState<string | null>(null);
   const [approvingReview, setApprovingReview] = useState<string | null>(null);
   const [deletingReview, setDeletingReview] = useState<string | null>(null);
   const [giftOrders, setGiftOrders] = useState<CustomGiftOrder[]>([]);
@@ -364,23 +366,29 @@ export default function AdminPage() {
   };
 
   const handleApproveMemory = async (id: string) => {
+    setApprovingMemory(id);
     try {
       await approveMemory(id);
       await loadMemories();
       toast.success(t("admin.memories.toast.approved"));
     } catch {
       toast.error(t("admin.memories.toast.approveFailed"));
+    } finally {
+      setApprovingMemory(null);
     }
   };
 
   const handleDeleteMemory = async (id: string) => {
     if (!window.confirm(t("admin.memories.confirm.delete"))) return;
+    setDeletingMemory(id);
     try {
       await deleteMemory(id);
       await loadMemories();
       toast.success(t("admin.memories.toast.deleted"));
     } catch {
       toast.error(t("admin.memories.toast.deleteFailed"));
+    } finally {
+      setDeletingMemory(null);
     }
   };
 
@@ -3186,21 +3194,23 @@ export default function AdminPage() {
                             : t("admin.memories.pending")}
                         </Badge>
                         {memory.status === "pending" && (
-                          <Button
+                          <LoadingButton
                             size="sm"
+                            loading={approvingMemory === memory.id}
                             onClick={() => handleApproveMemory(memory.id)}
                             className="bg-green-600 hover:bg-green-700 text-white"
                           >
                             {t("admin.memories.approve")}
-                          </Button>
+                          </LoadingButton>
                         )}
-                        <Button
+                        <LoadingButton
                           size="sm"
                           variant="destructive"
+                          loading={deletingMemory === memory.id}
                           onClick={() => handleDeleteMemory(memory.id)}
                         >
                           {t("admin.memories.delete")}
-                        </Button>
+                        </LoadingButton>
                       </div>
                     </div>
                   ))}
