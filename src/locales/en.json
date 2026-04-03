@@ -346,6 +346,7 @@
     "returnHome": "Return to Homepage",
     "details": "Details",
     "fragranceNotes": "Fragrance Notes",
+    "journey": "Fragrance Journey",
     "chooseOption": "Choose Option",
     "bottleSizes": "Bottle Sizes",
     "samples": "Samples",
@@ -379,7 +380,12 @@
     "checkBackLater": "Check back later",
     "quickView": "Quick View",
     "samplesAvailable": "Samples Available",
-    "fullDetails": "Full Details"
+    "fullDetails": "Full Details",
+    "timeline": {
+      "topNotes": "Top Notes",
+      "heartNotes": "Heart Notes",
+      "baseNotes": "Base Notes"
+    }
   },
   "cart": {
     "title": "Shopping Cart",

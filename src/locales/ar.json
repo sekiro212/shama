@@ -346,6 +346,7 @@
     "returnHome": "العودة للرئيسية",
     "details": "التفاصيل",
     "fragranceNotes": "مكونات العطر",
+    "journey": "رحلة العطر",
     "chooseOption": "اختر خياراً",
     "bottleSizes": "أحجام الزجاجات",
     "samples": "العينات",
@@ -379,7 +380,12 @@
     "checkBackLater": "تحقق لاحقاً",
     "quickView": "نظرة سريعة",
     "samplesAvailable": "عينات متوفرة",
-    "fullDetails": "التفاصيل الكاملة"
+    "fullDetails": "التفاصيل الكاملة",
+    "timeline": {
+      "topNotes": "النوتات الأولى",
+      "heartNotes": "نوتات القلب",
+      "baseNotes": "النوتات الأساسية"
+    }
   },
   "cart": {
     "title": "سلة التسوق",

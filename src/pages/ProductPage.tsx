@@ -13,6 +13,7 @@ import {
   ChevronRight,
   Heart,
   Star,
+  Wind,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -34,6 +35,7 @@ import {
   Review,
 } from "@/services/reviewsService";
 import { evaluateReview } from "@/services/aiService";
+import FragranceTimeline from "@/components/FragranceTimeline";
 
 export default function ProductPage() {
   const { id } = useParams<{ id: string }>();
@@ -254,6 +256,7 @@ export default function ProductPage() {
   const tabs = [
     { id: "details", label: t("product.details"), icon: Info },
     { id: "notes", label: t("product.fragranceNotes"), icon: Sparkles },
+    { id: "journey", label: t("product.journey"), icon: Wind },
   ];
 
   return (
@@ -968,6 +971,13 @@ export default function ProductPage() {
               <div className="glass-card p-6 rounded-2xl">
                 {activeTab === "details" && <DetailsTab product={product} t={t} language={language} />}
                 {activeTab === "notes" && <NotesTab product={product} t={t} language={language} />}
+                {activeTab === "journey" && product && (
+                  <FragranceTimeline
+                    productName={language === "ar" && product.name_ar ? product.name_ar : product.name}
+                    notes={product.fragranceNotes ?? { top: [], middle: [], base: [] }}
+                    notesAr={product.fragranceNotes_ar}
+                  />
+                )}
               </div>
             </div>
           </div>
