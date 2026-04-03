@@ -82,7 +82,7 @@ export async function chatWithAI(
     ];
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
+      model: "gemini-3.1-flash-lite-preview",
       contents,
       config: {
         systemInstruction,
@@ -120,7 +120,7 @@ export async function* chatWithAIStream(
     ];
 
     const response = await ai.models.generateContentStream({
-      model: "gemini-2.0-flash",
+      model: "gemini-3.1-flash-lite-preview",
       contents,
       config: {
         systemInstruction,
@@ -149,7 +149,7 @@ export async function aiSearch(query: string): Promise<Product[]> {
     const prompt = `Given this perfume catalog:\n${productContext}\n\nA customer searches for: "${query}"\n\nReturn ONLY a JSON array of product names that best match this query (max 6). Consider fragrance notes, gender, price, and description. Example: ["Product Name 1", "Product Name 2"]\n\nReturn ONLY the JSON array, nothing else.`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
+      model: "gemini-3.1-flash-lite-preview",
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       config: { maxOutputTokens: 256, temperature: 0.3 },
     });
@@ -207,7 +207,7 @@ Example format:
 [{"name":"Oud Noir","reason":"Rich oud base perfect for evening occasions.","matchScore":95}]`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
+      model: "gemini-3.1-flash-lite-preview",
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       config: { maxOutputTokens: 1024, temperature: 0.3 },
     });
@@ -278,7 +278,7 @@ export async function generateProductDescription(
 Write 2-3 sentences. Be poetic and sensory. Make it compelling for an online perfume store. Do not use hashtags or emojis.`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
+      model: "gemini-3.1-flash-lite-preview",
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       config: { maxOutputTokens: 256, temperature: 0.8 },
     });
@@ -319,7 +319,7 @@ Otherwise mark as "approved".
 Respond with ONLY one word: approved or pending`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
+      model: "gemini-3.1-flash-lite-preview",
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       config: { maxOutputTokens: 10, temperature: 0.1 },
     });
@@ -358,7 +358,7 @@ Return ONLY valid JSON array, nothing else. Example:
 [{"name":"Product Name","matchScore":92,"reason":"Perfect match because..."}]`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
+      model: "gemini-3.1-flash-lite-preview",
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       config: { maxOutputTokens: 512, temperature: 0.5 },
     });
