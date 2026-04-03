@@ -14,6 +14,7 @@ import WishlistPage from "@/pages/WishlistPage";
 import OrderTrackingPage from "@/pages/OrderTrackingPage";
 import SamplesPage from "@/pages/SamplesPage";
 import LoginPage from "@/pages/LoginPage";
+import AIFinderPage from "@/pages/AIFinderPage";
 import CartSidebar from "@/components/CartSidebar";
 import SearchDialog from "@/components/SearchDialog";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -61,6 +62,7 @@ function AnimatedRoutes({ isCartOpen, setIsCartOpen }: { isCartOpen: boolean; se
             <Route path="/samples" element={<PageTransition><SamplesPage /></PageTransition>} />
             <Route path="/track-order" element={<PageTransition><OrderTrackingPage /></PageTransition>} />
             <Route path="/admin" element={<PageTransition><AdminPage /></PageTransition>} />
+            <Route path="/ai-finder" element={<PageTransition><AIFinderPage /></PageTransition>} />
           </Routes>
         </AnimatePresence>
       </main>

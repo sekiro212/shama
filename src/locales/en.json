@@ -691,6 +691,17 @@
       "alreadyReviewed": "You have already reviewed this product."
     }
   },
+  "aiFinder": {
+    "title": "Describe your perfect perfume",
+    "subtitle": "Tell us the occasion, mood, season, or scent family you have in mind.",
+    "placeholder": "e.g. a woody perfume for nights out...",
+    "findButton": "Find My Perfume",
+    "analyzing": "AI is analyzing...",
+    "findingMatches": "Finding your perfect matches...",
+    "matchesFound": "matches found",
+    "noMatches": "No matches found. Try describing the scent, occasion, or who it's for.",
+    "searchFailed": "Search failed. Please try again."
+  },
   "common": {
     "loading": "Loading...",
     "error": "Error",
