@@ -373,3 +373,66 @@ Return ONLY valid JSON array, nothing else. Example:
     return [];
   }
 }
+
+export async function getGiftSuggestions(description: string): Promise<Product[]> {
+  if (!ai) return [];
+  try {
+    const [productContext, { products }] = await Promise.all([
+      buildProductContext(),
+      fetchProducts(1, 100),
+    ]);
+
+    const prompt = `You are a gift curator for Shama, a luxury Libyan perfume store.
+
+Given this perfume catalog:
+${productContext}
+
+A customer wants to build a gift with this description: "${description}"
+
+Return ONLY a valid JSON array of 4-6 product names that would make the best gift combination.
+Consider gender, occasion, scent compatibility, and price range.
+Return ONLY product names that exist exactly in the catalog.
+Example: ["Product Name 1", "Product Name 2"]
+
+Return ONLY the JSON array, nothing else.`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.1-flash-lite-preview",
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      config: { maxOutputTokens: 256, temperature: 0.4 },
+    });
+
+    const text = response.text?.trim() || "[]";
+    const match = text.match(/\[[\s\S]*\]/);
+    if (!match) return [];
+    const names: string[] = JSON.parse(match[0]);
+    return products.filter((p) =>
+      names.some(
+        (name) =>
+          p.name.toLowerCase().includes(name.toLowerCase()) ||
+          name.toLowerCase().includes(p.name.toLowerCase())
+      )
+    );
+  } catch (error) {
+    console.error("Gift Suggestions Error:", error);
+    return [];
+  }
+}
+
+export async function generateGiftImageBase64(prompt: string): Promise<string> {
+  if (!ai) throw new Error("AI service not configured");
+  // NOTE: Verify model ID at https://ai.google.dev/gemini-api/docs/image-generation
+  // Fall back to "imagen-3.0-generate-001" if imagen-4.0 is unavailable on your API key
+  const response = await (ai.models as any).generateImages({
+    model: "imagen-4.0-generate-001",
+    prompt,
+    config: {
+      numberOfImages: 1,
+      outputMimeType: "image/jpeg",
+      aspectRatio: "1:1",
+    },
+  });
+  const imageBytes = response.generatedImages?.[0]?.image?.imageBytes;
+  if (!imageBytes) throw new Error("No image generated");
+  return imageBytes as string;
+}
