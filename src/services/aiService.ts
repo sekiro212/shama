@@ -450,9 +450,9 @@ export async function generateTimelineDescriptions(
   language: string
 ): Promise<{ top: string; middle: string; base: string }> {
   const fallback = {
-    top: notes.top.join(", ") || "—",
-    middle: notes.middle.join(", ") || "—",
-    base: notes.base.join(", ") || "—",
+    top: notes.top?.join(", ") || "—",
+    middle: notes.middle?.join(", ") || "—",
+    base: notes.base?.join(", ") || "—",
   };
   if (!ai) return fallback;
 
@@ -460,9 +460,9 @@ export async function generateTimelineDescriptions(
     const lang = language === "ar" ? "Arabic" : "English";
     const prompt = `You are a luxury perfume writer. For the fragrance "${productName}", write one short poetic sentence per phase (max 15 words each) describing what the wearer experiences. Respond in ${lang}.
 
-Top notes (${notes.top.join(", ") || "none"}):
-Heart notes (${notes.middle.join(", ") || "none"}):
-Base notes (${notes.base.join(", ") || "none"}):
+Top notes (${notes.top?.join(", ") || "none"}):
+Heart notes (${notes.middle?.join(", ") || "none"}):
+Base notes (${notes.base?.join(", ") || "none"}):
 
 Return ONLY valid JSON, nothing else:
 {"top":"sentence here","middle":"sentence here","base":"sentence here"}`;

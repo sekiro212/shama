@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { generateTimelineDescriptions } from "@/services/aiService";
 
@@ -96,9 +96,14 @@ export default function FragranceTimeline({
             className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 transition-all duration-300 cursor-pointer ${
               activePhase === phase.key
                 ? "border-[#5B8DD9] bg-[#5B8DD9] scale-125"
-                : "border-[#5B8DD9] bg-[#1a2235] hover:scale-125"
+                : "border-[#5B8DD9] bg-white dark:bg-[#1a2235] hover:scale-125"
             }`}
-            style={{ left: phase.dotPosition, transform: "translate(-50%, -50%)" }}
+            style={{
+              left: isRTL
+                ? `${100 - parseInt(phase.dotPosition)}%`
+                : phase.dotPosition,
+              transform: "translate(-50%, -50%)",
+            }}
             onClick={() =>
               setActivePhase(activePhase === phase.key ? null : phase.key)
             }
@@ -150,16 +155,19 @@ export default function FragranceTimeline({
                 )}
               </div>
 
-              {isActive && descriptions && (
-                <motion.p
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="text-xs text-[#6B7B8D] italic leading-relaxed mt-1"
-                >
-                  {descriptions[phase.key]}
-                </motion.p>
-              )}
+              <AnimatePresence>
+                {isActive && descriptions && (
+                  <motion.p
+                    key="desc"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="text-xs text-[#6B7B8D] italic leading-relaxed mt-1"
+                  >
+                    {descriptions[phase.key]}
+                  </motion.p>
+                )}
+              </AnimatePresence>
             </motion.button>
           );
         })}
