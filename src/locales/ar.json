@@ -33,7 +33,8 @@
       "perfumes": "العطور",
       "orders": "الطلبات",
       "reviews": "التقييمات",
-      "giftOrders": "طلبات الهدايا"
+      "giftOrders": "طلبات الهدايا",
+      "memories": "الذكريات"
     },
     "recentOrders": "الطلبات الأخيرة",
     "ordersManagement": "إدارة الطلبات",
@@ -258,6 +259,24 @@
       },
       "confirm": {
         "delete": "هل أنت متأكد من حذف هذا التقييم؟"
+      }
+    },
+    "memories": {
+      "title": "الذكريات العطرية",
+      "pending": "قيد المراجعة",
+      "approved": "معتمد",
+      "approve": "اعتماد",
+      "delete": "حذف",
+      "empty": "لا توجد ذكريات للمراجعة.",
+      "toast": {
+        "approved": "تم اعتماد الذكرى",
+        "deleted": "تم حذف الذكرى",
+        "approveFailed": "فشل اعتماد الذكرى",
+        "deleteFailed": "فشل حذف الذكرى",
+        "loadFailed": "فشل تحميل الذكريات"
+      },
+      "confirm": {
+        "delete": "حذف هذه الذكرى نهائياً؟"
       }
     }
   },

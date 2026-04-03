@@ -25,6 +25,7 @@ import {
   Truck,
   ClipboardCheck,
   Gift,
+  Heart,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/ui/loading-button";
@@ -91,6 +92,13 @@ import {
   validateImageFile,
   PerfumeImage,
 } from "@/services/imageService";
+import {
+  fetchAllMemories,
+  approveMemory,
+  deleteMemory,
+  fetchPendingMemoryCount,
+  Memory,
+} from "@/services/memoriesService";
 
 interface PerfumeSample {
   id: string;
@@ -276,6 +284,9 @@ export default function AdminPage() {
   const [reviews, setReviews] = useState<(Review & { perfume_name: string })[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [pendingReviewCount, setPendingReviewCount] = useState(0);
+  const [memories, setMemories] = useState<Memory[]>([]);
+  const [memoriesLoading, setMemoriesLoading] = useState(false);
+  const [pendingMemoryCount, setPendingMemoryCount] = useState(0);
   const [approvingReview, setApprovingReview] = useState<string | null>(null);
   const [deletingReview, setDeletingReview] = useState<string | null>(null);
   const [giftOrders, setGiftOrders] = useState<CustomGiftOrder[]>([]);
@@ -300,7 +311,7 @@ export default function AdminPage() {
   }, []);
 
   const loadData = async () => {
-    await Promise.all([loadPerfumes(), loadOrders(), loadOrderStats(), loadReviews(), fetchGiftOrders()]);
+    await Promise.all([loadPerfumes(), loadOrders(), loadOrderStats(), loadReviews(), fetchGiftOrders(), loadMemories()]);
   };
 
   const fetchGiftOrders = async () => {
@@ -333,6 +344,43 @@ export default function AdminPage() {
       toast.error(t("admin.reviews.toast.loadFailed"));
     } finally {
       setReviewsLoading(false);
+    }
+  };
+
+  const loadMemories = async () => {
+    setMemoriesLoading(true);
+    try {
+      const [allMemories, pendingCount] = await Promise.all([
+        fetchAllMemories(),
+        fetchPendingMemoryCount(),
+      ]);
+      setMemories(allMemories);
+      setPendingMemoryCount(pendingCount);
+    } catch {
+      toast.error(t("admin.memories.toast.loadFailed"));
+    } finally {
+      setMemoriesLoading(false);
+    }
+  };
+
+  const handleApproveMemory = async (id: string) => {
+    try {
+      await approveMemory(id);
+      await loadMemories();
+      toast.success(t("admin.memories.toast.approved"));
+    } catch {
+      toast.error(t("admin.memories.toast.approveFailed"));
+    }
+  };
+
+  const handleDeleteMemory = async (id: string) => {
+    if (!window.confirm(t("admin.memories.confirm.delete"))) return;
+    try {
+      await deleteMemory(id);
+      await loadMemories();
+      toast.success(t("admin.memories.toast.deleted"));
+    } catch {
+      toast.error(t("admin.memories.toast.deleteFailed"));
     }
   };
 
@@ -1540,7 +1588,7 @@ export default function AdminPage() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-5 glass bg-white dark:bg-white/5 border-[#323D50]/15 dark:border-white/20">
+          <TabsList className="grid w-full grid-cols-6 glass bg-white dark:bg-white/5 border-[#323D50]/15 dark:border-white/20">
             <TabsTrigger
               value="overview"
               className="data-[state=active]:bg-[#5B8DD9]"
@@ -1580,6 +1628,18 @@ export default function AdminPage() {
             >
               <Gift className={`w-4 h-4 ${isRTL ? "ms-2" : "me-2"}`} />
               {t("admin.tabs.giftOrders")}
+            </TabsTrigger>
+            <TabsTrigger
+              value="memories"
+              className="data-[state=active]:bg-[#5B8DD9]"
+            >
+              <Heart className={`w-4 h-4 ${isRTL ? "ms-2" : "me-2"}`} />
+              {t("admin.tabs.memories")}
+              {pendingMemoryCount > 0 && (
+                <Badge className="ms-2 bg-amber-500 text-white text-xs px-1.5 py-0">
+                  {pendingMemoryCount}
+                </Badge>
+              )}
             </TabsTrigger>
           </TabsList>
 
@@ -3069,6 +3129,78 @@ export default function AdminPage() {
                           <option value="accepted">Accepted</option>
                           <option value="delivered">Delivered</option>
                         </select>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="memories" className="mt-6">
+            <div className="glass-card p-6 rounded-2xl">
+              <h2 className="text-xl font-bold text-[#323D50] dark:text-[#F5F5F5] mb-6">
+                {t("admin.memories.title")}
+              </h2>
+              {memoriesLoading ? (
+                <div className="text-center py-8 text-[#6B7B8D]">
+                  {t("admin.loadingTitle")}
+                </div>
+              ) : memories.length === 0 ? (
+                <p className="text-center text-[#6B7B8D] py-8">
+                  {t("admin.memories.empty")}
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {memories.map((memory) => (
+                    <div
+                      key={memory.id}
+                      className="flex items-start justify-between gap-4 p-4 rounded-xl border border-[#5B8DD9]/10 bg-white/5"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-[#F5F5F5] italic mb-1">
+                          "{memory.memory_text}"
+                        </p>
+                        <p className="text-xs text-[#5B8DD9] mb-1">
+                          — {memory.perfume_name}
+                        </p>
+                        {memory.author_name && (
+                          <p className="text-xs text-[#6B7B8D]">
+                            {memory.author_name}
+                          </p>
+                        )}
+                        <p className="text-xs text-[#6B7B8D] mt-1">
+                          {new Date(memory.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <Badge
+                          className={
+                            memory.status === "approved"
+                              ? "bg-green-500/20 text-green-400"
+                              : "bg-amber-500/20 text-amber-400"
+                          }
+                        >
+                          {memory.status === "approved"
+                            ? t("admin.memories.approved")
+                            : t("admin.memories.pending")}
+                        </Badge>
+                        {memory.status === "pending" && (
+                          <Button
+                            size="sm"
+                            onClick={() => handleApproveMemory(memory.id)}
+                            className="bg-green-600 hover:bg-green-700 text-white"
+                          >
+                            {t("admin.memories.approve")}
+                          </Button>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleDeleteMemory(memory.id)}
+                        >
+                          {t("admin.memories.delete")}
+                        </Button>
                       </div>
                     </div>
                   ))}

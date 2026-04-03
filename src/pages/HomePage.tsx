@@ -27,6 +27,7 @@ import { BackgroundBeamsWithCollision } from "@/components/ui/background-beams-w
 import PixelTransition from "@/components/ui/PixelTransition";
 import { PinContainer } from "@/components/ui/3d-pin";
 import MarketingVideoSection from "@/components/MarketingVideoSection";
+import ScentMemoryWall from "@/components/ScentMemoryWall";
 
 // TikTokIcon SVG from Footer
 const TikTokIcon = ({ className }: { className?: string }) => (
@@ -457,6 +458,9 @@ export default function HomePage() {
       <section className="relative z-10">
         <div className="container mx-auto px-4">
           <RecentlyViewed />
+
+          {/* Scent Memory Wall */}
+          <ScentMemoryWall />
         </div>
       </section>
 
