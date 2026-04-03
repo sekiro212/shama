@@ -160,11 +160,16 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
             </>
           )}
 
-          {isAiSearching && results.length > 0 && (
-            <div className="px-4 py-3 text-center">
-              <span className="text-xs text-[#6B7B8D] dark:text-white/40 flex items-center justify-center gap-2">
-                <Sparkles className="w-3 h-3 text-[#5B8DD9] animate-pulse" />
+          {isAiSearching && (
+            <div className="px-4 py-4 text-center">
+              <span className="text-xs text-[#5B8DD9] flex items-center justify-center gap-2">
+                <Sparkles className="w-3.5 h-3.5 animate-pulse" />
                 {t("search.aiSearching")}
+                <span className="inline-flex gap-0.5">
+                  <span className="w-1 h-1 rounded-full bg-[#5B8DD9] animate-bounce [animation-delay:0ms]" />
+                  <span className="w-1 h-1 rounded-full bg-[#5B8DD9] animate-bounce [animation-delay:150ms]" />
+                  <span className="w-1 h-1 rounded-full bg-[#5B8DD9] animate-bounce [animation-delay:300ms]" />
+                </span>
               </span>
             </div>
           )}
