@@ -1,6 +1,12 @@
 import { GoogleGenAI } from "@google/genai";
 import { fetchProducts, Product } from "./productsService";
 
+export interface SmartSearchResult {
+  product: Product;
+  reason: string;      // 1–2 sentence explanation of why this perfume matches
+  matchScore: number;  // integer 60–99
+}
+
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
 let ai: GoogleGenAI | null = null;
@@ -162,6 +168,74 @@ export async function aiSearch(query: string): Promise<Product[]> {
     );
   } catch (error) {
     console.error("AI Search Error:", error);
+    return [];
+  }
+}
+
+export async function smartSearch(query: string): Promise<SmartSearchResult[]> {
+  if (!ai) return [];
+
+  try {
+    const [productContext, { products }] = await Promise.all([
+      buildProductContext(),
+      fetchProducts(1, 100),
+    ]);
+
+    const prompt = `You are a professional perfume consultant for Shama, a Libyan perfume store.
+
+Given this perfume catalog:
+${productContext}
+
+The customer is looking for: "${query}"
+
+Return ONLY a valid JSON array (no markdown, no explanation) of up to 6 best-matching perfumes.
+Each object must have:
+- "name": exact product name from the catalog (string)
+- "reason": 1-2 sentences (max 20 words) explaining why this perfume matches the customer's request (string)
+- "matchScore": integer between 60 and 99 representing how well it matches (number)
+
+Consider: scent family (woody, floral, fresh, oriental, citrus, musk), occasion (night out, daily, office, date, special event), season (summer, winter, spring, autumn), mood, gender, price range, fragrance notes, and intensity.
+
+Support both English and Arabic queries.
+
+If no perfumes match well, return an empty array [].
+
+Example format:
+[{"name":"Oud Noir","reason":"Rich oud base perfect for evening occasions.","matchScore":95}]`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.0-flash",
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      config: { maxOutputTokens: 512, temperature: 0.3 },
+    });
+
+    const text = response.text?.trim() || "[]";
+    // Strip markdown code fences if present
+    const stripped = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
+    const match = stripped.match(/\[[\s\S]*\]/);
+    if (!match) return [];
+
+    let parsed: { name: string; reason: string; matchScore: number }[];
+    try {
+      parsed = JSON.parse(match[0]);
+    } catch {
+      return [];
+    }
+
+    const results: SmartSearchResult[] = parsed
+      .map((item) => {
+        const product = products.find(
+          (p) => p.name.trim().toLowerCase() === item.name.trim().toLowerCase()
+        );
+        if (!product) return null;
+        return { product, reason: item.reason, matchScore: item.matchScore };
+      })
+      .filter((r): r is SmartSearchResult => r !== null)
+      .sort((a, b) => b.matchScore - a.matchScore);
+
+    return results;
+  } catch (error) {
+    console.error("Smart Search Error:", error);
     return [];
   }
 }
