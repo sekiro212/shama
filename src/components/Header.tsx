@@ -352,7 +352,7 @@ export default function Header({ onCartClick, onSearchClick }: HeaderProps) {
 
       {/* Whisper Mode indicator pill */}
       {isWhisperMode && (
-        <div className="fixed bottom-6 left-4 z-50 flex items-center gap-2 bg-[#1a2235]/90 backdrop-blur-sm border border-[#5B8DD9]/40 text-[#5B8DD9] text-xs font-medium px-3 py-1.5 rounded-full pointer-events-none">
+        <div className={`fixed bottom-6 ${isRTL ? "right-4" : "left-4"} z-50 flex items-center gap-2 bg-[#1a2235]/90 backdrop-blur-sm border border-[#5B8DD9]/40 text-[#5B8DD9] text-xs font-medium px-3 py-1.5 rounded-full pointer-events-none`}>
           <EyeOff className="w-3 h-3" />
           {t("header.whisperMode")}
         </div>
