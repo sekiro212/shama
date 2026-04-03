@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ShoppingBag, Menu, Search, Heart, Globe, Sun, Moon, LogIn, LogOut, UserCircle } from "lucide-react";
+import { ShoppingBag, Menu, Search, Heart, Globe, Sun, Moon, LogIn, LogOut, UserCircle, Sparkles } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useCart } from "@/contexts/CartContext";
 import { useWishlist } from "@/contexts/WishlistContext";
@@ -38,6 +38,7 @@ export default function Header({ onCartClick, onSearchClick }: HeaderProps) {
     { name: t("nav.samples"), href: "/samples", icon: "🧪" },
     { name: t("nav.giftSets"), href: "/gift-sets", icon: "🎁" },
     { name: t("nav.findYourScent"), href: "/quiz", icon: "✨" },
+    { name: "AI Finder", href: "/ai-finder", icon: null, isAiFinder: true },
   ];
 
   return (
@@ -84,7 +85,11 @@ export default function Header({ onCartClick, onSearchClick }: HeaderProps) {
                 className="group relative px-4 py-2 rounded-xl transition-all duration-300 hover:bg-white/5"
               >
                 <div className="flex items-center space-x-2 rtl:space-x-reverse">
-                  <span className="text-lg">{item.icon}</span>
+                  {item.isAiFinder ? (
+                    <Sparkles className="w-4 h-4 text-[#5B8DD9] group-hover:text-[#3E6BB5] transition-colors duration-300" />
+                  ) : (
+                    <span className="text-lg">{item.icon}</span>
+                  )}
                   <span className=" font-medium transition-colors duration-300">
                     {item.name}
                   </span>
@@ -240,7 +245,11 @@ export default function Header({ onCartClick, onSearchClick }: HeaderProps) {
                     onClick={() => setIsMenuOpen(false)}
                     className="glass dark:bg-white/5 bg-[#5B8DD9]/5 dark:hover:bg-white/10 hover:bg-[#5B8DD9]/10 border dark:border-white/10 border-[#323D50]/10 rounded-xl px-4 py-3 flex items-center space-x-3 rtl:space-x-reverse transition-all duration-300 hover:scale-105 "
                   >
-                    <span className="text-lg">{item.icon}</span>
+                    {item.isAiFinder ? (
+                      <Sparkles className="w-5 h-5 text-[#5B8DD9]" />
+                    ) : (
+                      <span className="text-lg">{item.icon}</span>
+                    )}
                     <span className="font-medium">{item.name}</span>
                   </Link>
                 ))}
