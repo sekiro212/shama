@@ -24,6 +24,7 @@ import {
   Sparkles,
   Truck,
   ClipboardCheck,
+  Gift,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/ui/loading-button";
@@ -137,6 +138,23 @@ interface Perfume {
   images?: PerfumeImage[];
   samples?: PerfumeSample[];
   bottle_sizes?: PerfumeBottleSize[];
+}
+
+interface CustomGiftOrder {
+  id: string;
+  user_id: string | null;
+  products: { id: string; name: string; price: number; image: string | null }[];
+  occasion: string;
+  box_color: string;
+  wrapping_style: string;
+  message_card: string | null;
+  recipient_name: string | null;
+  delivery_date: string | null;
+  generated_image_url: string | null;
+  image_style: string;
+  status: string;
+  total_price: number;
+  created_at: string;
 }
 
 const initialPerfumeData: Omit<Perfume, "id" | "created_at" | "updated_at"> = {
@@ -260,6 +278,8 @@ export default function AdminPage() {
   const [pendingReviewCount, setPendingReviewCount] = useState(0);
   const [approvingReview, setApprovingReview] = useState<string | null>(null);
   const [deletingReview, setDeletingReview] = useState<string | null>(null);
+  const [giftOrders, setGiftOrders] = useState<CustomGiftOrder[]>([]);
+  const [giftOrdersLoading, setGiftOrdersLoading] = useState(false);
 
   // Check authentication on mount
   useEffect(() => {
@@ -280,7 +300,24 @@ export default function AdminPage() {
   }, []);
 
   const loadData = async () => {
-    await Promise.all([loadPerfumes(), loadOrders(), loadOrderStats(), loadReviews()]);
+    await Promise.all([loadPerfumes(), loadOrders(), loadOrderStats(), loadReviews(), fetchGiftOrders()]);
+  };
+
+  const fetchGiftOrders = async () => {
+    setGiftOrdersLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("custom_gift_orders")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      setGiftOrders(data ?? []);
+    } catch (err) {
+      console.error("Failed to fetch gift orders:", err);
+      toast.error("Failed to load gift orders");
+    } finally {
+      setGiftOrdersLoading(false);
+    }
   };
 
   const loadReviews = async () => {
@@ -1503,7 +1540,7 @@ export default function AdminPage() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 glass bg-white dark:bg-white/5 border-[#323D50]/15 dark:border-white/20">
+          <TabsList className="grid w-full grid-cols-5 glass bg-white dark:bg-white/5 border-[#323D50]/15 dark:border-white/20">
             <TabsTrigger
               value="overview"
               className="data-[state=active]:bg-[#5B8DD9]"
@@ -1536,6 +1573,13 @@ export default function AdminPage() {
                   {pendingReviewCount}
                 </Badge>
               )}
+            </TabsTrigger>
+            <TabsTrigger
+              value="giftOrders"
+              className="data-[state=active]:bg-[#5B8DD9]"
+            >
+              <Gift className={`w-4 h-4 ${isRTL ? "ms-2" : "me-2"}`} />
+              {t("admin.tabs.giftOrders")}
             </TabsTrigger>
           </TabsList>
 
@@ -2928,6 +2972,105 @@ export default function AdminPage() {
                     </div>
                   </div>
                 </>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="giftOrders" className="mt-6">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold dark:text-[#F5F5F5] text-[#323D50]">
+                  {t("admin.tabs.giftOrders")}
+                </h2>
+                <Button variant="outline" onClick={fetchGiftOrders} disabled={giftOrdersLoading}>
+                  {giftOrdersLoading ? t("admin.loadingTitle") : t("admin.refreshOrders")}
+                </Button>
+              </div>
+
+              {giftOrdersLoading ? (
+                <div className="flex justify-center py-12">
+                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#5B8DD9]" />
+                </div>
+              ) : giftOrders.length === 0 ? (
+                <div className="glass-card p-12 rounded-2xl text-center">
+                  <Gift className="h-12 w-12 dark:text-white/30 text-[#6B7B8D] mx-auto mb-4" />
+                  <p className="dark:text-white/60 text-[#6B7B8D]">No custom gift orders yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {giftOrders.map((order) => (
+                    <div key={order.id} className="glass-card p-5 rounded-2xl flex gap-5 items-start">
+                      {order.generated_image_url && (
+                        <img
+                          src={order.generated_image_url}
+                          alt="Gift preview"
+                          className="w-20 h-20 rounded-xl object-cover flex-shrink-0"
+                        />
+                      )}
+                      <div className="flex-1 min-w-0 space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="font-semibold dark:text-[#F5F5F5] text-[#323D50]">
+                            {order.recipient_name ?? "No recipient name"}
+                          </p>
+                          <Badge
+                            className={
+                              order.status === "pending"
+                                ? "bg-amber-500"
+                                : order.status === "accepted"
+                                ? "bg-green-500"
+                                : "bg-blue-500"
+                            }
+                          >
+                            {order.status}
+                          </Badge>
+                        </div>
+                        <p className="text-sm dark:text-white/60 text-[#6B7B8D]">
+                          {order.occasion} · {order.box_color} box · {order.wrapping_style}
+                        </p>
+                        <p className="text-sm dark:text-white/60 text-[#6B7B8D]">
+                          Products: {order.products.map((p) => p.name).join(", ")}
+                        </p>
+                        {order.delivery_date && (
+                          <p className="text-sm dark:text-white/60 text-[#6B7B8D]">
+                            Delivery: {new Date(order.delivery_date).toLocaleDateString()}
+                          </p>
+                        )}
+                        {order.message_card && (
+                          <p className="text-sm dark:text-white/60 text-[#6B7B8D] italic">
+                            "{order.message_card}"
+                          </p>
+                        )}
+                        <p className="text-sm font-semibold text-[#5B8DD9]">
+                          {order.total_price} LYD
+                        </p>
+                      </div>
+                      <div className="flex-shrink-0">
+                        <select
+                          value={order.status}
+                          onChange={async (e) => {
+                            const { error } = await supabase
+                              .from("custom_gift_orders")
+                              .update({ status: e.target.value })
+                              .eq("id", order.id);
+                            if (!error) {
+                              setGiftOrders((prev) =>
+                                prev.map((o) =>
+                                  o.id === order.id ? { ...o, status: e.target.value } : o
+                                )
+                              );
+                              toast.success("Status updated");
+                            }
+                          }}
+                          className="glass dark:bg-white/5 bg-white dark:border-white/10 border-[#323D50]/10 dark:text-[#F5F5F5] text-[#323D50] rounded-lg px-3 py-1.5 text-sm"
+                        >
+                          <option value="pending">Pending</option>
+                          <option value="accepted">Accepted</option>
+                          <option value="delivered">Delivered</option>
+                        </select>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           </TabsContent>
