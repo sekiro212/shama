@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   ChevronRight,
   Star,
@@ -20,6 +20,7 @@ import {
 } from "@/services/productsService";
 import { useEffect, useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { motion } from "framer-motion";
 // ChatbotButton is now global in App.tsx
 import RecentlyViewed from "@/components/RecentlyViewed";
 import { BackgroundBeamsWithCollision } from "@/components/ui/background-beams-with-collision";
@@ -38,6 +39,104 @@ const TikTokIcon = ({ className }: { className?: string }) => (
     <path d="M12.53.02C13.84 0 15.14.01 16.44 0c.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z" />
   </svg>
 );
+
+const AIFinderBanner = () => {
+  const navigate = useNavigate();
+  const { isRTL } = useLanguage();
+
+  const chips = [
+    { label: "🌙 Night out", query: "night out" },
+    { label: "🌿 Everyday", query: "everyday fresh" },
+    { label: "🎁 Gift for her", query: "gift for her" },
+    { label: "🪵 Woody & warm", query: "woody warm" },
+    { label: "☀️ Summer", query: "summer light" },
+  ];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.6 }}
+      className="glass-card rounded-2xl overflow-hidden my-8"
+    >
+      {/* Animated gradient border effect via a wrapper with gradient bg */}
+      <div className="relative p-6 md:p-8">
+        {/* Subtle gradient overlay in top-right corner */}
+        <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-bl from-[#5B8DD9]/10 to-transparent rounded-2xl pointer-events-none" />
+
+        <div className="flex flex-col md:flex-row items-center gap-6">
+          {/* Left: text content */}
+          <div className="flex-1 text-center md:text-start">
+            {/* Badge */}
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#5B8DD9] bg-[#5B8DD9]/10 px-3 py-1 rounded-full mb-3">
+              <Sparkles className="w-3 h-3" />
+              AI Powered
+            </span>
+
+            <h2 className="text-xl md:text-2xl font-bold text-[#323D50] dark:text-[#F5F5F5] mb-2">
+              Can't find what you're looking for?
+            </h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              Describe it to our AI consultant — it'll find the perfect match for you.
+            </p>
+
+            {/* Chips */}
+            <div className="flex flex-wrap gap-2 mb-4 justify-center md:justify-start">
+              {chips.map((chip) => (
+                <button
+                  key={chip.query}
+                  onClick={() =>
+                    navigate(`/ai-finder?q=${encodeURIComponent(chip.query)}`)
+                  }
+                  className="px-3 py-1 rounded-full text-sm border border-[#5B8DD9]/40 hover:border-[#5B8DD9] hover:bg-[#5B8DD9]/10 text-[#5B8DD9] transition-all cursor-pointer"
+                >
+                  {chip.label}
+                </button>
+              ))}
+            </div>
+
+            {/* CTA button */}
+            <button
+              onClick={() => navigate("/ai-finder")}
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] text-white px-5 py-2.5 rounded-xl font-medium hover:opacity-90 transition-opacity"
+            >
+              <Sparkles className="w-4 h-4" />
+              Explore with AI
+              <ChevronRight
+                className={`w-4 h-4 ${isRTL ? "rotate-180" : ""}`}
+              />
+            </button>
+          </div>
+
+          {/* Right: animated sparkle visual */}
+          <div className="hidden md:flex items-center justify-center w-32 h-32 relative flex-shrink-0">
+            {/* Animated concentric circles */}
+            {[0, 1, 2].map((i) => (
+              <motion.div
+                key={i}
+                className="absolute rounded-full border border-[#5B8DD9]/20"
+                style={{ width: 40 + i * 28, height: 40 + i * 28 }}
+                animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.6, 0.3] }}
+                transition={{
+                  duration: 2 + i * 0.5,
+                  repeat: Infinity,
+                  delay: i * 0.3,
+                }}
+              />
+            ))}
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+            >
+              <Sparkles className="w-10 h-10 text-[#5B8DD9]" />
+            </motion.div>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
 
 export default function HomePage() {
   const { t, isRTL } = useLanguage();
@@ -206,6 +305,13 @@ export default function HomePage() {
 
       {/* Marketing Video Section */}
       <MarketingVideoSection />
+
+      {/* AI Finder Banner */}
+      <section className="py-12 relative z-10">
+        <div className="container mx-auto px-4">
+          <AIFinderBanner />
+        </div>
+      </section>
 
       {/* Enhanced Featured Products */}
       <section id="products" className="py-24 relative z-10">
