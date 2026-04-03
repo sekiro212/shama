@@ -175,6 +175,9 @@ export async function aiSearch(query: string): Promise<Product[]> {
 export async function smartSearch(query: string): Promise<SmartSearchResult[]> {
   if (!ai) return [];
 
+  // Issue 4: Guard against empty query
+  if (!query.trim()) return [];
+
   try {
     const [productContext, { products }] = await Promise.all([
       buildProductContext(),
@@ -206,7 +209,7 @@ Example format:
     const response = await ai.models.generateContent({
       model: "gemini-2.0-flash",
       contents: [{ role: "user", parts: [{ text: prompt }] }],
-      config: { maxOutputTokens: 512, temperature: 0.3 },
+      config: { maxOutputTokens: 1024, temperature: 0.3 },
     });
 
     const text = response.text?.trim() || "[]";
@@ -224,11 +227,26 @@ Example format:
 
     const results: SmartSearchResult[] = parsed
       .map((item) => {
+        // Issue 1: Bidirectional substring fallback for name matching
         const product = products.find(
-          (p) => p.name.trim().toLowerCase() === item.name.trim().toLowerCase()
+          (p) =>
+            p.name.trim().toLowerCase() === item.name.trim().toLowerCase() ||
+            p.name.toLowerCase().includes(item.name.toLowerCase()) ||
+            item.name.toLowerCase().includes(p.name.toLowerCase())
         );
         if (!product) return null;
-        return { product, reason: item.reason, matchScore: item.matchScore };
+
+        // Issue 2: Validate matchScore and reason before using them
+        const matchScore =
+          typeof item.matchScore === "number" && isFinite(item.matchScore)
+            ? Math.min(99, Math.max(0, item.matchScore))
+            : 60;
+        const reason =
+          typeof item.reason === "string" && item.reason.trim()
+            ? item.reason.trim()
+            : "";
+
+        return { product, reason, matchScore };
       })
       .filter((r): r is SmartSearchResult => r !== null)
       .sort((a, b) => b.matchScore - a.matchScore);
