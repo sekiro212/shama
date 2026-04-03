@@ -660,3 +660,35 @@ button[data-variant="ghost"]:hover {
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25),
     0 0 0 1px rgba(255, 255, 255, 0.05), 0 0 40px rgba(91, 141, 217, 0.3);
 }
+
+/* ── Whisper Mode ────────────────────────────────────── */
+.whisper-mode .whisper-card {
+  opacity: 0.15;
+  transition: opacity 0.45s ease, box-shadow 0.45s ease;
+}
+.whisper-mode .whisper-card:hover {
+  opacity: 1;
+  box-shadow: 0 0 28px rgba(91, 141, 217, 0.35), 0 0 56px rgba(91, 141, 217, 0.1);
+}
+
+/* ── Scent Memory Wall marquee ───────────────────────── */
+@keyframes memory-marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+@keyframes memory-marquee-reverse {
+  from { transform: translateX(-50%); }
+  to   { transform: translateX(0); }
+}
+.memory-marquee {
+  animation: memory-marquee 45s linear infinite;
+  width: max-content;
+}
+.memory-marquee-reverse {
+  animation: memory-marquee-reverse 45s linear infinite;
+  width: max-content;
+}
+.memory-marquee:hover,
+.memory-marquee-reverse:hover {
+  animation-play-state: paused;
+}

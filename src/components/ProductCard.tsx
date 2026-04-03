@@ -91,6 +91,7 @@ const ProductCardComponent = ({ product }: ProductCardProps) => {
   };
 
   return (
+    <div className="whisper-card">
     <CardContainer
       className="w-full h-full"
       containerClassName="py-0"
@@ -428,6 +429,7 @@ const ProductCardComponent = ({ product }: ProductCardProps) => {
         onOpenChange={setQuickViewOpen}
       />
     </CardContainer>
+    </div>
   );
 };
 
