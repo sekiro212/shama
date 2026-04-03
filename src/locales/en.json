@@ -265,7 +265,8 @@
     "collection": "Collection",
     "samples": "Samples",
     "giftSets": "Gift Sets",
-    "findYourScent": "Find Your Scent"
+    "findYourScent": "Find Your Scent",
+    "aiFinder": "AI Finder"
   },
   "header": {
     "luxuryScents": "LUXURY SCENTS",
@@ -700,7 +701,9 @@
     "findingMatches": "Finding your perfect matches...",
     "matchesFound": "matches found",
     "noMatches": "No matches found. Try describing the scent, occasion, or who it's for.",
-    "searchFailed": "Search failed. Please try again."
+    "searchFailed": "Search failed. Please try again.",
+    "match": "match",
+    "viewPerfume": "View"
   },
   "common": {
     "loading": "Loading...",

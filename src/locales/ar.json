@@ -265,7 +265,8 @@
     "collection": "المجموعة",
     "samples": "العينات",
     "giftSets": "أطقم الهدايا",
-    "findYourScent": "اكتشف عطرك"
+    "findYourScent": "اكتشف عطرك",
+    "aiFinder": "البحث الذكي"
   },
   "header": {
     "luxuryScents": "عطور فاخرة",
@@ -700,7 +701,9 @@
     "findingMatches": "نبحث عن أفضل العطور لك...",
     "matchesFound": "نتيجة",
     "noMatches": "لم يتم العثور على تطابقات. جرّب وصف العطر أو المناسبة أو لمن هو.",
-    "searchFailed": "فشل البحث. يرجى المحاولة مرة أخرى."
+    "searchFailed": "فشل البحث. يرجى المحاولة مرة أخرى.",
+    "match": "تطابق",
+    "viewPerfume": "عرض"
   },
   "common": {
     "loading": "جاري التحميل...",
