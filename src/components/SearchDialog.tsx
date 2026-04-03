@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/command";
 import { useSearch } from "@/hooks/useSearch";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { SmartSearchResult } from "@/services/aiService";
 
 interface SearchDialogProps {
   open: boolean;
@@ -122,31 +123,39 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                   </span>
                 }
               >
-                {aiResults.map((result) => {
-                  // @ts-ignore - SmartSearchResult temporary compatibility fix in SearchDialog, will be properly typed in next step
-                  const product = result.product || result;
-                  return (
-                    <CommandItem
-                      key={(product as any).id}
-                      value={`ai-${(product as any).name}`}
-                      onSelect={() => handleSelect((product as any).id)}
-                      className="flex items-center gap-3 px-3 py-2.5 cursor-pointer text-[#323D50] dark:text-white/80 hover:bg-[#323D50]/5 dark:hover:bg-white/10 data-[selected=true]:bg-[#323D50]/5 dark:data-[selected=true]:bg-white/10 rounded-lg mx-1"
-                    >
-                      <img
-                        src={(product as any).images?.[0]?.image_url || ""}
-                        alt={(product as any).name}
-                        className="w-10 h-10 rounded-lg object-cover border border-[#5B8DD9]/30 flex-shrink-0"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-[#323D50] dark:text-white truncate">{(product as any).name}</p>
-                        <p className="text-xs text-[#6B7B8D] dark:text-white/50">
-                          {(product as any).price} LYD &middot; {(product as any).gender || "unisex"} &middot; {(product as any).size}
-                        </p>
+                {aiResults.map((result: SmartSearchResult) => (
+                  <CommandItem
+                    key={result.product.id}
+                    value={`ai-${result.product.name}`}
+                    onSelect={() => handleSelect(result.product.id)}
+                    className="flex items-center gap-3 px-3 py-2.5 cursor-pointer text-[#323D50] dark:text-white/80 hover:bg-[#323D50]/5 dark:hover:bg-white/10 data-[selected=true]:bg-[#323D50]/5 dark:data-[selected=true]:bg-white/10 rounded-lg mx-1"
+                  >
+                    <img
+                      src={result.product.images?.[0]?.image_url || ""}
+                      alt={result.product.name}
+                      className="w-10 h-10 rounded-lg object-cover border border-[#5B8DD9]/30 flex-shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-[#323D50] dark:text-white truncate">{result.product.name}</p>
+                        <span className="text-xs font-medium text-[#5B8DD9] bg-blue-50 dark:bg-blue-950/30 px-1.5 py-0.5 rounded-full flex-shrink-0">
+                          ✨ {result.matchScore}% match
+                        </span>
                       </div>
-                      <Sparkles className="w-3.5 h-3.5 text-[#5B8DD9] flex-shrink-0" />
-                    </CommandItem>
-                  );
-                })}
+                      {result.reason && (
+                        <p className="text-xs text-muted-foreground italic line-clamp-2 mt-0.5">{result.reason}</p>
+                      )}
+                      <p className="text-xs text-[#6B7B8D] dark:text-white/50">
+                        {result.product.price} LYD &middot; {result.product.gender || "unisex"} &middot; {result.product.size}
+                      </p>
+                    </div>
+                    {result.product.stock_quantity === 0 && (
+                      <span className="text-xs text-red-400 bg-red-500/20 px-2 py-0.5 rounded-full flex-shrink-0">
+                        {t("search.soldOut")}
+                      </span>
+                    )}
+                  </CommandItem>
+                ))}
               </CommandGroup>
             </>
           )}
