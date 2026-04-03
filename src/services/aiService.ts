@@ -377,10 +377,17 @@ Return ONLY valid JSON array, nothing else. Example:
 export async function getGiftSuggestions(description: string): Promise<Product[]> {
   if (!ai) return [];
   try {
-    const [productContext, { products }] = await Promise.all([
-      buildProductContext(),
-      fetchProducts(1, 100),
-    ]);
+    // Single fetch — build context inline to avoid the double round-trip of
+    // calling both buildProductContext() and fetchProducts() separately.
+    const { products } = await fetchProducts(1, 100);
+    const productContext = products
+      .map(
+        (p: Product) =>
+          `- ${p.name} | ${p.price} LYD | Gender: ${p.gender || "unisex"} | Type: ${p.type} | Rating: ${p.rating}/5 | ${
+            p.stock_quantity === 0 ? "SOLD OUT" : "In Stock"
+          } | Top Notes: ${p.fragranceNotes?.top?.join(", ") || "N/A"} | Middle Notes: ${p.fragranceNotes?.middle?.join(", ") || "N/A"} | Base Notes: ${p.fragranceNotes?.base?.join(", ") || "N/A"}`
+      )
+      .join("\n");
 
     const prompt = `You are a gift curator for Shama, a luxury Libyan perfume store.
 

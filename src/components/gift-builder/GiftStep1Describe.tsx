@@ -33,6 +33,7 @@ export default function GiftStep1Describe({ value, onChange, onNext, isLoading }
       <textarea
         className="w-full glass-card rounded-2xl p-4 dark:text-[#F5F5F5] text-[#323D50] dark:bg-white/5 bg-white border dark:border-white/10 border-[#323D50]/10 resize-none focus:outline-none focus:ring-2 focus:ring-[#5B8DD9] text-base"
         rows={4}
+        maxLength={400}
         placeholder={t("giftBuilder.step1Placeholder")}
         value={value}
         onChange={(e) => onChange(e.target.value)}

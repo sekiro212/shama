@@ -3052,7 +3052,9 @@ export default function AdminPage() {
                               .from("custom_gift_orders")
                               .update({ status: e.target.value })
                               .eq("id", order.id);
-                            if (!error) {
+                            if (error) {
+                              toast.error("Failed to update status");
+                            } else {
                               setGiftOrders((prev) =>
                                 prev.map((o) =>
                                   o.id === order.id ? { ...o, status: e.target.value } : o

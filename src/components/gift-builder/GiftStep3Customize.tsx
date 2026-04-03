@@ -151,6 +151,7 @@ export default function GiftStep3Customize({ value, onChange, onNext, onBack }: 
           value={value.messageCard}
           onChange={(e) => set("messageCard", e.target.value)}
           placeholder={t("giftBuilder.messageCardPlaceholder")}
+          maxLength={300}
           rows={3}
           className="glass dark:bg-white/5 bg-white dark:border-white/10 border-[#323D50]/10 dark:text-[#F5F5F5] text-[#323D50] resize-none"
           dir={isRTL ? "rtl" : "ltr"}

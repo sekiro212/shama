@@ -1,5 +1,5 @@
 // src/components/gift-builder/GiftWizard.tsx
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { X } from "lucide-react";
 import { Product } from "@/services/productsService";
 import { getGiftSuggestions } from "@/services/aiService";
@@ -27,6 +27,9 @@ const STEP_LABEL_KEYS = [
 export default function GiftWizard({ onClose }: Props) {
   const { user } = useAuth();
   const { t } = useLanguage();
+
+  const isMounted = useRef(true);
+  useEffect(() => () => { isMounted.current = false; }, []);
 
   const [state, setState] = useState<GiftWizardState>({
     step: 1,
@@ -67,10 +70,12 @@ export default function GiftWizard({ onClose }: Props) {
         state.customization,
         state.imageStyle
       );
-      setState((prev) => ({ ...prev, generatedImageUrl: url, isGenerating: false }));
+      if (isMounted.current) setState((prev) => ({ ...prev, generatedImageUrl: url, isGenerating: false }));
     } catch {
-      toast.error(t("giftBuilder.errorGenerating"));
-      setState((prev) => ({ ...prev, isGenerating: false }));
+      if (isMounted.current) {
+        toast.error(t("giftBuilder.errorGenerating"));
+        setState((prev) => ({ ...prev, isGenerating: false }));
+      }
     }
   }, [state.selectedProducts, state.customization, state.imageStyle, t]);
 
@@ -82,10 +87,12 @@ export default function GiftWizard({ onClose }: Props) {
         state.customization,
         state.imageStyle
       );
-      setState((prev) => ({ ...prev, generatedImageUrl: url, isGenerating: false }));
+      if (isMounted.current) setState((prev) => ({ ...prev, generatedImageUrl: url, isGenerating: false }));
     } catch {
-      toast.error(t("giftBuilder.errorGenerating"));
-      setState((prev) => ({ ...prev, isGenerating: false }));
+      if (isMounted.current) {
+        toast.error(t("giftBuilder.errorGenerating"));
+        setState((prev) => ({ ...prev, isGenerating: false }));
+      }
     }
   }, [state.selectedProducts, state.customization, state.imageStyle, t]);
 
@@ -93,10 +100,12 @@ export default function GiftWizard({ onClose }: Props) {
     setState((prev) => ({ ...prev, imageStyle: style, isGenerating: true, generatedImageUrl: "" }));
     try {
       const url = await generateAndSaveGiftImage(state.selectedProducts, state.customization, style);
-      setState((prev) => ({ ...prev, generatedImageUrl: url, isGenerating: false }));
+      if (isMounted.current) setState((prev) => ({ ...prev, generatedImageUrl: url, isGenerating: false }));
     } catch {
-      toast.error(t("giftBuilder.errorGenerating"));
-      setState((prev) => ({ ...prev, isGenerating: false }));
+      if (isMounted.current) {
+        toast.error(t("giftBuilder.errorGenerating"));
+        setState((prev) => ({ ...prev, isGenerating: false }));
+      }
     }
   }, [state.selectedProducts, state.customization, t]);
 
@@ -113,10 +122,12 @@ export default function GiftWizard({ onClose }: Props) {
       toast.success(t("giftBuilder.orderPlaced"));
       onClose();
     } catch {
-      toast.error(t("giftBuilder.errorOrder"));
-      set("isPlacingOrder", false);
+      if (isMounted.current) {
+        toast.error(t("giftBuilder.errorOrder"));
+        set("isPlacingOrder", false);
+      }
     }
-  }, [state, user, t, onClose]);
+  }, [state.selectedProducts, state.customization, state.generatedImageUrl, state.imageStyle, user, t, onClose]);
 
   const toggleProduct = useCallback((product: Product) => {
     setState((prev) => {

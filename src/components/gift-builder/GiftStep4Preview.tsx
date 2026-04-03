@@ -39,11 +39,17 @@ export default function GiftStep4Preview({
   };
 
   const handleShare = async () => {
-    if (navigator.share) {
-      await navigator.share({ title: "My Shama Gift", url: imageUrl });
-    } else {
-      await navigator.clipboard.writeText(imageUrl);
-      toast.success(t("giftBuilder.linkCopied"));
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "My Shama Gift", url: imageUrl });
+      } else {
+        await navigator.clipboard.writeText(imageUrl);
+        toast.success(t("giftBuilder.linkCopied"));
+      }
+    } catch (err: any) {
+      if (err?.name !== "AbortError") {
+        toast.error(t("giftBuilder.errorOrder"));
+      }
     }
   };
 
