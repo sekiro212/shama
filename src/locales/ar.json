@@ -277,7 +277,9 @@
     "signIn": "تسجيل الدخول",
     "signOut": "تسجيل الخروج",
     "signedOutSuccess": "تم تسجيل الخروج بنجاح",
-    "account": "الحساب"
+    "account": "الحساب",
+    "whisperMode": "وضع الهمس",
+    "exitWhisperMode": "خروج من وضع الهمس"
   },
   "home": {
     "hero": {

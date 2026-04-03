@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ShoppingBag, Menu, Search, Heart, Globe, Sun, Moon, LogIn, LogOut, UserCircle, Sparkles } from "lucide-react";
+import { ShoppingBag, Menu, Search, Heart, Globe, Sun, Moon, LogIn, LogOut, UserCircle, Sparkles, Eye, EyeOff } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useCart } from "@/contexts/CartContext";
 import { useWishlist } from "@/contexts/WishlistContext";
@@ -18,6 +18,7 @@ interface HeaderProps {
 export default function Header({ onCartClick, onSearchClick }: HeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [isWhisperMode, setIsWhisperMode] = useState(false);
   const { getItemCount } = useCart();
   const { items: wishlistItems } = useWishlist();
   const { t, isRTL, language, setLanguage } = useLanguage();
@@ -31,6 +32,15 @@ export default function Header({ onCartClick, onSearchClick }: HeaderProps) {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  useEffect(() => {
+    if (isWhisperMode) {
+      document.body.classList.add("whisper-mode");
+    } else {
+      document.body.classList.remove("whisper-mode");
+    }
+    return () => document.body.classList.remove("whisper-mode");
+  }, [isWhisperMode]);
 
   const navigation = [
     { name: t("nav.home"), href: "/", icon: "🏠" },
@@ -101,6 +111,21 @@ export default function Header({ onCartClick, onSearchClick }: HeaderProps) {
 
           {/* Desktop Actions */}
           <div className="hidden lg:flex items-center space-x-3 rtl:space-x-reverse">
+            {/* Whisper Mode Toggle */}
+            <Button
+              onClick={() => setIsWhisperMode((w) => !w)}
+              variant="ghost"
+              size="icon"
+              className="glass dark:bg-white/5 bg-[#5B8DD9]/10 dark:hover:bg-white/10 hover:bg-[#5B8DD9]/20 border dark:border-white/10 border-[#323D50]/10 rounded-xl w-10 h-10 transition-all duration-300 hover:scale-105"
+              title={isWhisperMode ? t("header.exitWhisperMode") : t("header.whisperMode")}
+            >
+              {isWhisperMode ? (
+                <EyeOff className="w-4 h-4 text-[#5B8DD9]" />
+              ) : (
+                <Eye className="w-4 h-4" />
+              )}
+            </Button>
+
             {/* Theme Toggle */}
             <Button
               onClick={toggleTheme}
@@ -324,6 +349,14 @@ export default function Header({ onCartClick, onSearchClick }: HeaderProps) {
           </Sheet>
         </div>
       </div>
+
+      {/* Whisper Mode indicator pill */}
+      {isWhisperMode && (
+        <div className="fixed bottom-6 left-4 z-50 flex items-center gap-2 bg-[#1a2235]/90 backdrop-blur-sm border border-[#5B8DD9]/40 text-[#5B8DD9] text-xs font-medium px-3 py-1.5 rounded-full pointer-events-none">
+          <EyeOff className="w-3 h-3" />
+          {t("header.whisperMode")}
+        </div>
+      )}
     </header>
   );
 }

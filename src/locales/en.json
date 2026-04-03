@@ -277,7 +277,9 @@
     "signIn": "Sign In",
     "signOut": "Sign Out",
     "signedOutSuccess": "Signed out successfully",
-    "account": "Account"
+    "account": "Account",
+    "whisperMode": "Whisper Mode",
+    "exitWhisperMode": "Exit Whisper Mode"
   },
   "home": {
     "hero": {
