@@ -139,7 +139,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-medium text-[#323D50] dark:text-white truncate">{result.product.name}</p>
                         <span className="text-xs font-medium text-[#5B8DD9] bg-blue-50 dark:bg-blue-950/30 px-1.5 py-0.5 rounded-full flex-shrink-0">
-                          ✨ {result.matchScore}% match
+                          ✨ {result.matchScore}% {t("aiFinder.match")}
                         </span>
                       </div>
                       {result.reason && (

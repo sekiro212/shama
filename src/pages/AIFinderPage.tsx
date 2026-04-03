@@ -7,16 +7,6 @@ import { smartSearch, SmartSearchResult } from "@/services/aiService";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 
-const CHIPS = [
-  { label: "🌙 Night out", query: "a seductive perfume for a night out" },
-  { label: "🌿 Everyday fresh", query: "a light fresh everyday perfume" },
-  { label: "🎁 Gift for her", query: "a romantic floral gift for her" },
-  { label: "🪵 Woody & warm", query: "woody warm oriental perfume" },
-  { label: "☀️ Summer light", query: "a bright citrus perfume for summer" },
-  { label: "💼 Office wear", query: "a clean subtle perfume for office wear" },
-  { label: "❄️ Winter warmth", query: "a rich spicy warm perfume for winter" },
-];
-
 function ResultCard({
   result,
   index,
@@ -25,7 +15,7 @@ function ResultCard({
   index: number;
 }) {
   const navigate = useNavigate();
-  const { isRTL } = useLanguage();
+  const { t, isRTL } = useLanguage();
 
   const scoreColor =
     result.matchScore >= 80
@@ -51,7 +41,7 @@ function ResultCard({
         <span
           className={`absolute top-2 ${isRTL ? "left-2" : "right-2"} text-xs font-semibold px-2 py-1 rounded-full ${scoreColor}`}
         >
-          {result.matchScore}% match
+          {result.matchScore}% {t("aiFinder.match")}
         </span>
       </div>
       <div className="p-3">
@@ -66,7 +56,7 @@ function ResultCard({
             {result.product.price} LYD
           </span>
           <button className="text-xs text-[#5B8DD9] flex items-center gap-0.5 hover:gap-1.5 transition-all">
-            View{" "}
+            {t("aiFinder.viewPerfume")}{" "}
             <ChevronRight
               className={`w-3 h-3 ${isRTL ? "rotate-180" : ""}`}
             />
@@ -81,6 +71,16 @@ export default function AIFinderPage() {
   const { t, isRTL } = useLanguage();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+
+  const CHIPS = [
+    { label: t("home.chipNightOut"), query: "a seductive perfume for a night out" },
+    { label: t("home.chipEveryday"), query: "a light fresh everyday perfume" },
+    { label: t("home.chipGiftForHer"), query: "a romantic floral gift for her" },
+    { label: t("home.chipWoody"), query: "woody warm oriental perfume" },
+    { label: t("home.chipSummer"), query: "a bright citrus perfume for summer" },
+    { label: t("home.chipOffice"), query: "a clean subtle perfume for office wear" },
+    { label: t("home.chipWinter"), query: "a rich spicy warm perfume for winter" },
+  ];
 
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SmartSearchResult[]>([]);

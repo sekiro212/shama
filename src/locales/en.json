@@ -321,7 +321,18 @@
       "title": "Follow @ShamaFragrance",
       "description": "Join our community and discover how Shama becomes part of your daily ritual",
       "followUs": "Follow Us"
-    }
+    },
+    "aiPowered": "AI Powered",
+    "aiFinderBannerTitle": "Can't find what you're looking for?",
+    "aiFinderBannerSub": "Describe it to our AI consultant — it'll find the perfect match for you.",
+    "aiFinderBannerCta": "Explore with AI",
+    "chipNightOut": "🌙 Night out",
+    "chipEveryday": "🌿 Everyday",
+    "chipGiftForHer": "🎁 Gift for her",
+    "chipWoody": "🪵 Woody & warm",
+    "chipSummer": "☀️ Summer",
+    "chipOffice": "💼 Office wear",
+    "chipWinter": "❄️ Winter warmth"
   },
   "product": {
     "backToCollection": "Back to Collection",

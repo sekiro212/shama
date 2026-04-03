@@ -38,7 +38,7 @@ export default function Header({ onCartClick, onSearchClick }: HeaderProps) {
     { name: t("nav.samples"), href: "/samples", icon: "🧪" },
     { name: t("nav.giftSets"), href: "/gift-sets", icon: "🎁" },
     { name: t("nav.findYourScent"), href: "/quiz", icon: "✨" },
-    { name: "AI Finder", href: "/ai-finder", icon: null, isAiFinder: true },
+    { name: t("nav.aiFinder"), href: "/ai-finder", icon: null, isAiFinder: true },
   ];
 
   return (

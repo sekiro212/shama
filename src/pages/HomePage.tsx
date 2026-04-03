@@ -42,14 +42,14 @@ const TikTokIcon = ({ className }: { className?: string }) => (
 
 const AIFinderBanner = () => {
   const navigate = useNavigate();
-  const { isRTL } = useLanguage();
+  const { t, isRTL } = useLanguage();
 
   const chips = [
-    { label: "🌙 Night out", query: "night out" },
-    { label: "🌿 Everyday", query: "everyday fresh" },
-    { label: "🎁 Gift for her", query: "gift for her" },
-    { label: "🪵 Woody & warm", query: "woody warm" },
-    { label: "☀️ Summer", query: "summer light" },
+    { label: t("home.chipNightOut"), query: "night out" },
+    { label: t("home.chipEveryday"), query: "everyday fresh" },
+    { label: t("home.chipGiftForHer"), query: "gift for her" },
+    { label: t("home.chipWoody"), query: "woody warm" },
+    { label: t("home.chipSummer"), query: "summer light" },
   ];
 
   return (
@@ -71,14 +71,14 @@ const AIFinderBanner = () => {
             {/* Badge */}
             <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#5B8DD9] bg-[#5B8DD9]/10 px-3 py-1 rounded-full mb-3">
               <Sparkles className="w-3 h-3" />
-              AI Powered
+              {t("home.aiPowered")}
             </span>
 
             <h2 className="text-xl md:text-2xl font-bold text-[#323D50] dark:text-[#F5F5F5] mb-2">
-              Can't find what you're looking for?
+              {t("home.aiFinderBannerTitle")}
             </h2>
             <p className="text-sm text-muted-foreground mb-4">
-              Describe it to our AI consultant — it'll find the perfect match for you.
+              {t("home.aiFinderBannerSub")}
             </p>
 
             {/* Chips */}
@@ -102,7 +102,7 @@ const AIFinderBanner = () => {
               className="inline-flex items-center gap-2 bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] text-white px-5 py-2.5 rounded-xl font-medium hover:opacity-90 transition-opacity"
             >
               <Sparkles className="w-4 h-4" />
-              Explore with AI
+              {t("home.aiFinderBannerCta")}
               <ChevronRight
                 className={`w-4 h-4 ${isRTL ? "rotate-180" : ""}`}
               />

@@ -321,7 +321,18 @@
       "title": "تابع @ShamaFragrance",
       "description": "انضم إلى مجتمعنا واكتشف كيف تصبح Shama جزءاً من طقوسك اليومية",
       "followUs": "تابعنا"
-    }
+    },
+    "aiPowered": "مدعوم بالذكاء الاصطناعي",
+    "aiFinderBannerTitle": "لا تجد ما تبحث عنه؟",
+    "aiFinderBannerSub": "صفه لمستشارنا الذكي — وسيجد لك المطابقة المثالية.",
+    "aiFinderBannerCta": "استكشف مع الذكاء الاصطناعي",
+    "chipNightOut": "🌙 سهرة ليلية",
+    "chipEveryday": "🌿 يومي",
+    "chipGiftForHer": "🎁 هدية لها",
+    "chipWoody": "🪵 خشبي ودافئ",
+    "chipSummer": "☀️ صيفي",
+    "chipOffice": "💼 للمكتب",
+    "chipWinter": "❄️ شتوي دافئ"
   },
   "product": {
     "backToCollection": "العودة للمجموعة",
