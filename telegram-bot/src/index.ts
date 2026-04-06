@@ -8,6 +8,7 @@ import { downloadTelegramFile } from "./utils/fileDownload";
 import { executeConfirmation, cancelConfirmation } from "./confirmation/machine";
 import { t } from "./i18n/messages";
 import { appendUserMessage } from "./agent/memory";
+import { startTypingLoop } from "./utils/chatAction";
 
 type BotContext = import("telegraf").Context & { session: BotSession };
 
@@ -119,6 +120,7 @@ bot.action(/^cancel_(create|update|delete)$/, async (ctx) => {
 
 bot.on("photo", async (ctx) => {
   const lang = getLang(ctx);
+  const stopTyping = startTypingLoop(ctx);
   const thinking = await ctx.reply(t(lang, "thinking"), { parse_mode: "HTML" });
 
   try {
@@ -153,6 +155,8 @@ bot.on("photo", async (ctx) => {
     console.error("Photo error:", err);
     await ctx.telegram.deleteMessage(ctx.chat!.id, thinking.message_id).catch(() => {});
     await ctx.reply(t(lang, "errorGeneral"));
+  } finally {
+    stopTyping();
   }
 });
 
@@ -162,6 +166,7 @@ bot.on("photo", async (ctx) => {
 
 bot.on("voice", async (ctx) => {
   const lang = getLang(ctx);
+  const stopTyping = startTypingLoop(ctx);
   const thinking = await ctx.reply(t(lang, "voiceTranscribing"), { parse_mode: "HTML" });
 
   try {
@@ -177,11 +182,13 @@ bot.on("voice", async (ctx) => {
     }
 
     await ctx.reply(`${t(lang, "voiceTranscribed")}${text}`);
-    await runAgent(ctx as BotContext, text, lang);
+    await runAgentWithFeedback(ctx as BotContext, text, lang);
   } catch (err) {
     console.error("Voice error:", err);
     await ctx.telegram.deleteMessage(ctx.chat!.id, thinking.message_id).catch(() => {});
     await ctx.reply(t(lang, "errorGeneral"));
+  } finally {
+    stopTyping();
   }
 });
 
@@ -193,7 +200,7 @@ bot.on("text", async (ctx) => {
   const text = ctx.message.text.trim();
   if (text.startsWith("/")) return;  // ignore commands caught above
   const lang = getLang(ctx);
-  await runAgent(ctx as BotContext, text, lang);
+  await runAgentWithFeedback(ctx as BotContext, text, lang);
 });
 
 // ─── Helper: run agent without prepending another user message ───
@@ -205,7 +212,64 @@ async function runAgentWithExistingHistory(ctx: BotContext, lang: BotLanguage) {
   const lastText = (lastMsg?.parts?.[0] as { text?: string })?.text ?? "process the photo";
   // Remove the last message we added (runAgent will re-add it)
   ctx.session.history = ctx.session.history.slice(0, -1);
-  await runAgent(ctx as BotContext, lastText, lang);
+  await runAgentWithFeedback(ctx, lastText, lang);
+}
+
+// ─── Helper: run agent with live progress feedback in Telegram ───
+// Wraps runAgent with:
+//  • a typing-indicator loop (re-sent every 4s while work runs)
+//  • a single status message that gets edited as the agent moves through
+//    "thinking" → "using tool: X" iterations, then deleted at the end.
+// Both side effects are guarded so a transient Telegram API error never
+// breaks the underlying request.
+async function runAgentWithFeedback(
+  ctx: BotContext,
+  text: string,
+  lang: BotLanguage
+) {
+  const stopTyping = startTypingLoop(ctx);
+  let statusMsgId: number | undefined;
+  let lastStatusText: string | undefined;
+  const chatId = ctx.chat?.id;
+
+  const setStatus = async (newText: string) => {
+    if (newText === lastStatusText) return;  // avoid noisy edit churn
+    if (!chatId) return;
+    if (statusMsgId == null) {
+      try {
+        const m = await ctx.reply(newText);
+        statusMsgId = m.message_id;
+        lastStatusText = newText;
+      } catch {
+        /* ignore — status is best-effort */
+      }
+    } else {
+      await ctx.telegram
+        .editMessageText(chatId, statusMsgId, undefined, newText)
+        .then(() => {
+          lastStatusText = newText;
+        })
+        .catch(() => {
+          /* ignore — status is best-effort */
+        });
+    }
+  };
+
+  try {
+    await runAgent(ctx, text, lang, async (kind, toolName) => {
+      if (kind === "thinking") {
+        await setStatus(t(lang, "thinking"));
+      } else {
+        const template = t(lang, "usingTool");
+        await setStatus(template.replace("{name}", toolName ?? ""));
+      }
+    });
+  } finally {
+    stopTyping();
+    if (statusMsgId != null && chatId != null) {
+      await ctx.telegram.deleteMessage(chatId, statusMsgId).catch(() => {});
+    }
+  }
 }
 
 // ═════════════════════════════════════════════

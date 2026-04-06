@@ -7,7 +7,10 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:live": "tsx src/scripts/testAgent.ts",
+    "test:crud": "tsx src/scripts/testCrudFlow.ts",
+    "test:orders": "tsx src/scripts/testOrderFlow.ts"
   },
   "dependencies": {
     "@google/genai": "^1.10.0",

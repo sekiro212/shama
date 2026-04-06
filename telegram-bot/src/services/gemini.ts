@@ -5,6 +5,9 @@ import type { ProductDraft, FragranceNotes } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: config.geminiApiKey });
 
+// Keep this exact model — confirmed valid Gemini 3.x preview. Do not change.
+const MODEL = "gemini-3.1-flash-lite-preview";
+
 // ─── Bilingual JSON schema prompt ─────────────
 
 const BILINGUAL_SCHEMA = `{
@@ -61,7 +64,7 @@ The Arabic fragrance notes should be proper Arabic names for each note.`;
   return withRetry(() =>
     withTimeout(async () => {
       const response = await ai.models.generateContent({
-        model: "gemini-3.1-flash-lite-preview",
+        model: MODEL,
         contents: [
           {
             role: "user",
@@ -76,7 +79,11 @@ The Arabic fragrance notes should be proper Arabic names for each note.`;
             ],
           },
         ],
-        config: { maxOutputTokens: 1200, temperature: 0.2 },
+        config: {
+          maxOutputTokens: 1200,
+          temperature: 0.2,
+          thinkingConfig: { thinkingBudget: 0 },
+        },
       });
 
       const text = response.text;
@@ -121,9 +128,13 @@ If fragrance notes are unknown, make educated guesses based on the brand and sty
     return await withRetry(() =>
       withTimeout(async () => {
         const response = await ai.models.generateContent({
-          model: "gemini-3.1-flash-lite-preview",
+          model: MODEL,
           contents: [{ role: "user", parts: [{ text: prompt }] }],
-          config: { maxOutputTokens: 1200, temperature: 0.2 },
+          config: {
+            maxOutputTokens: 1200,
+            temperature: 0.2,
+            thinkingConfig: { thinkingBudget: 0 },
+          },
         });
         const text = response.text;
         if (!text) return SAFE_DEFAULT;

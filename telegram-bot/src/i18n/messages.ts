@@ -50,6 +50,10 @@ export const messages = {
     en: "⏳ Thinking...",
     ar: "⏳ جاري التفكير...",
   },
+  usingTool: {
+    en: "🔧 Using tool: {name}",
+    ar: "🔧 استخدام الأداة: {name}",
+  },
   processing: {
     en: "⚙️ Processing...",
     ar: "⚙️ جاري المعالجة...",

@@ -222,9 +222,13 @@ export async function executeTool(
       return { text: `No products found for: ${query}` };
     }
 
+    // The id is required: the system prompt instructs the agent to call
+    // search_products before update_product / delete_product specifically to
+    // get the UUID. Earlier versions stripped it, so the agent could never
+    // form a valid update/delete call and looped to MAX_ITERATIONS.
     const lines = results.map(
       (p) =>
-        `• ${p.name} - ${p.price} LYD (${p.gender}, ${p.size}) [Active: ${
+        `• id=${p.id} | ${p.name} - ${p.price} LYD (${p.gender}, ${p.size}) [Active: ${
           p.is_active ? "✅" : "❌"
         }]`
     );

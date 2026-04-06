@@ -9,11 +9,16 @@ import type { BotLanguage, ProductDraft, FragranceNotes, OrderItem } from "../ty
 
 // ─── Product type (inferred from DB columns) ───
 
+// Note: the `perfumes` table has NO `brand` column. Earlier versions of this
+// file selected/inserted/displayed a brand field that doesn't exist in the
+// schema, which made every search fail with
+//   "column perfumes.brand does not exist"
+// Brand stays in the in-memory ProductDraft (the agent collects it from
+// the admin) but is silently dropped at the DB boundary.
 export interface Product {
   id: string;
   name: string;
   name_ar: string;
-  brand: string | null;
   price: number;
   size: string;
   gender: "men" | "women" | "unisex";
@@ -37,7 +42,7 @@ export async function searchProducts(query: string, limit = 5): Promise<Product[
   const { data, error } = await supabase
     .from("perfumes")
     .select(
-      "id, name, name_ar, brand, price, size, gender, description, description_ar, " +
+      "id, name, name_ar, price, size, gender, description, description_ar, " +
       "fragrance_notes, fragrance_notes_ar, stock_quantity, is_active, has_samples, rating, created_at"
     )
     .or(`name.ilike.%${query}%,name_ar.ilike.%${query}%`)
@@ -54,7 +59,7 @@ export async function getProductById(id: string): Promise<Product> {
   const { data, error } = await supabase
     .from("perfumes")
     .select(
-      "id, name, name_ar, brand, price, size, gender, description, description_ar, " +
+      "id, name, name_ar, price, size, gender, description, description_ar, " +
       "fragrance_notes, fragrance_notes_ar, stock_quantity, is_active, has_samples, rating, created_at"
     )
     .eq("id", id)
@@ -70,7 +75,7 @@ export async function getProductByName(name: string): Promise<Product | null> {
   const { data, error } = await supabase
     .from("perfumes")
     .select(
-      "id, name, name_ar, brand, price, size, gender, description, description_ar, " +
+      "id, name, name_ar, price, size, gender, description, description_ar, " +
       "fragrance_notes, fragrance_notes_ar, stock_quantity, is_active, has_samples, rating, created_at"
     )
     .or(`name.ilike.%${name}%,name_ar.ilike.%${name}%`)
@@ -100,7 +105,7 @@ export async function createProduct(draft: ProductDraft): Promise<string> {
       name_ar: draft.name_ar || draft.name,
       description_ar: draft.description_ar ?? draft.description ?? "",
       fragrance_notes_ar: draft.fragrance_notes_ar ?? draft.fragrance_notes ?? { top: [], middle: [], base: [] },
-      brand: draft.brand ?? "",
+      // brand intentionally omitted — no such column in `perfumes`
       size: draft.size,
       gender: draft.gender,
       stock_quantity: draft.stock_quantity,
@@ -135,9 +140,10 @@ export async function createProduct(draft: ProductDraft): Promise<string> {
 
 // ─── Update ───────────────────────────────────
 
-// Allowlist of valid updatable fields
+// Allowlist of valid updatable fields. `brand` is intentionally absent —
+// the perfumes table has no such column.
 const UPDATABLE_FIELDS = new Set([
-  "name", "name_ar", "brand", "price", "description", "description_ar",
+  "name", "name_ar", "price", "description", "description_ar",
   "fragrance_notes", "fragrance_notes_ar", "size", "gender",
   "stock_quantity", "is_active", "has_samples",
 ]);
@@ -181,7 +187,6 @@ export function formatProduct(product: Product, lang: BotLanguage): string {
 
   const lines = [
     `<b>${name}</b>`,
-    product.brand ? `${isAr ? "العلامة" : "Brand"}: ${product.brand}` : "",
     `${isAr ? "السعر" : "Price"}: <b>${product.price} LYD</b>`,
     `${isAr ? "الحجم" : "Size"}: ${product.size}`,
     `${isAr ? "الجنس" : "Gender"}: ${product.gender}`,

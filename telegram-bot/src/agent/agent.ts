@@ -7,7 +7,6 @@ import { executeTool } from "./toolExecutor";
 import {
   appendUserMessage,
   appendModelMessage,
-  appendToolCall,
   appendToolResult,
   trimHistory,
 } from "./memory";
@@ -15,6 +14,9 @@ import { withRetry, withTimeout } from "../utils/retry";
 import { confirmKeyboard } from "../confirmation/keyboards";
 
 const ai = new GoogleGenAI({ apiKey: config.geminiApiKey });
+
+// Keep this exact model — confirmed valid Gemini 3.x preview. Do not change.
+const MODEL = "gemini-3.1-flash-lite-preview";
 
 const MAX_ITERATIONS = 5;
 
@@ -107,10 +109,17 @@ const SYSTEM_PROMPTS: Record<BotLanguage, string> = {
   ar: buildSystemPrompt("ar"),
 };
 
+/** Status callback used to surface live progress to the Telegram user. */
+export type AgentStatusCallback = (
+  kind: "thinking" | "tool",
+  toolName?: string
+) => Promise<void> | void;
+
 export async function runAgent(
   ctx: Context & { session: BotSession },
   userText: string,
-  lang: BotLanguage
+  lang: BotLanguage,
+  onStatus?: AgentStatusCallback
 ): Promise<void> {
   const session = ctx.session;
   const systemInstruction = SYSTEM_PROMPTS[lang];
@@ -119,18 +128,27 @@ export async function runAgent(
   session.history = appendUserMessage(session.history, userText);
 
   for (let iteration = 0; iteration < MAX_ITERATIONS; iteration++) {
-    // 25s timeout — Gemini with large context can take 10-15s
+    // Tell the caller we're about to hit Gemini — they typically refresh
+    // a "Thinking..." status message in Telegram.
+    await onStatus?.("thinking");
+
+    // 15s per attempt × 2 attempts = ~31s worst case (was ~78s).
+    // thinkingBudget=0 disables Gemini 3.x's default thinking, which on its
+    // own added 5–15s of latency before any tool call/text — by far the
+    // biggest contributor to the bot feeling frozen.
     const response = await withRetry(() =>
       withTimeout(() =>
         ai.models.generateContent({
-          model: "gemini-3.1-flash-lite-preview",
+          model: MODEL,
           contents: session.history,
           config: {
             tools: [{ functionDeclarations: toolDeclarations }],
             systemInstruction,
+            thinkingConfig: { thinkingBudget: 0 },
           },
-        }), 25_000
-      )
+        }), 15_000
+      ),
+      2
     );
 
     // Step 3: Get the candidate
@@ -167,8 +185,18 @@ export async function runAgent(
     const { name: toolName, args } = functionCallPart.functionCall!;
     const toolArgs = (args ?? {}) as Record<string, unknown>;
 
-    // Append tool call to history
-    session.history = appendToolCall(session.history, toolName!, toolArgs);
+    // Echo the model's exact content back into history. Gemini 3.x attaches
+    // a `thoughtSignature` to functionCall parts and rejects the next request
+    // (HTTP 400 INVALID_ARGUMENT — "Function call is missing a
+    // thought_signature in functionCall parts") if we strip it. The previous
+    // appendToolCall() helper rebuilt the part from scratch and lost the
+    // signature, so every multi-turn tool call broke. Pushing the original
+    // `candidate.content` preserves every field the SDK sends back.
+    session.history = [...session.history, candidate.content!];
+
+    // Surface which tool we're about to run so the caller can update the
+    // visible status message in Telegram.
+    await onStatus?.("tool", toolName!);
 
     // Execute the tool
     const result = await executeTool(toolName!, toolArgs, lang);
