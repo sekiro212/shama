@@ -34,7 +34,8 @@
       "orders": "الطلبات",
       "reviews": "التقييمات",
       "giftOrders": "طلبات الهدايا",
-      "memories": "الذكريات"
+      "memories": "الذكريات",
+      "coupons": "كوبونات الخصم"
     },
     "recentOrders": "الطلبات الأخيرة",
     "ordersManagement": "إدارة الطلبات",
@@ -278,6 +279,89 @@
       "confirm": {
         "delete": "حذف هذه الذكرى نهائياً؟"
       }
+    },
+    "coupons": {
+      "title": "إدارة كوبونات الخصم",
+      "add": "إضافة كوبون",
+      "edit": "تعديل الكوبون",
+      "create": "إنشاء كوبون",
+      "update": "تحديث",
+      "cancel": "إلغاء",
+      "saving": "جاري الحفظ...",
+      "code": "الكود",
+      "codePlaceholder": "مثال: SUMMER20",
+      "discountType": "نوع الخصم",
+      "fixed": "مبلغ ثابت",
+      "percentage": "نسبة مئوية",
+      "discountValue": "قيمة الخصم",
+      "maxDiscount": "الحد الأقصى للخصم",
+      "maxDiscountHint": "اختياري — يحدد سقف الخصم لكوبونات النسبة المئوية",
+      "minOrderTotal": "الحد الأدنى لمجموع الطلب",
+      "scope": "نطاق التطبيق",
+      "scopeAllProducts": "جميع المنتجات",
+      "scopeSpecificProducts": "منتجات محددة",
+      "selectProducts": "اختر المنتجات",
+      "selectProductsHint": "اختر العطور التي يمكن استخدام هذا الكود عليها",
+      "searchProducts": "ابحث في العطور...",
+      "noProductsFound": "لم يتم العثور على عطور",
+      "expiresAt": "تاريخ انتهاء الصلاحية",
+      "expiresAtHint": "اتركه فارغًا لعدم انتهاء الصلاحية",
+      "clearDate": "مسح",
+      "usageLimit": "حد الاستخدام (إجمالي)",
+      "usageLimitHint": "اتركه فارغًا للاستخدام غير المحدود",
+      "usageLimitPerUser": "حد الاستخدام (لكل عميل)",
+      "isActive": "مفعّل",
+      "stats": {
+        "total": "إجمالي الكوبونات",
+        "active": "المفعّلة",
+        "redemptions": "إجمالي الاستخدامات"
+      },
+      "table": {
+        "code": "الكود",
+        "type": "النوع",
+        "value": "القيمة",
+        "scope": "النطاق",
+        "minOrder": "الحد الأدنى",
+        "status": "الحالة",
+        "expires": "ينتهي في",
+        "usage": "الاستخدام",
+        "actions": "الإجراءات"
+      },
+      "status": {
+        "active": "مفعّل",
+        "inactive": "غير مفعّل",
+        "expired": "منتهي"
+      },
+      "scopeBadge": {
+        "all": "الكل",
+        "specific": "{count} منتج"
+      },
+      "empty": "لا توجد كوبونات بعد. أنشئ واحدًا للبدء.",
+      "never": "بدون",
+      "unlimited": "∞",
+      "activate": "تفعيل",
+      "deactivate": "إلغاء التفعيل",
+      "toast": {
+        "created": "تم إنشاء الكوبون",
+        "updated": "تم تحديث الكوبون",
+        "deleted": "تم حذف الكوبون",
+        "activated": "تم تفعيل الكوبون",
+        "deactivated": "تم إلغاء تفعيل الكوبون",
+        "loadFailed": "فشل تحميل الكوبونات",
+        "saveFailed": "فشل حفظ الكوبون",
+        "deleteFailed": "فشل حذف الكوبون",
+        "toggleFailed": "فشل تحديث الكوبون",
+        "duplicateCode": "يوجد كوبون بهذا الكود مسبقًا"
+      },
+      "confirm": {
+        "delete": "حذف هذا الكوبون نهائياً؟"
+      },
+      "validation": {
+        "codeRequired": "الكود مطلوب",
+        "valueRequired": "قيمة الخصم يجب أن تكون أكبر من صفر",
+        "percentageRange": "النسبة المئوية يجب أن تكون بين 1 و 100",
+        "scopeProductsRequired": "اختر منتجًا واحدًا على الأقل للنطاق المحدد"
+      }
     }
   },
   "nav": {
@@ -450,7 +534,26 @@
     "removeFromCart": "إزالة من السلة",
     "stockExceed": "بعض المنتجات تتجاوز المخزون المتاح:",
     "requested": "مطلوب",
-    "available": "متوفر"
+    "available": "متوفر",
+    "subtotal": "المجموع الفرعي",
+    "discount": "الخصم",
+    "promoCode": {
+      "label": "كود الخصم",
+      "placeholder": "أدخل الكود",
+      "apply": "تطبيق",
+      "applying": "جاري التطبيق...",
+      "remove": "إزالة",
+      "applied": "تم تطبيق الكود",
+      "errors": {
+        "invalidCode": "الكود غير صحيح",
+        "inactive": "هذا الكود لم يعد مفعّلاً",
+        "expired": "انتهت صلاحية هذا الكود",
+        "usageLimitReached": "تم استخدام هذا الكود بالكامل",
+        "perUserLimitReached": "لقد استخدمت هذا الكود من قبل",
+        "belowMinOrder": "الحد الأدنى للطلب {min} د.ل",
+        "notApplicable": "هذا الكود لا يطبّق على منتجات سلتك"
+      }
+    }
   },
   "collection": {
     "titleOur": "مجموعتنا",

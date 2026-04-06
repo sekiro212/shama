@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import {
   Plus,
@@ -26,6 +26,9 @@ import {
   ClipboardCheck,
   Gift,
   Heart,
+  Ticket,
+  Power,
+  Calendar,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/ui/loading-button";
@@ -99,6 +102,18 @@ import {
   fetchPendingMemoryCount,
   Memory,
 } from "@/services/memoriesService";
+import {
+  fetchAllPromoCodes,
+  createPromoCode,
+  updatePromoCode,
+  deletePromoCode,
+  togglePromoCode,
+  isPromoExpired,
+  PromoCode,
+  PromoCodePayload,
+  DiscountType,
+  PromoScope,
+} from "@/services/promoCodesService";
 
 interface PerfumeSample {
   id: string;
@@ -164,6 +179,34 @@ interface CustomGiftOrder {
   total_price: number;
   created_at: string;
 }
+
+interface CouponFormState {
+  code: string;
+  discount_type: DiscountType;
+  discount_value: string;
+  max_discount: string;
+  min_order_total: string;
+  scope: PromoScope;
+  scope_product_ids: string[];
+  is_active: boolean;
+  expires_at: string; // YYYY-MM-DD or ""
+  usage_limit: string;
+  usage_limit_per_user: string;
+}
+
+const initialCouponForm: CouponFormState = {
+  code: "",
+  discount_type: "fixed",
+  discount_value: "",
+  max_discount: "",
+  min_order_total: "0",
+  scope: "all_products",
+  scope_product_ids: [],
+  is_active: true,
+  expires_at: "",
+  usage_limit: "",
+  usage_limit_per_user: "",
+};
 
 const initialPerfumeData: Omit<Perfume, "id" | "created_at" | "updated_at"> = {
   name: "",
@@ -294,6 +337,20 @@ export default function AdminPage() {
   const [giftOrders, setGiftOrders] = useState<CustomGiftOrder[]>([]);
   const [giftOrdersLoading, setGiftOrdersLoading] = useState(false);
 
+  // Coupons / promo codes
+  const [coupons, setCoupons] = useState<PromoCode[]>([]);
+  const [couponsLoading, setCouponsLoading] = useState(false);
+  const [isCouponDialogOpen, setIsCouponDialogOpen] = useState(false);
+  const [editingCoupon, setEditingCoupon] = useState<PromoCode | null>(null);
+  const [couponForm, setCouponForm] = useState<CouponFormState>(
+    () => initialCouponForm
+  );
+  const [couponFormError, setCouponFormError] = useState<string | null>(null);
+  const [couponSubmitLoading, setCouponSubmitLoading] = useState(false);
+  const [togglingCoupon, setTogglingCoupon] = useState<string | null>(null);
+  const [deletingCoupon, setDeletingCoupon] = useState<string | null>(null);
+  const [productPickerSearch, setProductPickerSearch] = useState("");
+
   // Check authentication on mount
   useEffect(() => {
     const checkAuth = () => {
@@ -313,7 +370,15 @@ export default function AdminPage() {
   }, []);
 
   const loadData = async () => {
-    await Promise.all([loadPerfumes(), loadOrders(), loadOrderStats(), loadReviews(), fetchGiftOrders(), loadMemories()]);
+    await Promise.all([
+      loadPerfumes(),
+      loadOrders(),
+      loadOrderStats(),
+      loadReviews(),
+      fetchGiftOrders(),
+      loadMemories(),
+      loadCoupons(),
+    ]);
   };
 
   const fetchGiftOrders = async () => {
@@ -418,6 +483,205 @@ export default function AdminPage() {
       setDeletingReview(null);
     }
   };
+
+  // ---------- Coupons / promo codes ----------
+  const loadCoupons = async () => {
+    setCouponsLoading(true);
+    try {
+      const data = await fetchAllPromoCodes();
+      setCoupons(data);
+    } catch {
+      toast.error(t("admin.coupons.toast.loadFailed"));
+    } finally {
+      setCouponsLoading(false);
+    }
+  };
+
+  const openCreateCoupon = () => {
+    setEditingCoupon(null);
+    setCouponForm(initialCouponForm);
+    setCouponFormError(null);
+    setProductPickerSearch("");
+    setIsCouponDialogOpen(true);
+  };
+
+  const openEditCoupon = (coupon: PromoCode) => {
+    setEditingCoupon(coupon);
+    setCouponForm({
+      code: coupon.code,
+      discount_type: coupon.discount_type,
+      discount_value: String(coupon.discount_value),
+      max_discount:
+        coupon.max_discount !== null ? String(coupon.max_discount) : "",
+      min_order_total: String(coupon.min_order_total ?? 0),
+      scope: coupon.scope,
+      scope_product_ids: coupon.scope_product_ids,
+      is_active: coupon.is_active,
+      expires_at: coupon.expires_at
+        ? coupon.expires_at.slice(0, 10)
+        : "",
+      usage_limit:
+        coupon.usage_limit !== null ? String(coupon.usage_limit) : "",
+      usage_limit_per_user:
+        coupon.usage_limit_per_user !== null
+          ? String(coupon.usage_limit_per_user)
+          : "",
+    });
+    setCouponFormError(null);
+    setProductPickerSearch("");
+    setIsCouponDialogOpen(true);
+  };
+
+  const buildCouponPayload = (): PromoCodePayload | null => {
+    const code = couponForm.code.trim();
+    if (!code) {
+      setCouponFormError(t("admin.coupons.validation.codeRequired"));
+      return null;
+    }
+    const value = Number(couponForm.discount_value);
+    if (!Number.isFinite(value) || value <= 0) {
+      setCouponFormError(t("admin.coupons.validation.valueRequired"));
+      return null;
+    }
+    if (
+      couponForm.discount_type === "percentage" &&
+      (value > 100 || value < 1)
+    ) {
+      setCouponFormError(t("admin.coupons.validation.percentageRange"));
+      return null;
+    }
+    if (
+      couponForm.scope === "specific_products" &&
+      couponForm.scope_product_ids.length === 0
+    ) {
+      setCouponFormError(t("admin.coupons.validation.scopeProductsRequired"));
+      return null;
+    }
+    const maxDiscount =
+      couponForm.discount_type === "percentage" && couponForm.max_discount
+        ? Number(couponForm.max_discount)
+        : null;
+    const minOrder = Number(couponForm.min_order_total || 0);
+    const usageLimit = couponForm.usage_limit
+      ? Number(couponForm.usage_limit)
+      : null;
+    const perUserLimit = couponForm.usage_limit_per_user
+      ? Number(couponForm.usage_limit_per_user)
+      : null;
+    const expiresAt = couponForm.expires_at
+      ? new Date(couponForm.expires_at + "T23:59:59").toISOString()
+      : null;
+
+    return {
+      code,
+      discount_type: couponForm.discount_type,
+      discount_value: value,
+      max_discount: maxDiscount,
+      min_order_total: Number.isFinite(minOrder) ? minOrder : 0,
+      scope: couponForm.scope,
+      scope_product_ids:
+        couponForm.scope === "specific_products"
+          ? couponForm.scope_product_ids
+          : [],
+      is_active: couponForm.is_active,
+      expires_at: expiresAt,
+      usage_limit: usageLimit,
+      usage_limit_per_user: perUserLimit,
+    };
+  };
+
+  const handleCouponSubmit = async () => {
+    const payload = buildCouponPayload();
+    if (!payload) return;
+    setCouponSubmitLoading(true);
+    try {
+      if (editingCoupon) {
+        await updatePromoCode(editingCoupon.id, payload);
+        toast.success(t("admin.coupons.toast.updated"));
+      } else {
+        await createPromoCode(payload);
+        toast.success(t("admin.coupons.toast.created"));
+      }
+      setIsCouponDialogOpen(false);
+      setEditingCoupon(null);
+      setCouponForm(initialCouponForm);
+      setCouponFormError(null);
+      await loadCoupons();
+    } catch (err) {
+      if (err instanceof Error && err.message === "DUPLICATE_CODE") {
+        setCouponFormError(t("admin.coupons.toast.duplicateCode"));
+        toast.error(t("admin.coupons.toast.duplicateCode"));
+      } else {
+        console.error("Error saving coupon:", err);
+        toast.error(t("admin.coupons.toast.saveFailed"));
+      }
+    } finally {
+      setCouponSubmitLoading(false);
+    }
+  };
+
+  const handleToggleCoupon = async (coupon: PromoCode) => {
+    setTogglingCoupon(coupon.id);
+    try {
+      await togglePromoCode(coupon.id, !coupon.is_active);
+      toast.success(
+        !coupon.is_active
+          ? t("admin.coupons.toast.activated")
+          : t("admin.coupons.toast.deactivated")
+      );
+      await loadCoupons();
+    } catch {
+      toast.error(t("admin.coupons.toast.toggleFailed"));
+    } finally {
+      setTogglingCoupon(null);
+    }
+  };
+
+  const handleDeleteCoupon = async (id: string) => {
+    if (!window.confirm(t("admin.coupons.confirm.delete"))) return;
+    setDeletingCoupon(id);
+    try {
+      await deletePromoCode(id);
+      toast.success(t("admin.coupons.toast.deleted"));
+      await loadCoupons();
+    } catch {
+      toast.error(t("admin.coupons.toast.deleteFailed"));
+    } finally {
+      setDeletingCoupon(null);
+    }
+  };
+
+  const toggleCouponScopeProduct = (perfumeId: string) => {
+    setCouponForm((prev) => {
+      const has = prev.scope_product_ids.includes(perfumeId);
+      return {
+        ...prev,
+        scope_product_ids: has
+          ? prev.scope_product_ids.filter((id) => id !== perfumeId)
+          : [...prev.scope_product_ids, perfumeId],
+      };
+    });
+  };
+
+  const activeCouponCount = useMemo(
+    () => coupons.filter((c) => c.is_active && !isPromoExpired(c)).length,
+    [coupons]
+  );
+  const totalCouponRedemptions = useMemo(
+    () => coupons.reduce((sum, c) => sum + (c.usage_count ?? 0), 0),
+    [coupons]
+  );
+  const filteredPickerProducts = useMemo(() => {
+    const q = productPickerSearch.trim().toLowerCase();
+    const base = q
+      ? perfumes.filter(
+          (p) =>
+            p.name.toLowerCase().includes(q) ||
+            (p.name_ar || "").toLowerCase().includes(q)
+        )
+      : perfumes;
+    return base.slice(0, 60);
+  }, [perfumes, productPickerSearch]);
 
   const loadPerfumes = async () => {
     try {
@@ -1596,7 +1860,7 @@ export default function AdminPage() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-6 glass bg-white dark:bg-white/5 border-[#323D50]/15 dark:border-white/20">
+          <TabsList className="grid w-full grid-cols-7 glass bg-white dark:bg-white/5 border-[#323D50]/15 dark:border-white/20">
             <TabsTrigger
               value="overview"
               className="data-[state=active]:bg-[#5B8DD9]"
@@ -1648,6 +1912,13 @@ export default function AdminPage() {
                   {pendingMemoryCount}
                 </Badge>
               )}
+            </TabsTrigger>
+            <TabsTrigger
+              value="coupons"
+              className="data-[state=active]:bg-[#5B8DD9]"
+            >
+              <Ticket className={`w-4 h-4 ${isRTL ? "ms-2" : "me-2"}`} />
+              {t("admin.tabs.coupons")}
             </TabsTrigger>
           </TabsList>
 
@@ -3218,10 +3489,598 @@ export default function AdminPage() {
               )}
             </div>
           </TabsContent>
+
+          <TabsContent value="coupons" className="mt-6">
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Card className="glass-card border-[#323D50]/10 dark:border-white/10">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-[#6B7B8D] dark:text-white/60 text-sm">
+                          {t("admin.coupons.stats.total")}
+                        </p>
+                        <p className="text-2xl font-bold text-[#323D50] dark:text-white">
+                          {coupons.length}
+                        </p>
+                      </div>
+                      <Ticket className="w-8 h-8 text-[#5B8DD9]" />
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="glass-card border-[#323D50]/10 dark:border-white/10">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-[#6B7B8D] dark:text-white/60 text-sm">
+                          {t("admin.coupons.stats.active")}
+                        </p>
+                        <p className="text-2xl font-bold text-green-500">
+                          {activeCouponCount}
+                        </p>
+                      </div>
+                      <Power className="w-8 h-8 text-green-500" />
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="glass-card border-[#323D50]/10 dark:border-white/10">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-[#6B7B8D] dark:text-white/60 text-sm">
+                          {t("admin.coupons.stats.redemptions")}
+                        </p>
+                        <p className="text-2xl font-bold text-[#323D50] dark:text-white">
+                          {totalCouponRedemptions}
+                        </p>
+                      </div>
+                      <ClipboardCheck className="w-8 h-8 text-[#5B8DD9]" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="glass-card rounded-2xl overflow-hidden">
+                <div className="px-6 py-4 border-b dark:border-white/10 border-[#323D50]/10 flex items-center justify-between">
+                  <h2 className="text-xl font-bold text-[#323D50] dark:text-[#F5F5F5]">
+                    {t("admin.coupons.title")}
+                  </h2>
+                  <Button
+                    onClick={openCreateCoupon}
+                    className="bg-[#5B8DD9] hover:bg-[#3E6BB5] text-white"
+                  >
+                    <Plus className={`w-4 h-4 ${isRTL ? "ms-2" : "me-2"}`} />
+                    {t("admin.coupons.add")}
+                  </Button>
+                </div>
+                {couponsLoading ? (
+                  <div className="text-center py-8 text-[#6B7B8D]">
+                    {t("admin.loadingTitle")}
+                  </div>
+                ) : coupons.length === 0 ? (
+                  <p className="text-center text-[#6B7B8D] py-12">
+                    {t("admin.coupons.empty")}
+                  </p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="dark:border-white/10 border-[#323D50]/10">
+                          <TableHead className="text-[#323D50] dark:text-white/80">
+                            {t("admin.coupons.table.code")}
+                          </TableHead>
+                          <TableHead className="text-[#323D50] dark:text-white/80">
+                            {t("admin.coupons.table.type")}
+                          </TableHead>
+                          <TableHead className="text-[#323D50] dark:text-white/80">
+                            {t("admin.coupons.table.value")}
+                          </TableHead>
+                          <TableHead className="text-[#323D50] dark:text-white/80">
+                            {t("admin.coupons.table.scope")}
+                          </TableHead>
+                          <TableHead className="text-[#323D50] dark:text-white/80">
+                            {t("admin.coupons.table.minOrder")}
+                          </TableHead>
+                          <TableHead className="text-[#323D50] dark:text-white/80">
+                            {t("admin.coupons.table.status")}
+                          </TableHead>
+                          <TableHead className="text-[#323D50] dark:text-white/80">
+                            {t("admin.coupons.table.expires")}
+                          </TableHead>
+                          <TableHead className="text-[#323D50] dark:text-white/80">
+                            {t("admin.coupons.table.usage")}
+                          </TableHead>
+                          <TableHead className="text-[#323D50] dark:text-white/80 text-right">
+                            {t("admin.coupons.table.actions")}
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {coupons.map((coupon) => {
+                          const expired = isPromoExpired(coupon);
+                          const statusLabel = expired
+                            ? t("admin.coupons.status.expired")
+                            : coupon.is_active
+                            ? t("admin.coupons.status.active")
+                            : t("admin.coupons.status.inactive");
+                          const statusClass = expired
+                            ? "bg-red-500/20 text-red-400"
+                            : coupon.is_active
+                            ? "bg-green-500/20 text-green-400"
+                            : "bg-amber-500/20 text-amber-400";
+                          return (
+                            <TableRow
+                              key={coupon.id}
+                              className="dark:border-white/10 border-[#323D50]/10"
+                            >
+                              <TableCell className="font-mono font-bold text-[#5B8DD9]">
+                                {coupon.code}
+                              </TableCell>
+                              <TableCell className="text-[#323D50] dark:text-white/80">
+                                {coupon.discount_type === "fixed"
+                                  ? t("admin.coupons.fixed")
+                                  : t("admin.coupons.percentage")}
+                              </TableCell>
+                              <TableCell className="text-[#323D50] dark:text-white/80">
+                                {coupon.discount_type === "fixed"
+                                  ? `${coupon.discount_value.toFixed(2)} LYD`
+                                  : `${coupon.discount_value}%${
+                                      coupon.max_discount
+                                        ? ` (max ${coupon.max_discount.toFixed(2)})`
+                                        : ""
+                                    }`}
+                              </TableCell>
+                              <TableCell className="text-[#323D50] dark:text-white/80 text-sm">
+                                {coupon.scope === "all_products"
+                                  ? t("admin.coupons.scopeBadge.all")
+                                  : t("admin.coupons.scopeBadge.specific").replace(
+                                      "{count}",
+                                      String(coupon.scope_product_ids.length)
+                                    )}
+                              </TableCell>
+                              <TableCell className="text-[#323D50] dark:text-white/80 text-sm">
+                                {coupon.min_order_total > 0
+                                  ? `${coupon.min_order_total.toFixed(2)} LYD`
+                                  : "—"}
+                              </TableCell>
+                              <TableCell>
+                                <Badge className={statusClass}>
+                                  {statusLabel}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-[#323D50] dark:text-white/60 text-sm">
+                                {coupon.expires_at
+                                  ? new Date(
+                                      coupon.expires_at
+                                    ).toLocaleDateString()
+                                  : t("admin.coupons.never")}
+                              </TableCell>
+                              <TableCell className="text-[#323D50] dark:text-white/80 text-sm font-mono">
+                                {coupon.usage_count}/
+                                {coupon.usage_limit ?? t("admin.coupons.unlimited")}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex items-center justify-end gap-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => openEditCoupon(coupon)}
+                                    className="h-8 w-8 p-0 text-[#5B8DD9] hover:bg-[#5B8DD9]/10"
+                                    title={t("admin.coupons.edit")}
+                                  >
+                                    <Edit className="w-4 h-4" />
+                                  </Button>
+                                  <LoadingButton
+                                    variant="ghost"
+                                    size="sm"
+                                    loading={togglingCoupon === coupon.id}
+                                    loadingText=""
+                                    onClick={() => handleToggleCoupon(coupon)}
+                                    className="h-8 w-8 p-0 text-amber-500 hover:bg-amber-500/10"
+                                    title={
+                                      coupon.is_active
+                                        ? t("admin.coupons.deactivate")
+                                        : t("admin.coupons.activate")
+                                    }
+                                  >
+                                    <Power className="w-4 h-4" />
+                                  </LoadingButton>
+                                  <LoadingButton
+                                    variant="ghost"
+                                    size="sm"
+                                    loading={deletingCoupon === coupon.id}
+                                    loadingText=""
+                                    onClick={() => handleDeleteCoupon(coupon.id)}
+                                    className="h-8 w-8 p-0 text-red-500 hover:bg-red-500/10"
+                                    title={t("admin.coupons.confirm.delete")}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </LoadingButton>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </div>
+            </div>
+          </TabsContent>
         </Tabs>
       </div>
       {renderOrderDetailsDialog()}
       {renderImageModal()}
+
+      {/* Coupon create/edit dialog */}
+      <Dialog
+        open={isCouponDialogOpen}
+        onOpenChange={(open) => {
+          setIsCouponDialogOpen(open);
+          if (!open) {
+            setEditingCoupon(null);
+            setCouponForm(initialCouponForm);
+            setCouponFormError(null);
+            setProductPickerSearch("");
+          }
+        }}
+      >
+        <DialogContent className="glass-card bg-[#F8F9FB] dark:bg-[#1a2235] border-[#323D50]/10 dark:border-white/10 text-[#323D50] dark:text-white max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="gradient-text">
+              {editingCoupon
+                ? t("admin.coupons.edit")
+                : t("admin.coupons.create")}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-[#323D50] dark:text-white/80">
+                {t("admin.coupons.code")} *
+              </Label>
+              <Input
+                value={couponForm.code}
+                onChange={(e) =>
+                  setCouponForm((prev) => ({
+                    ...prev,
+                    code: e.target.value.toUpperCase(),
+                  }))
+                }
+                placeholder={t("admin.coupons.codePlaceholder")}
+                className="glass bg-white dark:bg-white/5 border-[#323D50]/15 dark:border-white/20 text-[#323D50] dark:text-white font-mono uppercase"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-[#323D50] dark:text-white/80">
+                  {t("admin.coupons.discountType")} *
+                </Label>
+                <Select
+                  value={couponForm.discount_type}
+                  onValueChange={(v) =>
+                    setCouponForm((prev) => ({
+                      ...prev,
+                      discount_type: v as DiscountType,
+                    }))
+                  }
+                >
+                  <SelectTrigger className="glass bg-white dark:bg-white/5 border-[#323D50]/15 dark:border-white/20 text-[#323D50] dark:text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white dark:bg-[#1a2235] border-[#323D50]/15 dark:border-white/20">
+                    <SelectItem value="fixed">
+                      {t("admin.coupons.fixed")}
+                    </SelectItem>
+                    <SelectItem value="percentage">
+                      {t("admin.coupons.percentage")}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[#323D50] dark:text-white/80">
+                  {t("admin.coupons.discountValue")} *
+                </Label>
+                <Input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={couponForm.discount_value}
+                  onChange={(e) =>
+                    setCouponForm((prev) => ({
+                      ...prev,
+                      discount_value: e.target.value,
+                    }))
+                  }
+                  placeholder={
+                    couponForm.discount_type === "percentage" ? "20" : "50.00"
+                  }
+                  className="glass bg-white dark:bg-white/5 border-[#323D50]/15 dark:border-white/20 text-[#323D50] dark:text-white"
+                />
+              </div>
+            </div>
+
+            {couponForm.discount_type === "percentage" && (
+              <div className="space-y-2">
+                <Label className="text-[#323D50] dark:text-white/80">
+                  {t("admin.coupons.maxDiscount")}
+                </Label>
+                <Input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={couponForm.max_discount}
+                  onChange={(e) =>
+                    setCouponForm((prev) => ({
+                      ...prev,
+                      max_discount: e.target.value,
+                    }))
+                  }
+                  placeholder="50.00"
+                  className="glass bg-white dark:bg-white/5 border-[#323D50]/15 dark:border-white/20 text-[#323D50] dark:text-white"
+                />
+                <p className="text-xs text-[#6B7B8D] dark:text-white/50">
+                  {t("admin.coupons.maxDiscountHint")}
+                </p>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label className="text-[#323D50] dark:text-white/80">
+                {t("admin.coupons.minOrderTotal")}
+              </Label>
+              <Input
+                type="number"
+                min={0}
+                step="0.01"
+                value={couponForm.min_order_total}
+                onChange={(e) =>
+                  setCouponForm((prev) => ({
+                    ...prev,
+                    min_order_total: e.target.value,
+                  }))
+                }
+                placeholder="100.00"
+                className="glass bg-white dark:bg-white/5 border-[#323D50]/15 dark:border-white/20 text-[#323D50] dark:text-white"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-[#323D50] dark:text-white/80">
+                {t("admin.coupons.scope")} *
+              </Label>
+              <Select
+                value={couponForm.scope}
+                onValueChange={(v) =>
+                  setCouponForm((prev) => ({
+                    ...prev,
+                    scope: v as PromoScope,
+                    scope_product_ids:
+                      v === "all_products" ? [] : prev.scope_product_ids,
+                  }))
+                }
+              >
+                <SelectTrigger className="glass bg-white dark:bg-white/5 border-[#323D50]/15 dark:border-white/20 text-[#323D50] dark:text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-white dark:bg-[#1a2235] border-[#323D50]/15 dark:border-white/20">
+                  <SelectItem value="all_products">
+                    {t("admin.coupons.scopeAllProducts")}
+                  </SelectItem>
+                  <SelectItem value="specific_products">
+                    {t("admin.coupons.scopeSpecificProducts")}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {couponForm.scope === "specific_products" && (
+              <div className="space-y-2">
+                <Label className="text-[#323D50] dark:text-white/80">
+                  {t("admin.coupons.selectProducts")} *
+                </Label>
+                <p className="text-xs text-[#6B7B8D] dark:text-white/50">
+                  {t("admin.coupons.selectProductsHint")}
+                </p>
+                {couponForm.scope_product_ids.length > 0 && (
+                  <div className="flex flex-wrap gap-2 p-2 rounded-xl bg-[#5B8DD9]/5 border border-[#5B8DD9]/20">
+                    {couponForm.scope_product_ids.map((id) => {
+                      const p = perfumes.find((pp) => pp.id === id);
+                      if (!p) return null;
+                      return (
+                        <Badge
+                          key={id}
+                          className="bg-[#5B8DD9]/20 text-[#5B8DD9] hover:bg-[#5B8DD9]/30 cursor-pointer"
+                          onClick={() => toggleCouponScopeProduct(id)}
+                        >
+                          {p.name} ({p.size})
+                          <X className="w-3 h-3 ms-1" />
+                        </Badge>
+                      );
+                    })}
+                  </div>
+                )}
+                <div className="relative">
+                  <Search
+                    className={`w-4 h-4 absolute top-1/2 -translate-y-1/2 ${
+                      isRTL ? "right-3" : "left-3"
+                    } text-[#6B7B8D]`}
+                  />
+                  <Input
+                    value={productPickerSearch}
+                    onChange={(e) => setProductPickerSearch(e.target.value)}
+                    placeholder={t("admin.coupons.searchProducts")}
+                    className={`glass bg-white dark:bg-white/5 border-[#323D50]/15 dark:border-white/20 text-[#323D50] dark:text-white ${
+                      isRTL ? "pr-9" : "pl-9"
+                    }`}
+                  />
+                </div>
+                <div className="max-h-48 overflow-y-auto border border-[#323D50]/10 dark:border-white/10 rounded-xl divide-y divide-[#323D50]/10 dark:divide-white/5">
+                  {filteredPickerProducts.length === 0 ? (
+                    <div className="p-4 text-center text-sm text-[#6B7B8D]">
+                      {t("admin.coupons.noProductsFound")}
+                    </div>
+                  ) : (
+                    filteredPickerProducts.map((p) => {
+                      const selected = couponForm.scope_product_ids.includes(
+                        p.id
+                      );
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => toggleCouponScopeProduct(p.id)}
+                          className={`w-full text-start px-3 py-2 text-sm flex items-center justify-between hover:bg-[#5B8DD9]/10 ${
+                            selected
+                              ? "bg-[#5B8DD9]/10 text-[#5B8DD9] font-medium"
+                              : "text-[#323D50] dark:text-white/80"
+                          }`}
+                        >
+                          <span className="truncate">
+                            {p.name}{" "}
+                            <span className="text-xs text-[#6B7B8D]">
+                              ({p.size}, {p.type})
+                            </span>
+                          </span>
+                          {selected && <Check className="w-4 h-4 shrink-0" />}
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label className="text-[#323D50] dark:text-white/80">
+                  <Calendar className="w-4 h-4 inline me-1" />
+                  {t("admin.coupons.expiresAt")}
+                </Label>
+                <div className="flex gap-1">
+                  <Input
+                    type="date"
+                    value={couponForm.expires_at}
+                    onChange={(e) =>
+                      setCouponForm((prev) => ({
+                        ...prev,
+                        expires_at: e.target.value,
+                      }))
+                    }
+                    className="glass bg-white dark:bg-white/5 border-[#323D50]/15 dark:border-white/20 text-[#323D50] dark:text-white"
+                  />
+                  {couponForm.expires_at && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        setCouponForm((prev) => ({ ...prev, expires_at: "" }))
+                      }
+                      className="px-2"
+                      title={t("admin.coupons.clearDate")}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[#323D50] dark:text-white/80">
+                  {t("admin.coupons.usageLimit")}
+                </Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={couponForm.usage_limit}
+                  onChange={(e) =>
+                    setCouponForm((prev) => ({
+                      ...prev,
+                      usage_limit: e.target.value,
+                    }))
+                  }
+                  placeholder={t("admin.coupons.unlimited")}
+                  className="glass bg-white dark:bg-white/5 border-[#323D50]/15 dark:border-white/20 text-[#323D50] dark:text-white"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[#323D50] dark:text-white/80">
+                  {t("admin.coupons.usageLimitPerUser")}
+                </Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={couponForm.usage_limit_per_user}
+                  onChange={(e) =>
+                    setCouponForm((prev) => ({
+                      ...prev,
+                      usage_limit_per_user: e.target.value,
+                    }))
+                  }
+                  placeholder={t("admin.coupons.unlimited")}
+                  className="glass bg-white dark:bg-white/5 border-[#323D50]/15 dark:border-white/20 text-[#323D50] dark:text-white"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between p-3 rounded-xl border border-[#323D50]/10 dark:border-white/10">
+              <Label className="text-[#323D50] dark:text-white/80 cursor-pointer">
+                {t("admin.coupons.isActive")}
+              </Label>
+              <button
+                type="button"
+                onClick={() =>
+                  setCouponForm((prev) => ({
+                    ...prev,
+                    is_active: !prev.is_active,
+                  }))
+                }
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
+                  couponForm.is_active ? "bg-green-500" : "bg-zinc-400"
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow ring-0 transition-transform ${
+                    couponForm.is_active ? "translate-x-5" : "translate-x-0"
+                  }`}
+                />
+              </button>
+            </div>
+
+            {couponFormError && (
+              <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-sm text-red-500">
+                {couponFormError}
+              </div>
+            )}
+
+            <div className="flex gap-2 justify-end pt-2">
+              <Button
+                variant="outline"
+                onClick={() => setIsCouponDialogOpen(false)}
+                className="border-[#323D50]/15 dark:border-white/20"
+              >
+                {t("admin.coupons.cancel")}
+              </Button>
+              <LoadingButton
+                loading={couponSubmitLoading}
+                loadingText={t("admin.coupons.saving")}
+                onClick={handleCouponSubmit}
+                className="bg-[#5B8DD9] hover:bg-[#3E6BB5] text-white"
+              >
+                {editingCoupon
+                  ? t("admin.coupons.update")
+                  : t("admin.coupons.create")}
+              </LoadingButton>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

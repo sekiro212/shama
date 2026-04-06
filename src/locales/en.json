@@ -34,7 +34,8 @@
       "orders": "Orders",
       "reviews": "Reviews",
       "giftOrders": "Gift Orders",
-      "memories": "Memories"
+      "memories": "Memories",
+      "coupons": "Coupons"
     },
     "recentOrders": "Recent Orders",
     "ordersManagement": "Orders Management",
@@ -278,6 +279,89 @@
       "confirm": {
         "delete": "Delete this memory permanently?"
       }
+    },
+    "coupons": {
+      "title": "Coupons Management",
+      "add": "Add Coupon",
+      "edit": "Edit Coupon",
+      "create": "Create Coupon",
+      "update": "Update",
+      "cancel": "Cancel",
+      "saving": "Saving...",
+      "code": "Code",
+      "codePlaceholder": "e.g. SUMMER20",
+      "discountType": "Discount Type",
+      "fixed": "Fixed amount",
+      "percentage": "Percentage",
+      "discountValue": "Discount Value",
+      "maxDiscount": "Max Discount Cap",
+      "maxDiscountHint": "Optional — caps the discount for percentage coupons",
+      "minOrderTotal": "Minimum Order Total",
+      "scope": "Scope",
+      "scopeAllProducts": "All products",
+      "scopeSpecificProducts": "Specific products",
+      "selectProducts": "Select products",
+      "selectProductsHint": "Choose perfumes this code can be applied to",
+      "searchProducts": "Search perfumes...",
+      "noProductsFound": "No perfumes found",
+      "expiresAt": "Expires At",
+      "expiresAtHint": "Leave empty for no expiration",
+      "clearDate": "Clear",
+      "usageLimit": "Usage Limit (total)",
+      "usageLimitHint": "Leave empty for unlimited",
+      "usageLimitPerUser": "Usage Limit (per customer)",
+      "isActive": "Active",
+      "stats": {
+        "total": "Total Coupons",
+        "active": "Active",
+        "redemptions": "Total Redemptions"
+      },
+      "table": {
+        "code": "Code",
+        "type": "Type",
+        "value": "Value",
+        "scope": "Scope",
+        "minOrder": "Min Order",
+        "status": "Status",
+        "expires": "Expires",
+        "usage": "Usage",
+        "actions": "Actions"
+      },
+      "status": {
+        "active": "Active",
+        "inactive": "Inactive",
+        "expired": "Expired"
+      },
+      "scopeBadge": {
+        "all": "All",
+        "specific": "{count} items"
+      },
+      "empty": "No coupons yet. Create one to get started.",
+      "never": "Never",
+      "unlimited": "∞",
+      "activate": "Activate",
+      "deactivate": "Deactivate",
+      "toast": {
+        "created": "Coupon created",
+        "updated": "Coupon updated",
+        "deleted": "Coupon deleted",
+        "activated": "Coupon activated",
+        "deactivated": "Coupon deactivated",
+        "loadFailed": "Failed to load coupons",
+        "saveFailed": "Failed to save coupon",
+        "deleteFailed": "Failed to delete coupon",
+        "toggleFailed": "Failed to update coupon",
+        "duplicateCode": "A coupon with this code already exists"
+      },
+      "confirm": {
+        "delete": "Delete this coupon permanently?"
+      },
+      "validation": {
+        "codeRequired": "Code is required",
+        "valueRequired": "Discount value must be greater than 0",
+        "percentageRange": "Percentage must be between 1 and 100",
+        "scopeProductsRequired": "Select at least one product for specific scope"
+      }
     }
   },
   "nav": {
@@ -450,7 +534,26 @@
     "removeFromCart": "Remove from cart",
     "stockExceed": "Some items exceed available stock:",
     "requested": "requested",
-    "available": "available"
+    "available": "available",
+    "subtotal": "Subtotal",
+    "discount": "Discount",
+    "promoCode": {
+      "label": "Promo Code",
+      "placeholder": "Enter code",
+      "apply": "Apply",
+      "applying": "Applying...",
+      "remove": "Remove",
+      "applied": "Code applied",
+      "errors": {
+        "invalidCode": "Invalid code",
+        "inactive": "This code is no longer active",
+        "expired": "This code has expired",
+        "usageLimitReached": "This code has reached its usage limit",
+        "perUserLimitReached": "You have already used this code",
+        "belowMinOrder": "Minimum order of {min} LYD required",
+        "notApplicable": "This code does not apply to your cart items"
+      }
+    }
   },
   "collection": {
     "titleOur": "Our",

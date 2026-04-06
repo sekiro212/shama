@@ -10,6 +10,8 @@ import {
   AlertCircle,
   Trash2,
   Eye,
+  Tag,
+  X,
 } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -17,6 +19,12 @@ import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  validatePromoCode,
+  incrementPromoCodeUsage,
+  type PromoValidationResult,
+  type PromoValidationError,
+} from "@/services/promoCodesService";
 import {
   Select,
   SelectContent,
@@ -53,6 +61,15 @@ interface CartSidebarProps {
   onClose: () => void;
 }
 
+const PROMO_ERROR_KEY: Record<PromoValidationError, string> = {
+  INVALID_CODE: "cart.promoCode.errors.invalidCode",
+  INACTIVE: "cart.promoCode.errors.inactive",
+  EXPIRED: "cart.promoCode.errors.expired",
+  USAGE_LIMIT_REACHED: "cart.promoCode.errors.usageLimitReached",
+  PER_USER_LIMIT_REACHED: "cart.promoCode.errors.perUserLimitReached",
+  BELOW_MIN_ORDER: "cart.promoCode.errors.belowMinOrder",
+  NOT_APPLICABLE: "cart.promoCode.errors.notApplicable",
+};
 
 export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
   const {
@@ -70,6 +87,12 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [lastOrderId, setLastOrderId] = useState<string | null>(null);
+  const [appliedPromo, setAppliedPromo] = useState<PromoValidationResult | null>(
+    null
+  );
+  const [promoInput, setPromoInput] = useState("");
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [promoError, setPromoError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -157,6 +180,55 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
     );
   };
 
+  // Promo state lives here (not in CartContext) so it doesn't survive
+  // across sessions — a persisted promo could become stale against the
+  // cart or hit per-user-limit checks unexpectedly on the next visit.
+  const cartSubtotal = getTotalPrice();
+  const cartDiscount = appliedPromo?.discount ?? 0;
+  const cartFinalTotal = appliedPromo?.finalTotal ?? cartSubtotal;
+
+  const translatePromoError = (
+    error: PromoValidationError | undefined,
+    context?: { minOrder?: number }
+  ): string => {
+    const key = error ? PROMO_ERROR_KEY[error] : PROMO_ERROR_KEY.INVALID_CODE;
+    const translated = t(key);
+    if (error === "BELOW_MIN_ORDER") {
+      return translated.replace("{min}", (context?.minOrder ?? 0).toFixed(2));
+    }
+    return translated;
+  };
+
+  const handleApplyPromo = async () => {
+    const code = promoInput.trim();
+    if (!code || items.length === 0) return;
+    setPromoLoading(true);
+    setPromoError(null);
+    try {
+      const result = await validatePromoCode(code, items, user?.email ?? "");
+      if (!result.valid) {
+        setAppliedPromo(null);
+        setPromoError(translatePromoError(result.error, result.errorContext));
+        return;
+      }
+      setAppliedPromo(result);
+      setPromoError(null);
+      toast.success(t("cart.promoCode.applied"));
+    } catch (err) {
+      console.error("Error validating promo code:", err);
+      setAppliedPromo(null);
+      setPromoError(t("cart.promoCode.errors.invalidCode"));
+    } finally {
+      setPromoLoading(false);
+    }
+  };
+
+  const handleRemovePromo = () => {
+    setAppliedPromo(null);
+    setPromoInput("");
+    setPromoError(null);
+  };
+
   const handleCheckout = async () => {
     // Validate form
     if (
@@ -203,7 +275,29 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
     try {
       setCheckoutLoading(true);
 
-      // Create order data for Supabase
+      // Re-validate against the current cart — quantities, email, and
+      // per-user count may have shifted since the user clicked Apply.
+      let confirmedPromo: PromoValidationResult | null = null;
+      if (appliedPromo?.promo) {
+        const revalidated = await validatePromoCode(
+          appliedPromo.promo.code,
+          items,
+          formData.email
+        );
+        if (!revalidated.valid) {
+          setAppliedPromo(null);
+          const msg = translatePromoError(
+            revalidated.error,
+            revalidated.errorContext
+          );
+          setPromoError(msg);
+          toast.error(msg);
+          return;
+        }
+        confirmedPromo = revalidated;
+        setAppliedPromo(revalidated);
+      }
+
       const orderData = {
         first_name: formData.firstName,
         last_name: formData.lastName,
@@ -213,7 +307,11 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
         place_name: formData.placeName,
         vanex_city_id: formData.vanexCityId,
         vanex_sub_city_id: formData.vanexSubCityId,
-        total: getTotalPrice(),
+        subtotal: confirmedPromo?.subtotal ?? cartSubtotal,
+        discount_amount: confirmedPromo?.discount ?? 0,
+        total: confirmedPromo?.finalTotal ?? cartSubtotal,
+        promo_code_id: confirmedPromo?.promo?.id ?? null,
+        promo_code_snapshot: confirmedPromo?.promo?.code ?? null,
         order_date: new Date().toISOString(),
         items: items,
       };
@@ -235,15 +333,19 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
         setLastOrderId(orderId);
       }
 
-      // Success
+      // Fire-and-forget: never block checkout success on the counter.
+      if (confirmedPromo?.promo) {
+        incrementPromoCodeUsage(confirmedPromo.promo.id).catch((err) =>
+          console.error("Failed to increment promo usage:", err)
+        );
+      }
+
       toast.success(t("cart.orderSuccess"));
 
-      // Clear cart and close dialogs
       clearCart();
       setIsCheckoutOpen(false);
       onClose();
 
-      // Reset form
       setFormData({
         firstName: "",
         lastName: "",
@@ -255,6 +357,9 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
         vanexSubCityId: null,
       });
       setVanexSubCities([]);
+      setAppliedPromo(null);
+      setPromoInput("");
+      setPromoError(null);
     } catch (error) {
       console.error("Error placing order:", error);
       toast.error(t("cart.orderFailed"));
@@ -523,14 +628,100 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                   <div className="space-y-3">
                     <div className="flex justify-between dark:text-white/80 text-[#6B7B8D] font-medium">
                       <span>{`${t("cart.items")} (${getItemCount()})`}</span>
-                      <span>{getTotalPrice().toFixed(2)} LYD</span>
+                      <span>{cartSubtotal.toFixed(2)} LYD</span>
                     </div>
+
+                    {appliedPromo?.promo ? (
+                      <div className="flex items-center justify-between gap-2 rounded-xl bg-green-500/10 border border-green-500/30 px-3 py-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Tag className="w-4 h-4 text-green-600 dark:text-green-400 shrink-0" />
+                          <div className="min-w-0">
+                            <div className="text-xs text-green-700 dark:text-green-400 font-medium truncate">
+                              {t("cart.promoCode.applied")}
+                            </div>
+                            <div className="text-sm font-bold text-[#323D50] dark:text-white font-mono truncate">
+                              {appliedPromo.promo.code}
+                            </div>
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleRemovePromo}
+                          className="h-7 px-2 text-xs text-[#6B7B8D] dark:text-white/70 hover:bg-red-500/10 hover:text-red-500"
+                        >
+                          <X className="w-3 h-3 me-1" />
+                          {t("cart.promoCode.remove")}
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <div className="relative flex-1">
+                            <Tag
+                              className={`w-4 h-4 absolute top-1/2 -translate-y-1/2 ${
+                                isRTL ? "right-3" : "left-3"
+                              } text-[#6B7B8D] dark:text-white/50 pointer-events-none`}
+                            />
+                            <Input
+                              value={promoInput}
+                              onChange={(e) => {
+                                setPromoInput(e.target.value);
+                                if (promoError) setPromoError(null);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  handleApplyPromo();
+                                }
+                              }}
+                              placeholder={t("cart.promoCode.placeholder")}
+                              className={`glass dark:bg-white/10 bg-white/80 dark:border-white/30 border-[#323D50]/15 dark:text-[#F5F5F5] text-[#323D50] dark:placeholder:text-white/60 placeholder:text-[#6B7B8D] focus:border-[#5B8DD9] focus:ring-[#5B8DD9] rounded-xl h-10 ${
+                                isRTL ? "pr-9" : "pl-9"
+                              }`}
+                              disabled={promoLoading || items.length === 0}
+                            />
+                          </div>
+                          <LoadingButton
+                            onClick={handleApplyPromo}
+                            loading={promoLoading}
+                            loadingText={t("cart.promoCode.applying")}
+                            disabled={
+                              promoLoading ||
+                              items.length === 0 ||
+                              !promoInput.trim()
+                            }
+                            className="h-10 px-4 bg-[#5B8DD9] hover:bg-[#3E6BB5] text-white rounded-xl text-sm font-medium"
+                          >
+                            {t("cart.promoCode.apply")}
+                          </LoadingButton>
+                        </div>
+                        {promoError && (
+                          <p className="text-xs text-red-500 dark:text-red-400 px-1">
+                            {promoError}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {appliedPromo?.promo && (
+                      <div className="flex justify-between text-sm dark:text-white/80 text-[#6B7B8D]">
+                        <span>{t("cart.subtotal")}</span>
+                        <span>{cartSubtotal.toFixed(2)} LYD</span>
+                      </div>
+                    )}
+                    {appliedPromo?.promo && cartDiscount > 0 && (
+                      <div className="flex justify-between text-sm text-green-600 dark:text-green-400 font-medium">
+                        <span>{t("cart.discount")}</span>
+                        <span>-{cartDiscount.toFixed(2)} LYD</span>
+                      </div>
+                    )}
 
                     <div className="border-t dark:border-white/10 border-[#323D50]/10 pt-3 pb-3 ">
                       <div className="flex justify-between text-lg sm:text-xl font-bold">
                         <span className="dark:text-[#F5F5F5] text-[#323D50]">{t("cart.total")}</span>
                         <span className="text-[#e879f9] drop-shadow-sm">
-                          {getTotalPrice().toFixed(2)} LYD
+                          {cartFinalTotal.toFixed(2)} LYD
                         </span>
                       </div>
                     </div>
@@ -759,10 +950,26 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                         )}
 
                         <div className="border-t dark:border-white/10 border-[#323D50]/10 pt-4 sm:pt-6">
+                          {appliedPromo?.promo && (
+                            <>
+                              <div className="flex justify-between text-sm dark:text-white/80 text-[#6B7B8D] mb-1">
+                                <span>{t("cart.subtotal")}</span>
+                                <span>{cartSubtotal.toFixed(2)} LYD</span>
+                              </div>
+                              {cartDiscount > 0 && (
+                                <div className="flex justify-between text-sm text-green-600 dark:text-green-400 font-medium mb-1">
+                                  <span>
+                                    {t("cart.discount")} ({appliedPromo.promo.code})
+                                  </span>
+                                  <span>-{cartDiscount.toFixed(2)} LYD</span>
+                                </div>
+                              )}
+                            </>
+                          )}
                           <div className="flex justify-between text-lg sm:text-xl font-bold mb-4 sm:mb-6">
                             <span className="dark:text-[#F5F5F5] text-[#323D50]">{t("cart.total")}</span>
                             <span className="text-[#e879f9] drop-shadow-sm">
-                              {getTotalPrice().toFixed(2)} LYD
+                              {cartFinalTotal.toFixed(2)} LYD
                             </span>
                           </div>
                           <LoadingButton

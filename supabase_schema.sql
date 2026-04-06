@@ -658,3 +658,48 @@ create policy "Anyone can submit a memory"
   on memories for insert with check (status = 'pending');
 create policy "Anyone can read approved memories"
   on memories for select using (status = 'approved');
+
+-- ============================================================
+-- Migration: add_promo_codes_table
+-- Coupons / promo codes — admin-managed discount codes applied
+-- at checkout. Supports fixed or percentage discounts with
+-- optional max-discount cap, minimum order total, product scope,
+-- expiration, and usage limits (total + per-customer).
+-- ============================================================
+CREATE TABLE IF NOT EXISTS promo_codes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  code VARCHAR(50) UNIQUE NOT NULL,                    -- stored uppercase
+  discount_type VARCHAR(20) NOT NULL CHECK (discount_type IN ('fixed','percentage')),
+  discount_value DECIMAL(10,2) NOT NULL CHECK (discount_value > 0),
+  max_discount DECIMAL(10,2),                          -- optional cap, mainly for percentage
+  min_order_total DECIMAL(10,2) NOT NULL DEFAULT 0,
+  scope VARCHAR(20) NOT NULL DEFAULT 'all_products'
+        CHECK (scope IN ('all_products','specific_products')),
+  scope_product_ids JSONB NOT NULL DEFAULT '[]'::jsonb,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  expires_at TIMESTAMPTZ,
+  usage_limit INTEGER,
+  usage_limit_per_user INTEGER,
+  usage_count INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TRIGGER update_promo_codes_updated_at
+  BEFORE UPDATE ON promo_codes
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- Orders get discount fields (nullable / defaults for backward compat)
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS subtotal DECIMAL(10,2);
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount_amount DECIMAL(10,2) DEFAULT 0;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS promo_code_id UUID REFERENCES promo_codes(id) ON DELETE SET NULL;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS promo_code_snapshot VARCHAR(50);
+
+-- RLS — mirror the open-policy pattern used on orders/perfumes
+ALTER TABLE promo_codes ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Public read promo codes"   ON promo_codes FOR SELECT USING (true);
+CREATE POLICY "Public insert promo codes" ON promo_codes FOR INSERT WITH CHECK (true);
+CREATE POLICY "Public update promo codes" ON promo_codes FOR UPDATE USING (true);
+CREATE POLICY "Public delete promo codes" ON promo_codes FOR DELETE USING (true);
+GRANT ALL ON promo_codes TO anon;
+GRANT ALL ON promo_codes TO authenticated;
