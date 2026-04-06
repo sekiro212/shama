@@ -1,6 +1,26 @@
 import { supabase } from "./supabase";
 import { GetOrdersSchema } from "../types";
 import type { BotLanguage, OrderItem } from "../types";
+import { UUID_RE, SHORT_ID_RE } from "../utils/ids";
+
+// Re-exported under FULL_UUID_RE for callers that already use that name.
+export const FULL_UUID_RE = UUID_RE;
+export { SHORT_ID_RE };
+
+// Sentinel error messages thrown by getOrderById and mapped to user-friendly
+// text in the tool executor. Using Error.message as a sentinel keeps the
+// function signature simple and matches the project's existing error idiom.
+export const ORDER_NOT_FOUND = "ORDER_NOT_FOUND";
+export const ORDER_AMBIGUOUS = "ORDER_AMBIGUOUS";
+export const ORDER_INVALID_ID = "ORDER_INVALID_ID";
+
+const ORDER_COLUMNS =
+  "id, first_name, last_name, phone, city, place_name, status, items, total, created_at";
+
+// Max recent orders scanned by the short-prefix path of getOrderById. For an
+// admin bot on a single store this is trivially cheap and collision risk for
+// an 8-char hex prefix across this many rows is negligible.
+const SHORT_ID_SCAN_LIMIT = 500;
 
 // ─── Order type ───────────────────────────────
 
@@ -30,10 +50,9 @@ export async function fetchOrders(options?: {
 
   let query = supabase
     .from("orders")
-    .select("id, first_name, last_name, phone, city, place_name, status, items, total, created_at")
+    .select(ORDER_COLUMNS)
     .order("created_at", { ascending: false });
 
-  // Apply time range filter
   if (timeRange !== "all") {
     const msMap: Record<string, number> = {
       today: 24 * 60 * 60 * 1000,
@@ -44,7 +63,6 @@ export async function fetchOrders(options?: {
     query = query.gte("created_at", since);
   }
 
-  // Apply status filter
   if (status && status !== "all") {
     query = query.eq("status", status);
   }
@@ -52,6 +70,49 @@ export async function fetchOrders(options?: {
   const { data, error } = await query;
   if (error) throw new Error(`Failed to fetch orders: ${error.message}`);
   return (data as Order[]) || [];
+}
+
+// ─── Get one order by full UUID or short hex prefix ───
+//
+// Postgres UUID columns refuse ILIKE and PostgREST cannot cast a column to
+// text inside a filter clause, so the short-prefix path fetches recent rows
+// and filters in JS. Future upgrade: replace with a Postgres RPC
+// `get_order_by_short_id(p text)` doing `WHERE id::text ILIKE p || '%'`.
+export async function getOrderById(idOrShortId: string): Promise<Order> {
+  const cleaned = (idOrShortId ?? "").trim();
+  if (!cleaned) throw new Error(ORDER_INVALID_ID);
+
+  if (FULL_UUID_RE.test(cleaned)) {
+    const { data, error } = await supabase
+      .from("orders")
+      .select(ORDER_COLUMNS)
+      .eq("id", cleaned)
+      .maybeSingle();
+
+    if (error) throw new Error(`Failed to fetch order: ${error.message}`);
+    if (!data) throw new Error(ORDER_NOT_FOUND);
+    return data as unknown as Order;
+  }
+
+  if (SHORT_ID_RE.test(cleaned)) {
+    const { data, error } = await supabase
+      .from("orders")
+      .select(ORDER_COLUMNS)
+      .order("created_at", { ascending: false })
+      .limit(SHORT_ID_SCAN_LIMIT);
+
+    if (error) throw new Error(`Failed to fetch orders: ${error.message}`);
+    const rows = (data as unknown as Order[] | null) ?? [];
+
+    const prefix = cleaned.toLowerCase();
+    const matches = rows.filter((o) => o.id.toLowerCase().startsWith(prefix));
+
+    if (matches.length === 0) throw new Error(ORDER_NOT_FOUND);
+    if (matches.length > 1) throw new Error(ORDER_AMBIGUOUS);
+    return matches[0];
+  }
+
+  throw new Error(ORDER_INVALID_ID);
 }
 
 // ─── Format a single order ────────────────────

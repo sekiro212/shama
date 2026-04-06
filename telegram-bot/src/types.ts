@@ -9,8 +9,31 @@ export interface FragranceNotes {
   base: string[];
 }
 
+// Factory — never share a single object since fragrance_notes is mutated in
+// place by the agent enrichment flow.
+export const emptyNotes = (): FragranceNotes => ({ top: [], middle: [], base: [] });
+
+// Sample sizes — must match the CHECK constraint on perfume_samples.size in
+// supabase_schema.sql. Source of truth for the runtime list, the SampleSize
+// union, the Zod schema, the Gemini tool schema, and the system prompt.
+export const SAMPLE_SIZES = [
+  "3ml",
+  "5ml",
+  "10ml",
+  "15ml",
+  "20ml",
+  "25ml",
+  "30ml",
+] as const;
+export type SampleSize = (typeof SAMPLE_SIZES)[number];
+
+// Gender enum — single source of truth for the runtime list, type, Zod
+// schema, and validator. Mirrors the perfumes.gender CHECK constraint.
+export const GENDERS = ["men", "women", "unisex"] as const;
+export type Gender = (typeof GENDERS)[number];
+
 export interface SampleVariant {
-  size: string;
+  size: SampleSize;
   price: number;
 }
 
@@ -37,7 +60,7 @@ export interface ProductDraft {
   fragrance_notes_ar: FragranceNotes;
   price: number;
   size: string;
-  gender: "men" | "women" | "unisex";
+  gender: Gender;
   stock_quantity: number;
   has_samples: boolean;
   samples: SampleVariant[];
@@ -75,11 +98,11 @@ export const CreateProductSchema = z.object({
   description_ar: z.string().optional(),
   price: z.number().positive(),
   size: z.string().min(1),
-  gender: z.enum(["men", "women", "unisex"]),
+  gender: z.enum(GENDERS),
   stock_quantity: z.number().int().min(0),
   has_samples: z.boolean().optional().default(false),
   samples: z.array(z.object({
-    size: z.string().min(1),
+    size: z.enum(SAMPLE_SIZES),
     price: z.number().positive(),
   })).optional().default([]),
   fragrance_notes: z

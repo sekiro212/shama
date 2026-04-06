@@ -1,4 +1,13 @@
-import type { BotLanguage, PendingConfirmation, ProductDraft } from "../types";
+import type {
+  BotLanguage,
+  PendingConfirmation,
+  ProductDraft,
+  SampleVariant,
+  SampleSize,
+  Gender,
+  FragranceNotes,
+} from "../types";
+import { SAMPLE_SIZES, GENDERS, emptyNotes } from "../types";
 import {
   searchProducts,
   getProductById,
@@ -6,18 +15,195 @@ import {
   formatProduct,
   formatUpdateDiff,
 } from "../services/products";
-import { fetchOrders, formatOrder } from "../services/orders";
+import {
+  fetchOrders,
+  formatOrder,
+  getOrderById,
+  ORDER_NOT_FOUND,
+  ORDER_AMBIGUOUS,
+  ORDER_INVALID_ID,
+} from "../services/orders";
 import { getAnalytics } from "../services/analytics";
 import { enrichProductData } from "../services/gemini";
+import { UUID_RE } from "../utils/ids";
 
 export interface ToolResult {
   text: string;
   confirmation?: PendingConfirmation;
 }
 
-// UUID pattern check
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+interface ValidatedCreateProductArgs {
+  name: string;
+  name_ar: string;
+  brand: string;
+  price: number;
+  size: string;
+  gender: Gender;
+  stock_quantity: number;
+  description: string;
+  description_ar: string;
+  has_samples: boolean;
+  samples: SampleVariant[];
+  fragrance_notes: FragranceNotes;
+}
+
+type ValidationResult =
+  | { ok: true; parsed: ValidatedCreateProductArgs }
+  | { ok: false; error: string };
+
+// Builder for the instructional VALIDATION_ERROR strings the agent loop
+// feeds back to Gemini. Keeps the "Do NOT retry" instruction stable across
+// every error path so Gemini always knows to ask the admin instead of
+// guessing.
+const vErr = (what: string, ask: string): string =>
+  `VALIDATION_ERROR: ${what}. Do NOT retry create_product with guessed values. ${ask}`;
+
+/**
+ * Pure validator for create_product tool arguments. Exported so unit tests
+ * can call it directly with no mocks. On failure, returns an instructional
+ * error string that the agent loop feeds back to Gemini as a tool result —
+ * Gemini then asks the admin for the missing/invalid fields on the next
+ * iteration instead of retrying with guessed values.
+ */
+export function validateCreateProductArgs(
+  args: Record<string, unknown>
+): ValidationResult {
+  const missing: string[] = [];
+
+  const name = typeof args.name === "string" ? args.name.trim() : "";
+  if (!name) missing.push("name");
+
+  const priceRaw = args.price;
+  const priceValid =
+    typeof priceRaw === "number" && Number.isFinite(priceRaw) && priceRaw > 0;
+  if (!priceValid) missing.push("price");
+
+  const size = typeof args.size === "string" ? args.size.trim() : "";
+  if (!size) missing.push("size");
+
+  const genderRaw = typeof args.gender === "string" ? args.gender : "";
+  if (!(GENDERS as readonly string[]).includes(genderRaw)) {
+    missing.push("gender");
+  }
+
+  const stockRaw = args.stock_quantity;
+  const stockValid =
+    typeof stockRaw === "number" &&
+    Number.isFinite(stockRaw) &&
+    Number.isInteger(stockRaw) &&
+    stockRaw >= 0;
+  if (!stockValid) missing.push("stock_quantity");
+
+  if (missing.length > 0) {
+    return {
+      ok: false,
+      error: vErr(
+        `create_product missing or invalid required field(s): ${missing.join(", ")}`,
+        "Reply to the admin with a short text question asking ONLY for these missing fields."
+      ),
+    };
+  }
+
+  // Auto-flip: if the admin provided sample entries but Gemini forgot to set
+  // has_samples=true, treat it as has_samples=true rather than dropping them.
+  let hasSamples = args.has_samples === true;
+  const rawSamples = args.samples;
+  const samplesArr = Array.isArray(rawSamples)
+    ? (rawSamples as Array<Record<string, unknown>>)
+    : null;
+  if (!hasSamples && samplesArr && samplesArr.length > 0) {
+    hasSamples = true;
+  }
+
+  const validatedSamples: SampleVariant[] = [];
+  if (hasSamples) {
+    if (!samplesArr || samplesArr.length === 0) {
+      return {
+        ok: false,
+        error: vErr(
+          "has_samples is true but no samples were provided",
+          'Ask the admin: "What sample sizes and prices do you have? (e.g., 3ml at 5 LYD, 5ml at 8 LYD)"'
+        ),
+      };
+    }
+
+    const seenSizes = new Set<string>();
+    for (let i = 0; i < samplesArr.length; i++) {
+      const s = samplesArr[i];
+      const sSize = typeof s.size === "string" ? s.size : "";
+      const sPrice = s.price;
+      if (!(SAMPLE_SIZES as readonly string[]).includes(sSize)) {
+        return {
+          ok: false,
+          error: vErr(
+            `sample #${i + 1} has invalid size "${sSize}". Allowed sizes: ${SAMPLE_SIZES.join(", ")}`,
+            "Ask the admin to re-provide valid sample sizes."
+          ),
+        };
+      }
+      if (
+        typeof sPrice !== "number" ||
+        !Number.isFinite(sPrice) ||
+        sPrice <= 0
+      ) {
+        return {
+          ok: false,
+          error: vErr(
+            `sample #${i + 1} has invalid price. Each sample price must be a positive number in LYD`,
+            `Ask the admin to re-provide the price for the ${sSize} sample.`
+          ),
+        };
+      }
+      if (seenSizes.has(sSize)) {
+        return {
+          ok: false,
+          error: vErr(
+            `duplicate sample size "${sSize}". Each sample size can only appear once`,
+            "Ask the admin to confirm the sample sizes."
+          ),
+        };
+      }
+      seenSizes.add(sSize);
+      validatedSamples.push({ size: sSize as SampleSize, price: sPrice });
+    }
+  }
+
+  const nameAr = typeof args.name_ar === "string" ? args.name_ar : "";
+  const brand = typeof args.brand === "string" ? args.brand : "";
+  const description =
+    typeof args.description === "string" ? args.description : "";
+  const descriptionAr =
+    typeof args.description_ar === "string" ? args.description_ar : "";
+
+  const rawNotes = args.fragrance_notes as
+    | { top?: string[]; middle?: string[]; base?: string[] }
+    | undefined;
+  const fragranceNotes: FragranceNotes = rawNotes
+    ? {
+        top: rawNotes.top ?? [],
+        middle: rawNotes.middle ?? [],
+        base: rawNotes.base ?? [],
+      }
+    : emptyNotes();
+
+  return {
+    ok: true,
+    parsed: {
+      name,
+      name_ar: nameAr,
+      brand,
+      price: priceRaw as number,
+      size,
+      gender: genderRaw as Gender,
+      stock_quantity: stockRaw as number,
+      description,
+      description_ar: descriptionAr,
+      has_samples: hasSamples,
+      samples: validatedSamples,
+      fragrance_notes: fragranceNotes,
+    },
+  };
+}
 
 export async function executeTool(
   toolName: string,
@@ -81,6 +267,38 @@ export async function executeTool(
     return { text: formatted };
   }
 
+  // ── get_order_by_id ──────────────────────────────────────────────────────
+  if (toolName === "get_order_by_id") {
+    const idOrShortId =
+      typeof args.id_or_short_id === "string" ? args.id_or_short_id.trim() : "";
+    if (!idOrShortId) {
+      return {
+        text: "VALIDATION_ERROR: get_order_by_id requires id_or_short_id (non-empty string). Ask the admin which order they want to look up.",
+      };
+    }
+
+    try {
+      const order = await getOrderById(idOrShortId);
+      return { text: formatOrder(order, lang) };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (message === ORDER_NOT_FOUND) {
+        return { text: `Order not found for: ${idOrShortId}` };
+      }
+      if (message === ORDER_AMBIGUOUS) {
+        return {
+          text: `Multiple orders match "${idOrShortId}". Please provide the full UUID.`,
+        };
+      }
+      if (message === ORDER_INVALID_ID) {
+        return {
+          text: `"${idOrShortId}" doesn't look like a valid order ID. Provide a full UUID or the 8-character short ID shown on the order.`,
+        };
+      }
+      return { text: `Failed to look up order: ${message}` };
+    }
+  }
+
   // ── get_analytics ────────────────────────────────────────────────────────
   if (toolName === "get_analytics") {
     const data = await getAnalytics();
@@ -110,30 +328,23 @@ export async function executeTool(
 
   // ── create_product ───────────────────────────────────────────────────────
   if (toolName === "create_product") {
-    if (typeof args.name !== "string" || typeof args.price !== "number") {
-      return { text: "Error: create_product requires name (string) and price (number)" };
+    const validation = validateCreateProductArgs(args);
+    if (!validation.ok) {
+      return { text: validation.error };
     }
-    const rawNotes = args.fragrance_notes as
-      | { top?: string[]; middle?: string[]; base?: string[] }
-      | undefined;
 
-    let name = args.name as string;
-    const brand = (args.brand as string | undefined) ?? "";
-    let description = (args.description as string | undefined) ?? "";
-    let fragranceNotes = rawNotes
-      ? {
-          top: rawNotes.top ?? [],
-          middle: rawNotes.middle ?? [],
-          base: rawNotes.base ?? [],
-        }
-      : { top: [], middle: [], base: [] };
-    let nameAr = (args.name_ar as string | undefined) ?? "";
-    let descriptionAr = (args.description_ar as string | undefined) ?? "";
-    let fragranceNotesAr = { top: [], middle: [], base: [] } as { top: string[]; middle: string[]; base: string[] };
+    const v = validation.parsed;
 
-    // Auto-enrich missing description / fragrance notes from Gemini knowledge
+    // Enrichment runs only after validation passes so a rejected draft never
+    // burns a Gemini call.
+    let description = v.description;
+    let descriptionAr = v.description_ar;
+    let nameAr = v.name_ar;
+    let fragranceNotes = v.fragrance_notes;
+    let fragranceNotesAr: FragranceNotes = emptyNotes();
+
     if (!description || !fragranceNotes.top.length) {
-      const enriched = await enrichProductData(name, brand);
+      const enriched = await enrichProductData(v.name, v.brand);
       if (!description) {
         description = enriched.description;
         descriptionAr = descriptionAr || enriched.description_ar;
@@ -145,24 +356,18 @@ export async function executeTool(
       if (!nameAr) nameAr = enriched.name_ar;
     }
 
-    const hasSamples = (args.has_samples as boolean | undefined) ?? false;
-    const price = args.price as number;
-    const size = args.size as string;
-    const gender = args.gender as "men" | "women" | "unisex";
-    const stockQty = args.stock_quantity as number;
-
     const draft: ProductDraft = {
-      name,
+      name: v.name,
       name_ar: nameAr,
-      brand,
-      price,
-      size,
-      gender,
-      stock_quantity: stockQty,
+      brand: v.brand,
+      price: v.price,
+      size: v.size,
+      gender: v.gender,
+      stock_quantity: v.stock_quantity,
       description,
       description_ar: descriptionAr,
-      has_samples: hasSamples,
-      samples: [],
+      has_samples: v.has_samples,
+      samples: v.samples,
       fragrance_notes: fragranceNotes,
       fragrance_notes_ar: fragranceNotesAr,
     };
@@ -170,10 +375,18 @@ export async function executeTool(
     const notesLine = fragranceNotes.top.length
       ? `\n🌿 Top: ${fragranceNotes.top.join(", ")}\n🌸 Heart: ${fragranceNotes.middle.join(", ")}\n🌰 Base: ${fragranceNotes.base.join(", ")}`
       : "";
-    const descLine = description ? `\n📝 "${description.slice(0, 100)}${description.length > 100 ? "..." : ""}"` : "";
-    const arabicName = nameAr && nameAr !== name ? ` (${nameAr})` : "";
+    const descLine = description
+      ? `\n📝 "${description.slice(0, 100)}${description.length > 100 ? "..." : ""}"`
+      : "";
+    const arabicName = nameAr && nameAr !== v.name ? ` (${nameAr})` : "";
+    const samplesLine =
+      v.has_samples && v.samples.length > 0
+        ? `\n🧪 Samples:\n${v.samples
+            .map((s) => `  • ${s.size} — ${s.price} LYD`)
+            .join("\n")}`
+        : "";
 
-    const preview = `✨ New product preview:\nName: ${name}${arabicName}\nBrand: ${brand || "—"}\nPrice: ${price} LYD | Size: ${size} | Gender: ${gender}\nStock: ${stockQty} | Samples: ${hasSamples ? "✅" : "❌"}${notesLine}${descLine}`;
+    const preview = `✨ New product preview:\nName: ${v.name}${arabicName}\nBrand: ${v.brand || "—"}\nPrice: ${v.price} LYD | Size: ${v.size} | Gender: ${v.gender}\nStock: ${v.stock_quantity} | Samples: ${v.has_samples ? "✅" : "❌"}${samplesLine}${notesLine}${descLine}`;
 
     const confirmation: PendingConfirmation = {
       type: "create",
