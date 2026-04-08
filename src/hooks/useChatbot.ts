@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { chatWithAIStream } from "@/services/aiService";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { trackEvent } from "@/services/trackingService";
 
 export interface ChatMessage {
   id: string;
@@ -38,6 +39,7 @@ export function useChatbot() {
 
     setMessages((prev) => [...prev, userMessage]);
     setIsLoading(true);
+    trackEvent("chatbot_query", { query: userText });
 
     const assistantId = (Date.now() + 1).toString();
     const assistantMessage: ChatMessage = {

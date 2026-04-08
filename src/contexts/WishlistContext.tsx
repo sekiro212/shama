@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import { trackEvent } from "@/services/trackingService";
 
 export interface WishlistItem {
   id: string;
@@ -35,6 +36,8 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
   }, [items]);
 
   const addToWishlist = (item: WishlistItem) => {
+    if (items.some((i) => i.id === item.id)) return;
+    trackEvent("wishlist_add", { product_id: item.id, product_name: item.name, price: item.price });
     setItems((current) => {
       if (current.some((i) => i.id === item.id)) return current;
       return [...current, item];
@@ -42,6 +45,7 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
   };
 
   const removeFromWishlist = (id: string) => {
+    trackEvent("wishlist_remove", { product_id: id });
     setItems((current) => current.filter((item) => item.id !== id));
   };
 

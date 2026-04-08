@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { Sparkles, ShoppingBag, Eye, Download, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/contexts/CartContext";
-import { fetchProducts, Product } from "@/services/productsService";
+import { fetchProducts, Product, PerfumeSample } from "@/services/productsService";
 import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { ScentDNACard } from "@/services/aiService";
@@ -41,7 +41,7 @@ export default function QuizResults({
   recommendations,
   isLoading,
   dnaCard,
-  quizAnswers: _quizAnswers,
+  quizAnswers,
 }: QuizResultsProps) {
   const { t, isRTL } = useLanguage();
   const { addToCart } = useCart();
@@ -95,6 +95,24 @@ export default function QuizResults({
     });
 
     toast.success(`${product.name} ${t("product.addedToCart")}`, {
+      className: "glass-card border-[#5B8DD9]",
+    });
+  };
+
+  const handleAddSampleToCart = (product: Product, sample: PerfumeSample) => {
+    if (!sample.is_active || sample.stock_quantity === 0) {
+      toast.error(t("product.currentlySoldOut"));
+      return;
+    }
+    addToCart({
+      id: sample.id,
+      name: `${product.name} Sample (${sample.size})`,
+      price: sample.price,
+      image: product.images?.[0]?.image_url || "https://source.unsplash.com/100x100/?perfume,bottle",
+      size: sample.size,
+      stock_quantity: sample.stock_quantity,
+    });
+    toast.success(`${product.name} ${sample.size} ${t("product.addedToCart")}`, {
       className: "glass-card border-[#5B8DD9]",
     });
   };
@@ -208,15 +226,13 @@ export default function QuizResults({
     );
   }
 
+  const showSamples = !quizAnswers?.format || quizAnswers.format === "sample" || quizAnswers.format === "both";
+  const showBottle  = !quizAnswers?.format || quizAnswers.format === "full_bottle" || quizAnswers.format === "both";
+
   return (
     <div className="w-full max-w-4xl mx-auto">
       {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="text-center mb-10"
-      >
+      <div className="text-center mb-10">
         <div className="flex items-center justify-center gap-2 mb-3">
           <Sparkles className="w-6 h-6 text-[#5B8DD9]" />
           <h2 className="text-2xl md:text-3xl font-bold gradient-text">
@@ -227,7 +243,7 @@ export default function QuizResults({
         <p className="text-[#6B7B8D] dark:text-white/50 text-sm">
           {t("quiz.results.description")}
         </p>
-      </motion.div>
+      </div>
 
       {/* Results Cards */}
       <motion.div
@@ -280,8 +296,11 @@ export default function QuizResults({
                         <h3 className="text-xl md:text-2xl font-bold text-[#323D50] dark:text-white group-hover:gradient-text transition-all duration-300">
                           {rec.name}
                         </h3>
-                        {product && (
+                        {product && showBottle && (
                           <div className="flex items-center gap-2 mt-1">
+                            <span className="text-xs text-[#6B7B8D] dark:text-white/40 uppercase tracking-wide me-1">
+                              {t("quiz.results.fullBottlePrice")}:
+                            </span>
                             <span className="text-lg font-bold gradient-text">
                               {product.price} LYD
                             </span>
@@ -342,6 +361,38 @@ export default function QuizResults({
                     <p className="text-[#6B7B8D] dark:text-white/60 text-sm leading-relaxed">
                       {rec.reason}
                     </p>
+
+                    {/* Sample chips */}
+                    {(() => {
+                      const activeSamples = product?.samples?.filter(s => s.is_active) ?? [];
+                      return showSamples && activeSamples.length > 0 && (
+                        <div className="space-y-1.5">
+                          <span className="text-xs text-[#6B7B8D] dark:text-white/40 uppercase tracking-wide">
+                            {t("quiz.results.sampleOptions")}
+                          </span>
+                          <div className="flex flex-wrap gap-2">
+                            {activeSamples.map(sample => {
+                              const outOfStock = sample.stock_quantity === 0;
+                              return (
+                                <button
+                                  key={sample.id}
+                                  onClick={() => !outOfStock && handleAddSampleToCart(product, sample)}
+                                  disabled={outOfStock}
+                                  title={outOfStock ? t("quiz.results.soldOut") : t("quiz.results.addSampleToCart")}
+                                  className={`text-xs px-3 py-1.5 rounded-full border transition-all duration-200 ${
+                                    outOfStock
+                                      ? "opacity-40 cursor-not-allowed border-[#323D50]/10 dark:border-white/10 text-[#6B7B8D]"
+                                      : "border-[#5B8DD9]/40 text-[#5B8DD9] hover:bg-[#5B8DD9]/10 hover:border-[#5B8DD9] cursor-pointer"
+                                  }`}
+                                >
+                                  {sample.size} · {sample.price} LYD
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {/* Action Buttons */}
@@ -358,18 +409,20 @@ export default function QuizResults({
                           </Link>
                         </Button>
 
-                        <Button
-                          onClick={() => handleAddToCart(product)}
-                          disabled={!!isSoldOut}
-                          className={`rounded-xl px-6 py-3 font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-[#5B8DD9]/25 ${
-                            isSoldOut
-                              ? "bg-gray-500/50 text-[#6B7B8D] dark:text-white/60 cursor-not-allowed"
-                              : "bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] hover:from-[#3E6BB5] hover:to-[#5B8DD9] text-white"
-                          }`}
-                        >
-                          <ShoppingBag className="w-4 h-4 me-2" />
-                          {isSoldOut ? t("quiz.results.soldOut") : t("quiz.results.addToCart")}
-                        </Button>
+                        {showBottle && (
+                          <Button
+                            onClick={() => handleAddToCart(product)}
+                            disabled={!!isSoldOut}
+                            className={`rounded-xl px-6 py-3 font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-[#5B8DD9]/25 ${
+                              isSoldOut
+                                ? "bg-gray-500/50 text-[#6B7B8D] dark:text-white/60 cursor-not-allowed"
+                                : "bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] hover:from-[#3E6BB5] hover:to-[#5B8DD9] text-white"
+                            }`}
+                          >
+                            <ShoppingBag className="w-4 h-4 me-2" />
+                            {isSoldOut ? t("quiz.results.soldOut") : t("quiz.results.addToCart")}
+                          </Button>
+                        )}
                       </>
                     )}
 

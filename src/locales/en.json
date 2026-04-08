@@ -595,13 +595,12 @@
       "office": "Office",
       "specialEvent": "Special Event"
     },
-    "season": {
-      "question": "Which season?",
-      "subtitle": "Season affects how fragrances perform",
-      "spring": "Spring",
-      "summer": "Summer",
-      "autumn": "Autumn",
-      "winter": "Winter"
+    "format": {
+      "question": "How would you like to experience the fragrance?",
+      "subtitle": "This helps us tailor pricing to what works for you",
+      "sample": "Sample",
+      "fullBottle": "Full Bottle",
+      "both": "Open to Both"
     },
     "scentFamily": {
       "question": "Preferred scent family?",
@@ -628,10 +627,18 @@
     "budget": {
       "question": "What's your budget?",
       "subtitle": "Price range in Libyan Dinar (LYD)",
-      "under50": "Under 50 LYD",
-      "range50_150": "50-150 LYD",
-      "range150_200": "150-200 LYD",
-      "over200": "200+ LYD"
+      "sample_under50": "Under 50 LYD",
+      "sample_50_150": "50-150 LYD",
+      "sample_150_350": "150-350 LYD",
+      "sample_350plus": "350+ LYD",
+      "bottle_370_700": "370-700 LYD",
+      "bottle_700_1100": "700-1100 LYD",
+      "bottle_1100_2000": "1100-2000 LYD",
+      "bottle_2000plus": "2000+ LYD",
+      "both_under200": "Under 200 LYD",
+      "both_200_700": "200-700 LYD",
+      "both_700_1500": "700-1500 LYD",
+      "both_1500plus": "1500+ LYD"
     },
     "results": {
       "analyzing": "AI is analyzing your preferences...",
@@ -644,7 +651,10 @@
       "addToCart": "Add to Cart",
       "soldOut": "Sold Out",
       "productNotFound": "Product not found in current catalog",
-      "match": "Match"
+      "match": "Match",
+      "fullBottlePrice": "Full Bottle",
+      "sampleOptions": "Samples",
+      "addSampleToCart": "Add Sample"
     },
     "dna": {
       "title": "SHAMA FRAGRANCE IDENTITY",
@@ -939,5 +949,25 @@
     "submitError": "Failed to submit. Please try again.",
     "validationError": "Please select a fragrance and write at least 5 characters.",
     "empty": "Be the first to share a scent memory."
+  },
+  "settings": {
+    "title": "Email Preferences",
+    "subtitle": "Control what emails you receive from Shama",
+    "masterToggle": "Email Notifications",
+    "masterToggleDesc": "Receive personalized emails from Shama",
+    "newProducts": "New Product Alerts",
+    "newProductsDesc": "Get notified when a new fragrance matches your taste",
+    "weeklyDigest": "Weekly Digest",
+    "weeklyDigestDesc": "Weekly picks curated for your scent profile",
+    "monthlyDigest": "Monthly Digest",
+    "monthlyDigestDesc": "Monthly fragrance recommendations just for you",
+    "reEngagement": "We Miss You Emails",
+    "reEngagementDesc": "Receive a special offer if you haven't visited in a while",
+    "language": "Email Language",
+    "languageDesc": "Choose the language for your emails",
+    "saved": "Preferences saved",
+    "error": "Failed to save preferences",
+    "loginRequired": "Please log in to manage your email preferences",
+    "loading": "Loading preferences..."
   }
 }

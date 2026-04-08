@@ -36,6 +36,7 @@ import {
 } from "@/services/reviewsService";
 import { evaluateReview } from "@/services/aiService";
 import FragranceTimeline from "@/components/FragranceTimeline";
+import { trackEvent } from "@/services/trackingService";
 
 export default function ProductPage() {
   const { id } = useParams<{ id: string }>();
@@ -115,6 +116,12 @@ export default function ProductPage() {
             name: productData.name,
             price: productData.price,
             image: productData.images?.[0]?.image_url || "",
+          });
+          trackEvent("product_view", {
+            product_id: productData.id,
+            product_name: productData.name,
+            gender: productData.gender,
+            price: productData.price,
           });
         }
       } catch (error) {

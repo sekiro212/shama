@@ -5,6 +5,7 @@ import {
   ReactNode,
   useEffect,
 } from "react";
+import { trackEvent } from "@/services/trackingService";
 
 export interface CartItem {
   id: string;
@@ -51,6 +52,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [items]);
 
   const addToCart = (item: Omit<CartItem, "quantity">) => {
+    if (item.stock_quantity !== undefined && item.stock_quantity < 1) return;
+    trackEvent("cart_add", { product_id: item.id, product_name: item.name, price: item.price, size: item.size });
     setItems((current) => {
       const existingItem = current.find(
         (i) => i.id === item.id && i.size === item.size
@@ -87,6 +90,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const removeFromCart = (id: string, size: string) => {
+    trackEvent("cart_remove", { product_id: id, size });
     setItems((current) =>
       current.filter((item) => !(item.id === id && item.size === size))
     );

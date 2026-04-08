@@ -28,12 +28,18 @@ export async function buildProductContext(): Promise<string> {
   try {
     const { products } = await fetchProducts(1, 100);
     const context = products
-      .map(
-        (p: Product) =>
-          `- ${p.name} | ${p.price} LYD | Gender: ${p.gender || "unisex"} | Size: ${p.size} | Type: ${p.type} | Rating: ${p.rating}/5 | ${
-            p.stock_quantity === 0 ? "SOLD OUT" : `In Stock (${p.stock_quantity})`
-          } | Top Notes: ${p.fragranceNotes?.top?.join(", ") || "N/A"} | Middle Notes: ${p.fragranceNotes?.middle?.join(", ") || "N/A"} | Base Notes: ${p.fragranceNotes?.base?.join(", ") || "N/A"} | Description: ${p.description?.slice(0, 120) || "N/A"}`
-      )
+      .map((p: Product) => {
+        const sampleLine =
+          p.samples && p.samples.length > 0
+            ? ` | Samples: ${p.samples
+                .filter((s) => s.is_active)
+                .map((s) => `${s.size}=${s.price}LYD`)
+                .join(", ")}`
+            : " | Samples: none";
+        return `- ${p.name} | Full Bottle: ${p.price} LYD | Gender: ${p.gender || "unisex"} | Size: ${p.size} | Type: ${p.type} | Rating: ${p.rating}/5 | ${
+          p.stock_quantity === 0 ? "SOLD OUT" : `In Stock (${p.stock_quantity})`
+        }${sampleLine} | Top Notes: ${p.fragranceNotes?.top?.join(", ") || "N/A"} | Middle Notes: ${p.fragranceNotes?.middle?.join(", ") || "N/A"} | Base Notes: ${p.fragranceNotes?.base?.join(", ") || "N/A"} | Description: ${p.description?.slice(0, 120) || "N/A"}`;
+      })
       .join("\n");
 
     cachedProductContext = context;
@@ -341,18 +347,35 @@ export async function getQuizRecommendations(
 
   try {
     const productContext = await buildProductContext();
+    const formatLabel =
+      answers.format === "sample"
+        ? "samples only"
+        : answers.format === "full_bottle"
+        ? "full bottle only"
+        : "open to both samples and full bottles";
+
+    const budgetContext =
+      answers.format === "sample"
+        ? `Budget for samples: ${answers.budget.replace(/_/g, " ")} LYD`
+        : answers.format === "full_bottle"
+        ? `Budget for full bottle: ${answers.budget.replace(/_/g, " ")} LYD`
+        : `Flexible budget: ${answers.budget.replace(/_/g, " ")} LYD`;
+
     const prompt = `Given this perfume catalog:\n${productContext}\n\nA customer took a fragrance quiz with these answers:
 - Occasion: ${answers.occasion}
-- Season: ${answers.season}
 - Scent Family: ${answers.scentFamily}
 - Intensity: ${answers.intensity}
 - Gender Preference: ${answers.gender}
-- Budget: ${answers.budget}
+- Purchase Format: ${formatLabel}
+- ${budgetContext}
+
+The catalog shows Full Bottle prices AND sample prices for each product. Use sample prices when evaluating budget fit for customers who want samples.
+In the "reason" field, mention whether the price fits their budget (reference sample or full bottle price as appropriate).
 
 Return a JSON array of the top 3 best-matching products. For each product include:
 - "name": exact product name from the catalog
 - "matchScore": percentage match (60-98)
-- "reason": 1-2 sentence explanation of why this perfume matches their preferences
+- "reason": 1-2 sentence explanation of why this perfume matches their preferences, mentioning price fit
 
 Return ONLY valid JSON array, nothing else. Example:
 [{"name":"Product Name","matchScore":92,"reason":"Perfect match because..."}]`;

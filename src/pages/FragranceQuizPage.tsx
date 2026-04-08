@@ -6,6 +6,7 @@ import QuizStep from "@/components/quiz/QuizStep";
 import QuizResults from "@/components/quiz/QuizResults";
 import { getQuizRecommendations, getScentDNACard, ScentDNACard } from "@/services/aiService";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { trackEvent } from "@/services/trackingService";
 
 // Animation variants for slide transitions
 const slideVariants = {
@@ -24,75 +25,7 @@ const slideVariants = {
 };
 
 export default function FragranceQuizPage() {
-  const { t, isRTL } = useLanguage();
-
-  // Quiz configuration (inside component so t() is available)
-  const quizSteps = [
-    {
-      id: "occasion",
-      question: t("quiz.occasion.question"),
-      subtitle: t("quiz.occasion.subtitle"),
-      options: [
-        { label: t("quiz.occasion.dailyWear"), icon: "\u2600\uFE0F", value: "daily" },
-        { label: t("quiz.occasion.dateNight"), icon: "\uD83C\uDF19", value: "date_night" },
-        { label: t("quiz.occasion.office"), icon: "\uD83D\uDCBC", value: "office" },
-        { label: t("quiz.occasion.specialEvent"), icon: "\uD83C\uDF89", value: "special_event" },
-      ],
-    },
-    {
-      id: "season",
-      question: t("quiz.season.question"),
-      subtitle: t("quiz.season.subtitle"),
-      options: [
-        { label: t("quiz.season.spring"), icon: "\uD83C\uDF38", value: "spring" },
-        { label: t("quiz.season.summer"), icon: "\uD83C\uDF1E", value: "summer" },
-        { label: t("quiz.season.autumn"), icon: "\uD83C\uDF42", value: "autumn" },
-        { label: t("quiz.season.winter"), icon: "\u2744\uFE0F", value: "winter" },
-      ],
-    },
-    {
-      id: "scentFamily",
-      question: t("quiz.scentFamily.question"),
-      subtitle: t("quiz.scentFamily.subtitle"),
-      options: [
-        { label: t("quiz.scentFamily.freshClean"), icon: "\uD83D\uDCA7", value: "fresh" },
-        { label: t("quiz.scentFamily.floral"), icon: "\uD83C\uDF39", value: "floral" },
-        { label: t("quiz.scentFamily.woody"), icon: "\uD83C\uDF32", value: "woody" },
-        { label: t("quiz.scentFamily.orientalSweet"), icon: "\uD83C\uDF6F", value: "oriental" },
-      ],
-    },
-    {
-      id: "intensity",
-      question: t("quiz.intensity.question"),
-      subtitle: t("quiz.intensity.subtitle"),
-      options: [
-        { label: t("quiz.intensity.lightSubtle"), icon: "\uD83C\uDF2C\uFE0F", value: "light" },
-        { label: t("quiz.intensity.moderate"), icon: "\uD83D\uDCA8", value: "moderate" },
-        { label: t("quiz.intensity.boldPowerful"), icon: "\uD83D\uDD25", value: "bold" },
-      ],
-    },
-    {
-      id: "gender",
-      question: t("quiz.gender.question"),
-      subtitle: t("quiz.gender.subtitle"),
-      options: [
-        { label: t("quiz.gender.forMen"), icon: "\uD83D\uDC68", value: "men" },
-        { label: t("quiz.gender.forWomen"), icon: "\uD83D\uDC69", value: "women" },
-        { label: t("quiz.gender.unisex"), icon: "\u2728", value: "unisex" },
-      ],
-    },
-    {
-      id: "budget",
-      question: t("quiz.budget.question"),
-      subtitle: t("quiz.budget.subtitle"),
-      options: [
-        { label: t("quiz.budget.under50"), icon: "\uD83D\uDCB0", value: "under_50" },
-        { label: t("quiz.budget.range50_150"), icon: "\uD83D\uDC8E", value: "50_150" },
-        { label: t("quiz.budget.range150_200"), icon: "\uD83D\uDC51", value: "150_200" },
-        { label: t("quiz.budget.over200"), icon: "\uD83C\uDFC6", value: "200_plus" },
-      ],
-    },
-  ];
+  const { t } = useLanguage();
 
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -103,6 +36,90 @@ export default function FragranceQuizPage() {
     { name: string; matchScore: number; reason: string }[]
   >([]);
   const [dnaCard, setDnaCard] = useState<ScentDNACard | null>(null);
+
+  // Quiz configuration (inside component so t() and answers are available)
+  const budgetOptions = (() => {
+    const fmt = answers.format;
+    if (fmt === "sample") return [
+      { label: t("quiz.budget.sample_under50"),   icon: "💧", value: "sample_under_50" },
+      { label: t("quiz.budget.sample_50_150"),    icon: "🧪", value: "sample_50_150" },
+      { label: t("quiz.budget.sample_150_350"),   icon: "💎", value: "sample_150_350" },
+      { label: t("quiz.budget.sample_350plus"),   icon: "👑", value: "sample_350plus" },
+    ];
+    if (fmt === "full_bottle") return [
+      { label: t("quiz.budget.bottle_370_700"),   icon: "💰", value: "bottle_370_700" },
+      { label: t("quiz.budget.bottle_700_1100"),  icon: "💎", value: "bottle_700_1100" },
+      { label: t("quiz.budget.bottle_1100_2000"), icon: "🏆", value: "bottle_1100_2000" },
+      { label: t("quiz.budget.bottle_2000plus"),  icon: "👑", value: "bottle_2000plus" },
+    ];
+    return [
+      { label: t("quiz.budget.both_under200"),    icon: "💧", value: "both_under_200" },
+      { label: t("quiz.budget.both_200_700"),     icon: "💰", value: "both_200_700" },
+      { label: t("quiz.budget.both_700_1500"),    icon: "💎", value: "both_700_1500" },
+      { label: t("quiz.budget.both_1500plus"),    icon: "👑", value: "both_1500plus" },
+    ];
+  })();
+
+  const quizSteps = [
+    {
+      id: "occasion",
+      question: t("quiz.occasion.question"),
+      subtitle: t("quiz.occasion.subtitle"),
+      options: [
+        { label: t("quiz.occasion.dailyWear"),    icon: "☀️",  value: "daily" },
+        { label: t("quiz.occasion.dateNight"),    icon: "🌙",  value: "date_night" },
+        { label: t("quiz.occasion.office"),       icon: "💼",  value: "office" },
+        { label: t("quiz.occasion.specialEvent"), icon: "🎉",  value: "special_event" },
+      ],
+    },
+    {
+      id: "format",
+      question: t("quiz.format.question"),
+      subtitle: t("quiz.format.subtitle"),
+      options: [
+        { label: t("quiz.format.sample"),     icon: "🧪", value: "sample" },
+        { label: t("quiz.format.fullBottle"), icon: "🍾", value: "full_bottle" },
+        { label: t("quiz.format.both"),       icon: "✨", value: "both" },
+      ],
+    },
+    {
+      id: "scentFamily",
+      question: t("quiz.scentFamily.question"),
+      subtitle: t("quiz.scentFamily.subtitle"),
+      options: [
+        { label: t("quiz.scentFamily.freshClean"),    icon: "💧", value: "fresh" },
+        { label: t("quiz.scentFamily.floral"),        icon: "🌹", value: "floral" },
+        { label: t("quiz.scentFamily.woody"),         icon: "🌲", value: "woody" },
+        { label: t("quiz.scentFamily.orientalSweet"), icon: "🍯", value: "oriental" },
+      ],
+    },
+    {
+      id: "intensity",
+      question: t("quiz.intensity.question"),
+      subtitle: t("quiz.intensity.subtitle"),
+      options: [
+        { label: t("quiz.intensity.lightSubtle"),  icon: "🌬️", value: "light" },
+        { label: t("quiz.intensity.moderate"),     icon: "💨",  value: "moderate" },
+        { label: t("quiz.intensity.boldPowerful"), icon: "🔥",  value: "bold" },
+      ],
+    },
+    {
+      id: "gender",
+      question: t("quiz.gender.question"),
+      subtitle: t("quiz.gender.subtitle"),
+      options: [
+        { label: t("quiz.gender.forMen"),   icon: "👨", value: "men" },
+        { label: t("quiz.gender.forWomen"), icon: "👩", value: "women" },
+        { label: t("quiz.gender.unisex"),   icon: "✨", value: "unisex" },
+      ],
+    },
+    {
+      id: "budget",
+      question: t("quiz.budget.question"),
+      subtitle: t("quiz.budget.subtitle"),
+      options: budgetOptions,
+    },
+  ];
 
   const totalSteps = quizSteps.length;
   const progress = ((currentStep + 1) / totalSteps) * 100;
@@ -122,12 +139,30 @@ export default function FragranceQuizPage() {
         setShowResults(true);
         setIsLoading(true);
         try {
+          const month = new Date().getMonth();
+          const inferredSeason =
+            month >= 2 && month <= 4 ? "spring" :
+            month >= 5 && month <= 7 ? "summer" :
+            month >= 8 && month <= 10 ? "autumn" : "winter";
+
           const [results, dna] = await Promise.all([
             getQuizRecommendations(newAnswers),
-            getScentDNACard(newAnswers),
+            getScentDNACard({ ...newAnswers, season: inferredSeason }),
           ]);
           setRecommendations(results);
           setDnaCard(dna);
+          trackEvent("quiz_completion", {
+            answers: newAnswers,
+            recommendation_names: results.map((r) => r.name),
+            recommendation_scores: results.map((r) => r.matchScore),
+          });
+          if (dna) {
+            trackEvent("scent_dna_generated", {
+              archetype: dna.archetype,
+              families: dna.families,
+              signatureNotes: dna.signatureNotes,
+            });
+          }
         } catch (error) {
           console.error("Error getting recommendations:", error);
           setRecommendations([]);
@@ -170,24 +205,26 @@ export default function FragranceQuizPage() {
       </div>
 
       <div className="max-w-4xl mx-auto relative z-10">
-        {/* Page Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="text-center mb-10"
-        >
-          <div className="flex items-center justify-center gap-2 mb-3">
-            <Sparkles className="w-6 h-6 text-[#5B8DD9]" />
-            <h1 className="text-3xl md:text-4xl font-bold gradient-text">
-              {t("quiz.title")}
-            </h1>
-            <Sparkles className="w-6 h-6 text-[#5B8DD9]" />
-          </div>
-          <p className="text-[#6B7B8D] dark:text-white/50 text-sm md:text-base max-w-md mx-auto">
-            {t("quiz.description")}
-          </p>
-        </motion.div>
+        {/* Page Header — hidden when showing results (QuizResults has its own header) */}
+        {!showResults && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="text-center mb-10"
+          >
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <Sparkles className="w-6 h-6 text-[#5B8DD9]" />
+              <h1 className="text-3xl md:text-4xl font-bold gradient-text">
+                {t("quiz.title")}
+              </h1>
+              <Sparkles className="w-6 h-6 text-[#5B8DD9]" />
+            </div>
+            <p className="text-[#6B7B8D] dark:text-white/50 text-sm md:text-base max-w-md mx-auto">
+              {t("quiz.description")}
+            </p>
+          </motion.div>
+        )}
 
         {/* Quiz Container */}
         {!showResults && (

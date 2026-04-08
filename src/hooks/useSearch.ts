@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { searchProducts, Product } from "@/services/productsService";
 import { smartSearch, SmartSearchResult } from "@/services/aiService";
+import { trackEvent } from "@/services/trackingService";
 
 const TEXT_DEBOUNCE_MS = 300;
 const AI_DEBOUNCE_MS = 900;
@@ -29,6 +30,7 @@ export function useSearch() {
       const textResults = await searchProducts(searchQuery);
       setResults(textResults);
       latestTextResults.current = textResults;
+      trackEvent("search_query", { query: searchQuery, result_count: textResults.length });
     } catch {
       // ignore
     } finally {
@@ -50,6 +52,11 @@ export function useSearch() {
         (ai) => !latestTextResults.current.some((t) => t.id === ai.product.id)
       );
       setAiResults(uniqueAiResults);
+      trackEvent("ai_search_query", {
+        query: searchQuery,
+        result_count: smartResults.length,
+        top_match_score: smartResults[0]?.matchScore ?? null,
+      });
     } catch {
       // AI search is optional — silent fail
     } finally {

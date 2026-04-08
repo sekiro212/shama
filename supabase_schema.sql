@@ -703,3 +703,163 @@ CREATE POLICY "Public update promo codes" ON promo_codes FOR UPDATE USING (true)
 CREATE POLICY "Public delete promo codes" ON promo_codes FOR DELETE USING (true);
 GRANT ALL ON promo_codes TO anon;
 GRANT ALL ON promo_codes TO authenticated;
+
+-- ============================================================
+-- Smart Fragrance Personalization & Email Marketing System
+-- ============================================================
+
+-- User Events (raw behavioral data)
+CREATE TABLE user_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  event_type VARCHAR(50) NOT NULL CHECK (event_type IN (
+    'quiz_completion', 'search_query', 'ai_search_query',
+    'product_view', 'wishlist_add', 'wishlist_remove',
+    'cart_add', 'cart_remove', 'chatbot_query',
+    'scent_dna_generated', 'purchase'
+  )),
+  event_data JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_user_events_user_created ON user_events(user_id, created_at DESC);
+CREATE INDEX idx_user_events_type ON user_events(event_type);
+
+ALTER TABLE user_events ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users insert own events"
+  ON user_events FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- User Taste Profiles (AI-computed)
+CREATE TABLE user_taste_profiles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
+  scent_families JSONB NOT NULL DEFAULT '[]'::jsonb,
+  preferred_notes JSONB NOT NULL DEFAULT '[]'::jsonb,
+  price_range JSONB NOT NULL DEFAULT '{"min":0,"max":9999,"confidence":0}'::jsonb,
+  gender_pref JSONB NOT NULL DEFAULT '{"value":"unisex","confidence":0}'::jsonb,
+  occasion_pref JSONB NOT NULL DEFAULT '[]'::jsonb,
+  intensity_pref JSONB NOT NULL DEFAULT '{"value":"moderate","confidence":0}'::jsonb,
+  total_events_analyzed INTEGER NOT NULL DEFAULT 0,
+  last_event_at TIMESTAMPTZ,
+  profile_version INTEGER NOT NULL DEFAULT 1,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_taste_profiles_user_id ON user_taste_profiles(user_id);
+
+CREATE TRIGGER update_taste_profiles_updated_at
+  BEFORE UPDATE ON user_taste_profiles
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+ALTER TABLE user_taste_profiles ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users read own profile"
+  ON user_taste_profiles FOR SELECT USING (auth.uid() = user_id);
+
+-- Email Preferences
+CREATE TABLE email_preferences (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
+  email_enabled BOOLEAN NOT NULL DEFAULT true,
+  new_product_alerts BOOLEAN NOT NULL DEFAULT true,
+  weekly_digest BOOLEAN NOT NULL DEFAULT false,
+  monthly_digest BOOLEAN NOT NULL DEFAULT true,
+  re_engagement BOOLEAN NOT NULL DEFAULT true,
+  language_pref VARCHAR(5) NOT NULL DEFAULT 'en' CHECK (language_pref IN ('en', 'ar')),
+  unsubscribe_token UUID NOT NULL DEFAULT gen_random_uuid(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_email_prefs_unsubscribe_token ON email_preferences(unsubscribe_token);
+
+CREATE TRIGGER update_email_prefs_updated_at
+  BEFORE UPDATE ON email_preferences
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+ALTER TABLE email_preferences ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users manage own email prefs"
+  ON email_preferences FOR ALL USING (auth.uid() = user_id);
+
+-- Auto-create email_preferences on signup
+CREATE OR REPLACE FUNCTION create_default_email_preferences()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO email_preferences (user_id, email_enabled)
+  VALUES (NEW.id, true)
+  ON CONFLICT (user_id) DO NOTHING;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION create_default_email_preferences();
+
+-- Email Queue
+CREATE TABLE email_queue (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  email_type VARCHAR(30) NOT NULL CHECK (email_type IN (
+    'new_product_match', 'weekly_digest', 'monthly_digest', 're_engagement'
+  )),
+  to_email VARCHAR(255) NOT NULL,
+  subject_en TEXT NOT NULL,
+  subject_ar TEXT NOT NULL,
+  body_html_en TEXT NOT NULL,
+  body_html_ar TEXT NOT NULL,
+  product_ids UUID[] NOT NULL DEFAULT '{}',
+  promo_code_id UUID REFERENCES promo_codes(id) ON DELETE SET NULL,
+  status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN (
+    'pending', 'sending', 'sent', 'failed', 'skipped'
+  )),
+  attempts INTEGER NOT NULL DEFAULT 0,
+  max_attempts INTEGER NOT NULL DEFAULT 3,
+  error_message TEXT,
+  scheduled_for TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  sent_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_email_queue_pending ON email_queue(scheduled_for) WHERE status = 'pending';
+CREATE INDEX idx_email_queue_user ON email_queue(user_id);
+ALTER TABLE email_queue ENABLE ROW LEVEL SECURITY;
+
+-- Email Log
+CREATE TABLE email_log (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  email_type VARCHAR(30) NOT NULL,
+  subject TEXT NOT NULL,
+  product_ids UUID[] DEFAULT '{}',
+  promo_code_id UUID REFERENCES promo_codes(id) ON DELETE SET NULL,
+  resend_message_id VARCHAR(100),
+  sent_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_email_log_user ON email_log(user_id);
+CREATE INDEX idx_email_log_sent_at ON email_log(sent_at);
+ALTER TABLE email_log ENABLE ROW LEVEL SECURITY;
+
+-- Product Announcements Tracker
+CREATE TABLE product_announcements (
+  product_id UUID NOT NULL REFERENCES perfumes(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  announced_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (product_id, user_id)
+);
+ALTER TABLE product_announcements ENABLE ROW LEVEL SECURITY;
+
+-- Processing Metadata
+CREATE TABLE processing_metadata (
+  key VARCHAR(100) PRIMARY KEY,
+  value JSONB NOT NULL DEFAULT '{}'::jsonb,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+INSERT INTO processing_metadata (key, value) VALUES
+  ('last_profile_analysis', '{"timestamp":"2000-01-01T00:00:00Z"}'),
+  ('last_digest_run', '{"weekly":"2000-01-01T00:00:00Z","monthly":"2000-01-01T00:00:00Z"}'),
+  ('last_reengagement_check', '{"timestamp":"2000-01-01T00:00:00Z"}');
+
+ALTER TABLE processing_metadata ENABLE ROW LEVEL SECURITY;

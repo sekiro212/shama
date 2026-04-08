@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
+import { setTrackingUser } from "@/services/trackingService";
 
 interface AuthResult {
   success: boolean;
@@ -31,6 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      setTrackingUser(session?.user?.id ?? null);
       setLoading(false);
     });
 
@@ -39,6 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
+      setTrackingUser(session?.user?.id ?? null);
     });
 
     return () => subscription.unsubscribe();
