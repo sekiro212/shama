@@ -169,6 +169,13 @@
       "eachSuffix": "LYD each",
       "subtotal": "Subtotal:",
       "orderTotal": "Order Total:",
+      "deliveryFee": "Delivery Fee:",
+      "paymentMethod": "Payment Method:",
+      "cod": "Cash on Delivery",
+      "bankTransfer": "Bank Transfer",
+      "transferProof": "Transfer Proof",
+      "viewProof": "View Transfer Proof",
+      "noProof": "No proof uploaded",
       "close": "Close"
     },
     "imageDialog": {
@@ -179,7 +186,14 @@
       "acceptOrder": "Are you sure you want to accept this order? This will decrease stock quantities.",
       "returnOrder": "Are you sure you want to process this return? This will increase stock quantities.",
       "deletePerfume": "Are you sure you want to delete this perfume?",
-      "deleteImage": "Are you sure you want to delete this image?"
+      "deleteImage": "Are you sure you want to delete this image?",
+      "sendToVanex": "Send this order to Vanex? This will create a delivery package and mark the order as Shipped."
+    },
+    "vanex": {
+      "sendSuccess": "Sent to Vanex! Package code: {code}",
+      "sendFailed": "Failed to create Vanex package. Check your token and order data.",
+      "saveFailed": "Package created but failed to save code. Code: {code}",
+      "sendError": "Error sending to Vanex."
     },
     "status": {
       "active": "Active",
@@ -382,7 +396,8 @@
     "signedOutSuccess": "Signed out successfully",
     "account": "Account",
     "whisperMode": "Whisper Mode",
-    "exitWhisperMode": "Exit Whisper Mode"
+    "exitWhisperMode": "Exit Whisper Mode",
+    "myOrders": "My Orders"
   },
   "home": {
     "hero": {
@@ -537,6 +552,26 @@
     "available": "available",
     "subtotal": "Subtotal",
     "discount": "Discount",
+    "deliveryFee": "Delivery Fee",
+    "deliveryFeeLabel": "Delivery fee",
+    "freeDelivery": "Free Delivery",
+    "paymentMethod": "Payment Method",
+    "cod": "Cash on Delivery",
+    "codDesc": "Pay the full amount (products + delivery) to the driver",
+    "bankTransfer": "Bank Transfer",
+    "bankTransferDesc": "Transfer the product price to our bank account, pay only delivery to the driver",
+    "bankDetails": "Bank Account Details",
+    "accountHolder": "Account Holder",
+    "accountNumber": "Account Number (LYD)",
+    "iban": "IBAN",
+    "copied": "Copied!",
+    "transferProof": "Transfer Screenshot",
+    "uploadProof": "Upload transfer screenshot",
+    "uploadProofDesc": "Upload a screenshot of your bank transfer as proof of payment",
+    "proofUploaded": "Screenshot uploaded",
+    "proofRequired": "Please upload a screenshot of your bank transfer",
+    "changeProof": "Change",
+    "uploadingProof": "Uploading...",
     "promoCode": {
       "label": "Promo Code",
       "placeholder": "Enter code",
@@ -969,5 +1004,39 @@
     "error": "Failed to save preferences",
     "loginRequired": "Please log in to manage your email preferences",
     "loading": "Loading preferences..."
+  },
+  "myOrders": {
+    "title": "My Orders",
+    "description": "View and track all your orders",
+    "empty": "You haven't placed any orders yet",
+    "emptyDesc": "When you place an order, it will appear here",
+    "startShopping": "Start Shopping",
+    "orderNumber": "Order",
+    "placed": "Placed",
+    "items": "items",
+    "item": "item",
+    "deliveryFee": "Delivery Fee",
+    "subtotal": "Subtotal",
+    "discount": "Discount",
+    "total": "Total",
+    "status": "Status",
+    "trackWithVanex": "Track with Vanex",
+    "viewDetails": "View Details",
+    "hideDetails": "Hide Details",
+    "vanexTracking": "Vanex Live Tracking",
+    "packageCode": "Package Code",
+    "copied": "Package code copied!",
+    "loadingTracking": "Loading live tracking...",
+    "trackingUnavailable": "Could not load live tracking data.",
+    "awaitingDispatch": "Your order is being prepared. A tracking code will appear once dispatched.",
+    "signInRequired": "Please sign in to view your orders",
+    "paymentMethod": "Payment Method",
+    "cod": "Cash on Delivery",
+    "bankTransfer": "Bank Transfer",
+    "paymentVerified": "Payment Verified",
+    "awaitingPayment": "Awaiting Payment",
+    "currentStatus": "Current Status",
+    "estimatedDelivery": "Estimated Delivery",
+    "currentLocation": "Current Location"
   }
 }

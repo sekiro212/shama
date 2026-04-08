@@ -100,6 +100,8 @@ ALTER TABLE orders ADD COLUMN place_name VARCHAR(255);
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS vanex_city_id integer;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS vanex_sub_city_id integer;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS vanex_package_code varchar(100);
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_fee DECIMAL(10,2) DEFAULT 0;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_method VARCHAR(20) DEFAULT 'cod';
 
 -- Create updated_at trigger function
 CREATE OR REPLACE FUNCTION update_updated_at_column()

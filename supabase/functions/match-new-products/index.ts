@@ -3,7 +3,7 @@ import { getServiceClient } from "../_shared/supabase-client.ts";
 import { generatePromoCode } from "../_shared/promo-generator.ts";
 import { buildNewProductEmail } from "../_shared/email-templates.ts";
 
-const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY")!;
+const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY")!;
 const MATCH_THRESHOLD = 0.6;
 
 interface Product {
@@ -120,14 +120,16 @@ async function generateMatchReason(
         ? `اكتب جملة واحدة قصيرة (أقل من 25 كلمة) توضح لماذا عطر "${productName}" يناسب شخص يحب عطور ${userTopFamily} ونوتات مثل ${userTopNotes.join("، ")}. اجعلها دافئة وشخصية.`
         : `Write 1 short sentence (under 25 words) explaining why "${productName}" suits someone who loves ${userTopFamily} scents with notes like ${userTopNotes.join(", ")}. Warm, personal tone.`;
 
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
+        "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+        "HTTP-Referer": "https://shama.ly",
+        "X-Title": "Shama Perfumes",
       },
       body: JSON.stringify({
-        model: "gpt-5.4-mini",
+        model: "openai/gpt-5.2",
         messages: [{ role: "user", content: prompt }],
         temperature: 0.7,
         max_tokens: 60,
@@ -135,7 +137,10 @@ async function generateMatchReason(
     });
 
     const data = await res.json();
-    return data.choices?.[0]?.message?.content?.trim() || (lang === "ar" ? "يتوافق مع ذوقك العطري" : "Matches your taste profile");
+    const raw = data.choices?.[0]?.message?.content?.trim() || "";
+    // Strip Qwen3 thinking blocks
+    const cleaned = raw.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+    return cleaned || (lang === "ar" ? "يتوافق مع ذوقك العطري" : "Matches your taste profile");
   } catch {
     return lang === "ar" ? "يتوافق مع ذوقك العطري" : "Matches your taste profile";
   }
@@ -150,7 +155,7 @@ serve(async (req) => {
 
     const supabase = getServiceClient();
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const siteUrl = "https://shama-perfumes.netlify.app";
+    const siteUrl = "https://shama.ly";
     let matched = 0;
 
     // Fetch products

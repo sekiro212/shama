@@ -4,7 +4,7 @@ import { getServiceClient } from "../_shared/supabase-client.ts";
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
 const MONTHLY_LIMIT = 2800;
 const BATCH_SIZE = 10;
-const FROM_EMAIL = "Shama Perfumes <noreply@shama-perfumes.com>";
+const FROM_EMAIL = "Shama Perfumes <noreply@send.shama.ly>";
 
 serve(async (_req) => {
   const supabase = getServiceClient();

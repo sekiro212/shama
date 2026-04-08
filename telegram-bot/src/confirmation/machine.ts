@@ -53,7 +53,8 @@ export async function executeConfirmation(
         break;
       }
     }
-  } catch (_err) {
+  } catch (err) {
+    console.error(`[Confirm Error] ${confirmation.type}:`, err);
     await ctx.reply(t(lang, "errorGeneral"));
   } finally {
     ctx.session.confirmation = null;

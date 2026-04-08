@@ -1,8 +1,8 @@
 import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
 import { getServiceClient } from "../_shared/supabase-client.ts";
 
-const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY")!;
-const MODEL = "gpt-5.4-mini";
+const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY")!;
+const MODEL = "openai/gpt-5.2";
 
 const SYSTEM_PROMPT = `You are a fragrance preference analyst for Shama, a Libyan luxury perfume store.
 Analyze a customer's behavioral data and produce a structured taste profile.
@@ -115,11 +115,13 @@ function summarizeEvents(events: { event_type: string; event_data: Record<string
 }
 
 async function analyzeWithGPT(eventSummary: EventSummary): Promise<Record<string, unknown> | null> {
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${OPENAI_API_KEY}`,
+      "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+      "HTTP-Referer": "https://shama.ly",
+      "X-Title": "Shama Perfumes",
     },
     body: JSON.stringify({
       model: MODEL,
@@ -133,13 +135,16 @@ async function analyzeWithGPT(eventSummary: EventSummary): Promise<Record<string
   });
 
   if (!response.ok) {
-    console.error("OpenAI error:", response.status, await response.text());
+    console.error("OpenRouter error:", response.status, await response.text());
     return null;
   }
 
   const data = await response.json();
-  const text = data.choices?.[0]?.message?.content?.trim();
+  let text = data.choices?.[0]?.message?.content?.trim();
   if (!text) return null;
+
+  // Strip Qwen3 thinking blocks
+  text = text.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
 
   try {
     return JSON.parse(text);

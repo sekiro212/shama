@@ -63,7 +63,7 @@ function htmlPage(messageEn: string, messageAr: string, success: boolean): strin
     <h1>SHAMA</h1>
     <p class="en">${messageEn}</p>
     <p class="ar">${messageAr}</p>
-    <a href="https://shama-perfumes.netlify.app" class="home">Back to Shama</a>
+    <a href="https://shama.ly" class="home">Back to Shama</a>
   </div>
 </body>
 </html>`;

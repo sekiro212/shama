@@ -1,17 +1,143 @@
-import { GoogleGenAI } from "@google/genai";
 import { fetchProducts, Product } from "./productsService";
 
 export interface SmartSearchResult {
   product: Product;
-  reason: string;      // 1–2 sentence explanation of why this perfume matches
-  matchScore: number;  // integer 60–99
+  reason: string;      // 1-2 sentence explanation of why this perfume matches
+  matchScore: number;  // integer 60-99
 }
 
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+// --- OpenRouter configuration ---
+const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
+const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+const OPENROUTER_MODEL = "openai/gpt-5.2";
+const OPENROUTER_HEADERS: Record<string, string> = {
+  "Content-Type": "application/json",
+  "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+  "HTTP-Referer": "https://shama.ly",
+  "X-Title": "Shama Perfumes",
+};
 
-let ai: GoogleGenAI | null = null;
-if (apiKey) {
-  ai = new GoogleGenAI({ apiKey });
+/** Strip Qwen3 thinking blocks from output */
+function stripThinkTags(text: string): string {
+  return text.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+}
+
+/** Non-streaming OpenRouter call */
+async function callOpenRouter(
+  messages: { role: string; content: string }[],
+  config: { temperature: number; maxTokens: number }
+): Promise<string | null> {
+  if (!OPENROUTER_API_KEY) return null;
+
+  const response = await fetch(OPENROUTER_URL, {
+    method: "POST",
+    headers: OPENROUTER_HEADERS,
+    body: JSON.stringify({
+      model: OPENROUTER_MODEL,
+      messages,
+      temperature: config.temperature,
+      max_tokens: config.maxTokens,
+      stream: false,
+    }),
+  });
+
+  if (!response.ok) {
+    console.error("OpenRouter error:", response.status, await response.text());
+    return null;
+  }
+
+  const data = await response.json();
+  const text = data.choices?.[0]?.message?.content?.trim();
+  return text ? stripThinkTags(text) : null;
+}
+
+/** Streaming OpenRouter call — yields content chunks */
+async function* callOpenRouterStream(
+  messages: { role: string; content: string }[],
+  config: { temperature: number; maxTokens: number }
+): AsyncGenerator<string> {
+  if (!OPENROUTER_API_KEY) return;
+
+  const response = await fetch(OPENROUTER_URL, {
+    method: "POST",
+    headers: OPENROUTER_HEADERS,
+    body: JSON.stringify({
+      model: OPENROUTER_MODEL,
+      messages,
+      temperature: config.temperature,
+      max_tokens: config.maxTokens,
+      stream: true,
+    }),
+  });
+
+  if (!response.ok || !response.body) {
+    console.error("OpenRouter stream error:", response.status);
+    return;
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let sseBuffer = "";
+  let inThinkBlock = false;
+  let thinkAccum = "";
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      sseBuffer += decoder.decode(value, { stream: true });
+      const lines = sseBuffer.split("\n");
+      sseBuffer = lines.pop() || ""; // keep incomplete last line
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || !trimmed.startsWith("data: ")) continue;
+
+        const payload = trimmed.slice(6).trim();
+        if (payload === "[DONE]") return;
+
+        try {
+          const parsed = JSON.parse(payload);
+          const content = parsed.choices?.[0]?.delta?.content;
+          if (!content) continue;
+
+          if (inThinkBlock) {
+            // Accumulate until we find </think>
+            thinkAccum += content;
+            const endIdx = thinkAccum.indexOf("</think>");
+            if (endIdx !== -1) {
+              inThinkBlock = false;
+              // Yield any text after the closing tag
+              const after = thinkAccum.slice(endIdx + 8);
+              thinkAccum = "";
+              if (after) yield after;
+            }
+          } else if (content.includes("<think>")) {
+            inThinkBlock = true;
+            // Yield text before the tag, buffer the rest
+            const before = content.split("<think>")[0];
+            if (before) yield before;
+            thinkAccum = content.slice(content.indexOf("<think>") + 7);
+            // Check if the closing tag is in this same chunk
+            const endIdx = thinkAccum.indexOf("</think>");
+            if (endIdx !== -1) {
+              inThinkBlock = false;
+              const after = thinkAccum.slice(endIdx + 8);
+              thinkAccum = "";
+              if (after) yield after;
+            }
+          } else {
+            yield content;
+          }
+        } catch {
+          // skip malformed JSON lines
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
 }
 
 // Cache for product context
@@ -71,7 +197,7 @@ export async function chatWithAI(
   userMessage: string,
   conversationHistory: { role: "user" | "model"; text: string }[]
 ): Promise<string> {
-  if (!ai) {
+  if (!OPENROUTER_API_KEY) {
     return "I'm currently unavailable. Please make sure the AI service is configured with a valid API key.";
   }
 
@@ -79,25 +205,17 @@ export async function chatWithAI(
     const productContext = await buildProductContext();
     const systemInstruction = SYSTEM_PROMPT + productContext;
 
-    const contents = [
+    const messages = [
+      { role: "system", content: systemInstruction },
       ...conversationHistory.map((msg) => ({
-        role: msg.role as "user" | "model",
-        parts: [{ text: msg.text }],
+        role: msg.role === "model" ? "assistant" : "user",
+        content: msg.text,
       })),
-      { role: "user" as const, parts: [{ text: userMessage }] },
+      { role: "user", content: userMessage },
     ];
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.1-flash-lite-preview",
-      contents,
-      config: {
-        systemInstruction,
-        maxOutputTokens: 1024,
-        temperature: 0.7,
-      },
-    });
-
-    return response.text || "I'm sorry, I couldn't generate a response. Please try again.";
+    const text = await callOpenRouter(messages, { temperature: 0.7, maxTokens: 1024 });
+    return text || "I'm sorry, I couldn't generate a response. Please try again.";
   } catch (error) {
     console.error("AI Chat Error:", error);
     return "I'm experiencing some difficulties right now. Please try again in a moment.";
@@ -108,7 +226,7 @@ export async function* chatWithAIStream(
   userMessage: string,
   conversationHistory: { role: "user" | "model"; text: string }[]
 ): AsyncGenerator<string> {
-  if (!ai) {
+  if (!OPENROUTER_API_KEY) {
     yield "I'm currently unavailable. Please make sure the AI service is configured with a valid API key.";
     return;
   }
@@ -117,29 +235,19 @@ export async function* chatWithAIStream(
     const productContext = await buildProductContext();
     const systemInstruction = SYSTEM_PROMPT + productContext;
 
-    const contents = [
+    const messages = [
+      { role: "system", content: systemInstruction },
       ...conversationHistory.map((msg) => ({
-        role: msg.role as "user" | "model",
-        parts: [{ text: msg.text }],
+        role: msg.role === "model" ? "assistant" : "user",
+        content: msg.text,
       })),
-      { role: "user" as const, parts: [{ text: userMessage }] },
+      { role: "user", content: userMessage },
     ];
 
-    const response = await ai.models.generateContentStream({
-      model: "gemini-3.1-flash-lite-preview",
-      contents,
-      config: {
-        systemInstruction,
-        maxOutputTokens: 1024,
-        temperature: 0.7,
-      },
-    });
+    const stream = callOpenRouterStream(messages, { temperature: 0.7, maxTokens: 1024 });
 
-    for await (const chunk of response) {
-      const text = chunk.text;
-      if (text) {
-        yield text;
-      }
+    for await (const chunk of stream) {
+      yield chunk;
     }
   } catch (error) {
     console.error("AI Stream Error:", error);
@@ -148,21 +256,19 @@ export async function* chatWithAIStream(
 }
 
 export async function aiSearch(query: string): Promise<Product[]> {
-  if (!ai) return [];
+  if (!OPENROUTER_API_KEY) return [];
 
   try {
     const productContext = await buildProductContext();
     const prompt = `Given this perfume catalog:\n${productContext}\n\nA customer searches for: "${query}"\n\nReturn ONLY a JSON array of product names that best match this query (max 6). Consider fragrance notes, gender, price, and description. Example: ["Product Name 1", "Product Name 2"]\n\nReturn ONLY the JSON array, nothing else.`;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.1-flash-lite-preview",
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      config: { maxOutputTokens: 256, temperature: 0.3 },
-    });
+    const text = await callOpenRouter(
+      [{ role: "user", content: prompt }],
+      { temperature: 0.3, maxTokens: 256 }
+    );
 
-    const text = response.text?.trim() || "[]";
-    // Extract JSON array from response
-    const match = text.match(/\[[\s\S]*\]/);
+    const raw = text?.trim() || "[]";
+    const match = raw.match(/\[[\s\S]*\]/);
     if (!match) return [];
 
     const names: string[] = JSON.parse(match[0]);
@@ -179,9 +285,8 @@ export async function aiSearch(query: string): Promise<Product[]> {
 }
 
 export async function smartSearch(query: string): Promise<SmartSearchResult[]> {
-  if (!ai) return [];
+  if (!OPENROUTER_API_KEY) return [];
 
-  // Issue 4: Guard against empty query
   if (!query.trim()) return [];
 
   try {
@@ -212,15 +317,14 @@ If no perfumes match well, return an empty array [].
 Example format:
 [{"name":"Oud Noir","reason":"Rich oud base perfect for evening occasions.","matchScore":95}]`;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.1-flash-lite-preview",
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      config: { maxOutputTokens: 1024, temperature: 0.3 },
-    });
+    const text = await callOpenRouter(
+      [{ role: "user", content: prompt }],
+      { temperature: 0.3, maxTokens: 1024 }
+    );
 
-    const text = response.text?.trim() || "[]";
+    const raw = text?.trim() || "[]";
     // Strip markdown code fences if present
-    const stripped = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
+    const stripped = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
     const match = stripped.match(/\[[\s\S]*\]/);
     if (!match) return [];
 
@@ -233,7 +337,6 @@ Example format:
 
     const results: SmartSearchResult[] = parsed
       .map((item) => {
-        // Issue 1: Bidirectional substring fallback for name matching
         const product = products.find(
           (p) =>
             p.name.trim().toLowerCase() === item.name.trim().toLowerCase() ||
@@ -242,7 +345,6 @@ Example format:
         );
         if (!product) return null;
 
-        // Issue 2: Validate matchScore and reason before using them
         const matchScore =
           typeof item.matchScore === "number" && isFinite(item.matchScore)
             ? Math.min(99, Math.max(0, item.matchScore))
@@ -269,8 +371,8 @@ export async function generateProductDescription(
   notes: { top: string[]; middle: string[]; base: string[] },
   gender?: string
 ): Promise<string> {
-  if (!ai) {
-    return "AI service is not configured. Please add your Gemini API key.";
+  if (!OPENROUTER_API_KEY) {
+    return "AI service is not configured. Please add your OpenRouter API key.";
   }
 
   try {
@@ -283,13 +385,12 @@ export async function generateProductDescription(
 
 Write 2-3 sentences. Be poetic and sensory. Make it compelling for an online perfume store. Do not use hashtags or emojis.`;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.1-flash-lite-preview",
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      config: { maxOutputTokens: 256, temperature: 0.8 },
-    });
+    const text = await callOpenRouter(
+      [{ role: "user", content: prompt }],
+      { temperature: 0.8, maxTokens: 256 }
+    );
 
-    return response.text?.trim() || "Could not generate description.";
+    return text || "Could not generate description.";
   } catch (error) {
     console.error("AI Description Error:", error);
     return "Failed to generate description. Please try again.";
@@ -301,7 +402,7 @@ export async function evaluateReview(
   comment: string,
   productName: string
 ): Promise<"approved" | "pending"> {
-  if (!ai) return "pending";
+  if (!OPENROUTER_API_KEY) return "pending";
 
   try {
     const prompt = `You are a content moderator for Shama, a luxury perfume store.
@@ -324,13 +425,12 @@ Otherwise mark as "approved".
 
 Respond with ONLY one word: approved or pending`;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.1-flash-lite-preview",
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      config: { maxOutputTokens: 10, temperature: 0.1 },
-    });
+    const text = await callOpenRouter(
+      [{ role: "user", content: prompt }],
+      { temperature: 0.1, maxTokens: 10 }
+    );
 
-    const raw = response.text?.trim().toLowerCase() || "pending";
+    const raw = text?.trim().toLowerCase() || "pending";
     return raw === "approved" ? "approved" : "pending";
   } catch (error) {
     console.error("AI Review Evaluation Error:", error);
@@ -343,7 +443,7 @@ export async function getQuizRecommendations(
 ): Promise<
   { name: string; matchScore: number; reason: string }[]
 > {
-  if (!ai) return [];
+  if (!OPENROUTER_API_KEY) return [];
 
   try {
     const productContext = await buildProductContext();
@@ -380,14 +480,13 @@ Return a JSON array of the top 3 best-matching products. For each product includ
 Return ONLY valid JSON array, nothing else. Example:
 [{"name":"Product Name","matchScore":92,"reason":"Perfect match because..."}]`;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.1-flash-lite-preview",
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      config: { maxOutputTokens: 512, temperature: 0.5 },
-    });
+    const text = await callOpenRouter(
+      [{ role: "user", content: prompt }],
+      { temperature: 0.5, maxTokens: 512 }
+    );
 
-    const text = response.text?.trim() || "[]";
-    const match = text.match(/\[[\s\S]*\]/);
+    const raw = text?.trim() || "[]";
+    const match = raw.match(/\[[\s\S]*\]/);
     if (!match) return [];
 
     return JSON.parse(match[0]);
@@ -398,10 +497,8 @@ Return ONLY valid JSON array, nothing else. Example:
 }
 
 export async function getGiftSuggestions(description: string): Promise<Product[]> {
-  if (!ai) return [];
+  if (!OPENROUTER_API_KEY) return [];
   try {
-    // Single fetch — build context inline to avoid the double round-trip of
-    // calling both buildProductContext() and fetchProducts() separately.
     const { products } = await fetchProducts(1, 100);
     const productContext = products
       .map(
@@ -426,14 +523,13 @@ Example: ["Product Name 1", "Product Name 2"]
 
 Return ONLY the JSON array, nothing else.`;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.1-flash-lite-preview",
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      config: { maxOutputTokens: 256, temperature: 0.4 },
-    });
+    const text = await callOpenRouter(
+      [{ role: "user", content: prompt }],
+      { temperature: 0.4, maxTokens: 256 }
+    );
 
-    const text = response.text?.trim() || "[]";
-    const match = text.match(/\[[\s\S]*\]/);
+    const raw = text?.trim() || "[]";
+    const match = raw.match(/\[[\s\S]*\]/);
     if (!match) return [];
     const names: string[] = JSON.parse(match[0]);
     return products.filter((p) =>
@@ -449,24 +545,6 @@ Return ONLY the JSON array, nothing else.`;
   }
 }
 
-export async function generateGiftImageBase64(prompt: string): Promise<string> {
-  if (!ai) throw new Error("AI service not configured");
-  // NOTE: Verify model ID at https://ai.google.dev/gemini-api/docs/image-generation
-  // Fall back to "imagen-3.0-generate-001" if imagen-4.0 is unavailable on your API key
-  const response = await (ai.models as any).generateImages({
-    model: "imagen-4.0-generate-001",
-    prompt,
-    config: {
-      numberOfImages: 1,
-      outputMimeType: "image/jpeg",
-      aspectRatio: "1:1",
-    },
-  });
-  const imageBytes = response.generatedImages?.[0]?.image?.imageBytes;
-  if (!imageBytes) throw new Error("No image generated");
-  return imageBytes as string;
-}
-
 export async function generateTimelineDescriptions(
   productName: string,
   notes: { top: string[]; middle: string[]; base: string[] },
@@ -477,7 +555,7 @@ export async function generateTimelineDescriptions(
     middle: notes.middle?.join(", ") || "—",
     base: notes.base?.join(", ") || "—",
   };
-  if (!ai) return fallback;
+  if (!OPENROUTER_API_KEY) return fallback;
 
   try {
     const lang = language === "ar" ? "Arabic" : "English";
@@ -490,14 +568,13 @@ Base notes (${notes.base?.join(", ") || "none"}):
 Return ONLY valid JSON, nothing else:
 {"top":"sentence here","middle":"sentence here","base":"sentence here"}`;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.1-flash-lite-preview",
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      config: { maxOutputTokens: 256, temperature: 0.75 },
-    });
+    const text = await callOpenRouter(
+      [{ role: "user", content: prompt }],
+      { temperature: 0.75, maxTokens: 256 }
+    );
 
-    const text = response.text?.trim() || "{}";
-    const match = text.match(/\{[\s\S]*\}/);
+    const raw = text?.trim() || "{}";
+    const match = raw.match(/\{[\s\S]*\}/);
     if (!match) return fallback;
     const parsed = JSON.parse(match[0]);
     return {
@@ -524,7 +601,7 @@ export interface ScentDNACard {
 export async function getScentDNACard(
   answers: Record<string, string>
 ): Promise<ScentDNACard | null> {
-  if (!ai) return null;
+  if (!OPENROUTER_API_KEY) return null;
 
   try {
     const prompt = `A person answered a fragrance quiz:
@@ -550,14 +627,13 @@ Create a unique fragrance identity card for this person. Return ONLY valid JSON:
 }
 Rules: families must sum to 100, use 2-3 families, archetype must be evocative and poetic, signatureNotes should match the scent families chosen.`;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.1-flash-lite-preview",
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      config: { maxOutputTokens: 400, temperature: 0.85 },
-    });
+    const text = await callOpenRouter(
+      [{ role: "user", content: prompt }],
+      { temperature: 0.85, maxTokens: 400 }
+    );
 
-    const text = response.text?.trim() || "{}";
-    const match = text.match(/\{[\s\S]*\}/);
+    const raw = text?.trim() || "{}";
+    const match = raw.match(/\{[\s\S]*\}/);
     if (!match) return null;
     return JSON.parse(match[0]) as ScentDNACard;
   } catch {

@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ShoppingBag, Menu, Search, Heart, Globe, Sun, Moon, LogIn, LogOut, UserCircle, Sparkles, Eye, EyeOff } from "lucide-react";
+import { ShoppingBag, Menu, Search, Heart, Globe, Sun, Moon, LogIn, LogOut, UserCircle, Sparkles, Eye, EyeOff, Package } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useCart } from "@/contexts/CartContext";
 import { useWishlist } from "@/contexts/WishlistContext";
@@ -171,6 +171,15 @@ export default function Header({ onCartClick, onSearchClick }: HeaderProps) {
                 </Button>
                 <div className="absolute right-0 top-full mt-2 w-56 glass-card dark:bg-[#1a2235]/95 bg-white/95 backdrop-blur-xl border dark:border-white/10 border-[#323D50]/10 rounded-xl p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50">
                   <p className="dark:text-white/60 text-[#6B7B8D] text-xs truncate mb-2 px-2">{user.email}</p>
+                  <Link to="/my-orders">
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start gap-2 dark:hover:bg-white/10 hover:bg-[#5B8DD9]/10 rounded-lg text-sm"
+                    >
+                      <Package className="w-4 h-4" />
+                      {t("header.myOrders")}
+                    </Button>
+                  </Link>
                   <Button
                     onClick={() => {
                       signOut();
@@ -304,6 +313,15 @@ export default function Header({ onCartClick, onSearchClick }: HeaderProps) {
               {user ? (
                 <div className="space-y-2 mb-4">
                   <p className="dark:text-white/60 text-[#6B7B8D] text-xs truncate px-3">{user.email}</p>
+                  <Link to="/my-orders" onClick={() => setIsMenuOpen(false)}>
+                    <Button
+                      variant="ghost"
+                      className="w-full glass dark:bg-white/5 bg-[#5B8DD9]/10 dark:hover:bg-white/10 hover:bg-[#5B8DD9]/20 border dark:border-white/10 border-[#323D50]/10 rounded-xl px-3 h-10 text-sm font-semibold transition-all duration-300 hover:scale-105 mb-2"
+                    >
+                      <Package className="w-4 h-4 me-1.5" />
+                      {t("header.myOrders")}
+                    </Button>
+                  </Link>
                   <Button
                     onClick={() => {
                       signOut();

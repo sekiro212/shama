@@ -8,19 +8,26 @@ const vanexHeaders = () => ({
   Authorization: `Bearer ${VANEX_TOKEN}`,
 });
 
+export interface VanexLocation {
+  id: number;
+  name: string;
+  parent_city: number;
+  price: number;
+  code: string;
+}
+
 export interface VanexCity {
   id: number;
   name: string;
-  name_en: string;
+  price: number;
+  branch: number;
   code: string;
-  region_id: number;
-  active: boolean;
+  locations: VanexLocation[];
 }
 
 export interface VanexSubCity {
   sub_city_id: number;
   sub_city_name: string;
-  sub_city_name_en?: string;
   price?: number;
 }
 
@@ -58,22 +65,19 @@ export const fetchVanexCities = async (): Promise<VanexCity[]> => {
   }
 };
 
-/** Fetch sub-cities/areas for a given city (requires auth) */
-export const fetchVanexSubCities = async (cityId: number): Promise<VanexSubCity[]> => {
-  try {
-    const res = await fetch(`${VANEX_BASE}/delivery/price?city_id=${cityId}`, {
-      headers: vanexHeaders(),
-    });
-    if (!res.ok) return [];
-    const json = await res.json();
-    const data = json.data as { sub_city_id: number; sub_city_name: string; price?: number }[];
-    if (!Array.isArray(data)) return [];
-    // Filter out rows with no sub-city (some cities return a single row with sub_city_id=0)
-    return data.filter((d) => d.sub_city_id && d.sub_city_id > 0);
-  } catch (err) {
-    console.error("Vanex fetchSubCities error:", err);
-    return [];
-  }
+/**
+ * Extract sub-cities from a VanexCity's locations array.
+ * Maps the API's location shape to the VanexSubCity interface used by the checkout form.
+ */
+export const getSubCitiesFromCity = (city: VanexCity): VanexSubCity[] => {
+  if (!city.locations || !Array.isArray(city.locations)) return [];
+  return city.locations
+    .filter((loc) => loc.id && loc.id > 0)
+    .map((loc) => ({
+      sub_city_id: loc.id,
+      sub_city_name: loc.name,
+      price: loc.price,
+    }));
 };
 
 /**
@@ -82,6 +86,11 @@ export const fetchVanexSubCities = async (cityId: number): Promise<VanexSubCity[
  */
 export const createVanexPackage = async (order: Order): Promise<string | null> => {
   try {
+    // COD: Vanex collects product total from customer (delivery fee added by Vanex on top)
+    // Bank transfer: products already paid via bank, Vanex collects only delivery fee (price=0)
+    const productTotal = order.total - (order.delivery_fee ?? 0);
+    const codPrice = order.payment_method === "bank_transfer" ? 0 : productTotal;
+
     const payload = {
       type: 1, // Commercial package
       reciever: `${order.first_name} ${order.last_name}`,
@@ -89,7 +98,7 @@ export const createVanexPackage = async (order: Order): Promise<string | null> =
       city: order.vanex_city_id,
       ...(order.vanex_sub_city_id ? { address_child: order.vanex_sub_city_id } : {}),
       address: order.place_name || order.city,
-      price: order.total,
+      price: codPrice,
       payment_methode: "cash",
       paid_by: "customer",
       description: "عطور شمة",

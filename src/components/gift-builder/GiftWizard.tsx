@@ -3,8 +3,8 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { X } from "lucide-react";
 import { Product } from "@/services/productsService";
 import { getGiftSuggestions } from "@/services/aiService";
-import { generateAndSaveGiftImage, placeCustomGiftOrder } from "@/services/giftBuilderService";
-import { GiftWizardState, DEFAULT_CUSTOMIZATION, GiftImageStyle } from "@/types/giftBuilder";
+import { placeCustomGiftOrder } from "@/services/giftBuilderService";
+import { GiftWizardState, DEFAULT_CUSTOMIZATION } from "@/types/giftBuilder";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { toast } from "sonner";
@@ -62,52 +62,10 @@ export default function GiftWizard({ onClose }: Props) {
     }
   }, [state.description, t]);
 
-  const handleStep3Next = useCallback(async () => {
-    setState((prev) => ({ ...prev, step: 4, isGenerating: true, generatedImageUrl: "" }));
-    try {
-      const url = await generateAndSaveGiftImage(
-        state.selectedProducts,
-        state.customization,
-        state.imageStyle
-      );
-      if (isMounted.current) setState((prev) => ({ ...prev, generatedImageUrl: url, isGenerating: false }));
-    } catch {
-      if (isMounted.current) {
-        toast.error(t("giftBuilder.errorGenerating"));
-        setState((prev) => ({ ...prev, isGenerating: false }));
-      }
-    }
-  }, [state.selectedProducts, state.customization, state.imageStyle, t]);
-
-  const handleRegenerate = useCallback(async () => {
-    setState((prev) => ({ ...prev, isGenerating: true, generatedImageUrl: "" }));
-    try {
-      const url = await generateAndSaveGiftImage(
-        state.selectedProducts,
-        state.customization,
-        state.imageStyle
-      );
-      if (isMounted.current) setState((prev) => ({ ...prev, generatedImageUrl: url, isGenerating: false }));
-    } catch {
-      if (isMounted.current) {
-        toast.error(t("giftBuilder.errorGenerating"));
-        setState((prev) => ({ ...prev, isGenerating: false }));
-      }
-    }
-  }, [state.selectedProducts, state.customization, state.imageStyle, t]);
-
-  const handleStyleChange = useCallback(async (style: GiftImageStyle) => {
-    setState((prev) => ({ ...prev, imageStyle: style, isGenerating: true, generatedImageUrl: "" }));
-    try {
-      const url = await generateAndSaveGiftImage(state.selectedProducts, state.customization, style);
-      if (isMounted.current) setState((prev) => ({ ...prev, generatedImageUrl: url, isGenerating: false }));
-    } catch {
-      if (isMounted.current) {
-        toast.error(t("giftBuilder.errorGenerating"));
-        setState((prev) => ({ ...prev, isGenerating: false }));
-      }
-    }
-  }, [state.selectedProducts, state.customization, t]);
+  const handleStep3Next = useCallback(() => {
+    // Skip image generation — go directly to preview with product images
+    setState((prev) => ({ ...prev, step: 4, isGenerating: false, generatedImageUrl: "" }));
+  }, []);
 
   const handlePlaceOrder = useCallback(async () => {
     set("isPlacingOrder", true);
@@ -115,7 +73,7 @@ export default function GiftWizard({ onClose }: Props) {
       await placeCustomGiftOrder({
         products: state.selectedProducts,
         customization: state.customization,
-        generatedImageUrl: state.generatedImageUrl,
+        generatedImageUrl: state.selectedProducts[0]?.images?.[0]?.image_url || "",
         imageStyle: state.imageStyle,
         userId: user?.id,
       });
@@ -127,7 +85,7 @@ export default function GiftWizard({ onClose }: Props) {
         set("isPlacingOrder", false);
       }
     }
-  }, [state.selectedProducts, state.customization, state.generatedImageUrl, state.imageStyle, user, t, onClose]);
+  }, [state.selectedProducts, state.customization, state.imageStyle, user, t, onClose]);
 
   const toggleProduct = useCallback((product: Product) => {
     setState((prev) => {
@@ -209,14 +167,9 @@ export default function GiftWizard({ onClose }: Props) {
         )}
         {state.step === 4 && (
           <GiftStep4Preview
-            imageUrl={state.generatedImageUrl}
-            imageStyle={state.imageStyle}
-            onStyleChange={handleStyleChange}
-            onRegenerate={handleRegenerate}
             onPlaceOrder={handlePlaceOrder}
             onBack={() => set("step", 3)}
             selectedProducts={state.selectedProducts}
-            isGenerating={state.isGenerating}
             isPlacingOrder={state.isPlacingOrder}
           />
         )}

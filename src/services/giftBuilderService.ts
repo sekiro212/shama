@@ -1,7 +1,6 @@
 // src/services/giftBuilderService.ts
 import { supabase } from "@/lib/supabase";
 import { Product } from "./productsService";
-import { generateGiftImageBase64 } from "./aiService";
 import { GiftCustomization, GiftImageStyle } from "@/types/giftBuilder";
 
 const OCCASION_LABELS: Record<string, string> = {
@@ -41,27 +40,6 @@ export function buildGiftImagePrompt(
       : "warm artistic lifestyle illustration, romantic soft bokeh lighting, luxury brand watercolor and oil style";
 
   return `A premium luxury perfume gift set for ${occasion}. ${products.length} exquisite perfume bottle${products.length > 1 ? "s" : ""} (${productList}) elegantly arranged in a ${boxColor} gift box with ${wrapping}. The presentation is opulent and sophisticated, worthy of a high-end perfume boutique. ${styleDescription}. Professional high-end retail photography quality.`;
-}
-
-export async function generateAndSaveGiftImage(
-  products: Product[],
-  customization: GiftCustomization,
-  style: GiftImageStyle
-): Promise<string> {
-  const prompt = buildGiftImagePrompt(products, customization, style);
-  const base64 = await generateGiftImageBase64(prompt);
-
-  const imageBuffer = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
-  const fileName = `gift-${Date.now()}-${Math.random().toString(36).slice(2, 7)}.jpg`;
-
-  const { error: uploadError } = await supabase.storage
-    .from("gift-previews")
-    .upload(fileName, imageBuffer, { contentType: "image/jpeg" });
-
-  if (uploadError) throw uploadError;
-
-  const { data } = supabase.storage.from("gift-previews").getPublicUrl(fileName);
-  return data.publicUrl;
 }
 
 export async function placeCustomGiftOrder(params: {

@@ -3,7 +3,7 @@ import type { Context } from "telegraf";
 import type { BotSession, BotLanguage } from "../types";
 import { config } from "../config";
 import { toolDeclarations } from "./tools";
-import { executeTool } from "./toolExecutor";
+import { executeTool, type ToolResult } from "./toolExecutor";
 import {
   appendUserMessage,
   appendModelMessage,
@@ -199,7 +199,13 @@ export async function runAgent(
     await onStatus?.("tool", toolName!);
 
     // Execute the tool
-    const result = await executeTool(toolName!, toolArgs, lang);
+    let result: ToolResult;
+    try {
+      result = await executeTool(toolName!, toolArgs, lang);
+    } catch (err) {
+      console.error(`[Tool Error] ${toolName}:`, err);
+      result = { text: `Tool error: ${err instanceof Error ? err.message : String(err)}` };
+    }
 
     // Append tool result to history
     session.history = appendToolResult(session.history, toolName!, result.text);

@@ -27,7 +27,7 @@ The frontend (`/`) needs a `.env` file:
 ```
 VITE_SUPABASE_URL=
 VITE_SUPABASE_ANON_KEY=
-VITE_GEMINI_API_KEY=
+VITE_OPENROUTER_API_KEY=
 ```
 
 The Telegram bot (`telegram-bot/.env`) needs:
@@ -42,7 +42,7 @@ GROQ_API_KEY=
 
 ## Architecture Overview
 
-**Stack:** React 18 + TypeScript + Vite, Tailwind CSS, shadcn/ui (Radix), Supabase (Postgres + Auth + Storage), Google Gemini (`@google/genai`), Remotion (video), Playwright (E2E).
+**Stack:** React 18 + TypeScript + Vite, Tailwind CSS, shadcn/ui (Radix), Supabase (Postgres + Auth + Storage), OpenRouter AI (`openai/gpt-5.2`), Remotion (video), Playwright (E2E).
 
 **Deployment:** Netlify (`netlify.toml`) — SPA with `/*` → `index.html` redirect.
 
@@ -64,7 +64,7 @@ All Supabase queries live here — never query Supabase directly from components
 | `productsService.ts` | Perfumes CRUD, pagination, search, filter. `transformDatabaseProduct()` maps snake_case DB → camelCase app types |
 | `reviewsService.ts` | Reviews CRUD — `fetchApprovedReviews`, `fetchUserReview`, `submitReview`, `fetchAllReviews`, `approveReview`, `deleteReview`, `fetchPendingReviewCount` |
 | `ordersService.ts` | Orders fetch, status updates, stats |
-| `aiService.ts` | All Gemini calls: chatbot, product descriptions, quiz recommendations, AI search, **`evaluateReview()`** |
+| `aiService.ts` | All OpenRouter AI calls: chatbot, product descriptions, quiz recommendations, AI search, **`evaluateReview()`** |
 | `imageService.ts` | Supabase Storage upload/delete for `perfume-images` bucket |
 | `authService.ts` | Admin-only username/password auth against `public.users` table |
 | `vanexService.ts` | Vanex delivery API integration |
@@ -83,7 +83,7 @@ All Supabase queries live here — never query Supabase directly from components
 Migrations are tracked in `supabase_schema.sql`. Run new migrations via the Supabase MCP (`mcp__supabase__apply_migration`) or the Supabase SQL Editor.
 
 ### AI integration
-`aiService.ts` uses `@google/genai` with the `gemini-2.0-flash` model. Key functions:
+`aiService.ts` uses OpenRouter API (`https://openrouter.ai/api/v1/chat/completions`) with the `openai/gpt-5.2` model. All calls go through `callOpenRouter()` / `callOpenRouterStream()` helpers using native `fetch()`. Key functions:
 - `chatWithAI` / `chatWithAIStream` — streaming chatbot with full product catalog injected as system context (5-minute cache via `buildProductContext()`)
 - `evaluateReview(rating, comment, productName)` — returns `"approved"` | `"pending"`; defaults to `"pending"` on any failure
 - `generateProductDescription` — used in AdminPage for one-click copy generation

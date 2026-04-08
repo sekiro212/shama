@@ -79,6 +79,7 @@ import {
   OrderStats,
 } from "@/services/ordersService";
 import { createVanexPackage } from "@/services/vanexService";
+import { PAYMENT_METHOD_STYLES } from "@/lib/orderUtils";
 import { generateProductDescription } from "@/services/aiService";
 import {
   fetchAllReviews,
@@ -788,29 +789,29 @@ export default function AdminPage() {
   };
 
   const handleSendToVanex = async (order: Order) => {
-    if (!confirm("Send this order to Vanex? This will create a delivery package and mark the order as Shipped.")) return;
+    if (!confirm(t("admin.confirm.sendToVanex"))) return;
 
     try {
       setSendingToVanex(order.id);
       const packageCode = await createVanexPackage(order);
 
       if (!packageCode) {
-        toast.error("Failed to create Vanex package. Check your token and order data.");
+        toast.error(t("admin.vanex.sendFailed"));
         return;
       }
 
       const saved = await saveVanexPackageCode(order.id, packageCode);
       if (!saved) {
-        toast.error("Package created but failed to save code. Code: " + packageCode);
+        toast.error(t("admin.vanex.saveFailed").replace("{code}", packageCode));
         return;
       }
 
-      toast.success(`Sent to Vanex! Package code: ${packageCode}`);
+      toast.success(t("admin.vanex.sendSuccess").replace("{code}", packageCode));
       loadOrders();
       loadOrderStats();
     } catch (error) {
       console.error("Error sending to Vanex:", error);
-      toast.error("Error sending to Vanex.");
+      toast.error(t("admin.vanex.sendError"));
     } finally {
       setSendingToVanex(null);
     }
@@ -1672,6 +1673,44 @@ export default function AdminPage() {
                       {selectedOrder.total.toFixed(2)} LYD
                     </span>
                   </div>
+                  {(selectedOrder.delivery_fee ?? 0) > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-[#6B7B8D] dark:text-white/60">{t("admin.orderDetails.deliveryFee")}</span>
+                      <span className="text-[#323D50] dark:text-white">
+                        {selectedOrder.delivery_fee?.toFixed(2)} LYD
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex justify-between">
+                    <span className="text-[#6B7B8D] dark:text-white/60">{t("admin.orderDetails.paymentMethod")}</span>
+                    <span className={`text-sm font-medium px-2.5 py-0.5 rounded-full ${PAYMENT_METHOD_STYLES[selectedOrder.payment_method as keyof typeof PAYMENT_METHOD_STYLES] || PAYMENT_METHOD_STYLES.cod}`}>
+                      {selectedOrder.payment_method === "bank_transfer"
+                        ? t("admin.orderDetails.bankTransfer")
+                        : t("admin.orderDetails.cod")}
+                    </span>
+                  </div>
+                  {selectedOrder.payment_method === "bank_transfer" && (
+                    <div className="mt-3 pt-3 border-t border-[#323D50]/10 dark:border-white/10">
+                      <span className="text-[#6B7B8D] dark:text-white/60 text-sm">{t("admin.orderDetails.transferProof")}</span>
+                      {selectedOrder.transfer_proof_url ? (
+                        <a
+                          href={selectedOrder.transfer_proof_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block mt-2"
+                        >
+                          <img
+                            src={selectedOrder.transfer_proof_url}
+                            alt="Transfer proof"
+                            className="w-full max-h-64 object-contain rounded-lg border dark:border-white/10 border-[#323D50]/10 hover:opacity-90 transition-opacity cursor-pointer"
+                          />
+                          <p className="text-xs text-[#5B8DD9] mt-1 hover:underline">{t("admin.orderDetails.viewProof")}</p>
+                        </a>
+                      ) : (
+                        <p className="text-xs text-[#6B7B8D] dark:text-white/40 mt-1 italic">{t("admin.orderDetails.noProof")}</p>
+                      )}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -1756,6 +1795,14 @@ export default function AdminPage() {
                       )}
                     </span>
                   </div>
+                  {(selectedOrder.delivery_fee ?? 0) > 0 && (
+                    <div className="flex justify-between items-center mt-2">
+                      <span className="text-[#6B7B8D] dark:text-white/60">{t("admin.orderDetails.deliveryFee")}</span>
+                      <span className="text-[#323D50] dark:text-white">
+                        {selectedOrder.delivery_fee?.toFixed(2)} LYD
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between items-center mt-2">
                     <span className="text-[#6B7B8D] dark:text-white/60">{t("admin.orderDetails.orderTotal")}</span>
                     <span className="text-[#5B8DD9] font-bold text-xl">
@@ -2953,6 +3000,7 @@ export default function AdminPage() {
                           {t("admin.table.placeName")}
                         </TableHead>
                         <TableHead className="text-[#323D50] dark:text-white/80">{t("admin.table.total")}</TableHead>
+                        <TableHead className="text-[#323D50] dark:text-white/80">{t("admin.orderDetails.paymentMethod")}</TableHead>
                         <TableHead className="text-[#323D50] dark:text-white/80">{t("admin.table.date")}</TableHead>
                         <TableHead className="text-[#323D50] dark:text-white/80">{t("admin.table.items")}</TableHead>
                         <TableHead className="text-[#323D50] dark:text-white/80">{t("admin.table.status")}</TableHead>
@@ -3000,6 +3048,11 @@ export default function AdminPage() {
                             </TableCell>
                             <TableCell className="text-[#5B8DD9] font-semibold">
                               {order.total.toFixed(2)} LYD
+                            </TableCell>
+                            <TableCell>
+                              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${PAYMENT_METHOD_STYLES[order.payment_method as keyof typeof PAYMENT_METHOD_STYLES] || PAYMENT_METHOD_STYLES.cod}`}>
+                                {order.payment_method === "bank_transfer" ? t("admin.orderDetails.bankTransfer") : t("admin.orderDetails.cod")}
+                              </span>
                             </TableCell>
                             <TableCell className="text-[#323D50] dark:text-white/80">
                               {new Date(order.order_date).toLocaleDateString()}

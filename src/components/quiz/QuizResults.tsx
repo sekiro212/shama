@@ -376,7 +376,7 @@ export default function QuizResults({
                               return (
                                 <button
                                   key={sample.id}
-                                  onClick={() => !outOfStock && handleAddSampleToCart(product, sample)}
+                                  onClick={() => !outOfStock && product && handleAddSampleToCart(product, sample)}
                                   disabled={outOfStock}
                                   title={outOfStock ? t("quiz.results.soldOut") : t("quiz.results.addSampleToCart")}
                                   className={`text-xs px-3 py-1.5 rounded-full border transition-all duration-200 ${

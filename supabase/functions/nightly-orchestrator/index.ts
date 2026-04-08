@@ -226,7 +226,7 @@ async function generateDigestEmails(
 
     // Build email HTML
     const { buildDigestEmail } = await import("../_shared/email-templates.ts");
-    const siteUrl = "https://shama-perfumes.netlify.app";
+    const siteUrl = "https://shama.ly";
     const unsubUrl = `${supabaseUrl}/functions/v1/unsubscribe?token=placeholder`;
 
     const bodyEn = buildDigestEmail(
@@ -321,7 +321,7 @@ async function generateReEngagementEmails(
 
   const { generatePromoCode } = await import("../_shared/promo-generator.ts");
   const { buildReEngagementEmail } = await import("../_shared/email-templates.ts");
-  const siteUrl = "https://shama-perfumes.netlify.app";
+  const siteUrl = "https://shama.ly";
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 
   for (const userPref of eligibleUsers) {

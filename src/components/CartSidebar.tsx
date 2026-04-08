@@ -12,6 +12,10 @@ import {
   Eye,
   Tag,
   X,
+  Truck,
+  Banknote,
+  Copy,
+  Check,
 } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -44,12 +48,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
+import { BANK_DETAILS } from "@/lib/orderUtils";
 import { toast } from "sonner";
 import {
   fetchVanexCities,
-  fetchVanexSubCities,
+  getSubCitiesFromCity,
   VanexCity,
   VanexSubCity,
 } from "@/services/vanexService";
@@ -108,7 +113,16 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
   const [vanexCities, setVanexCities] = useState<VanexCity[]>([]);
   const [vanexSubCities, setVanexSubCities] = useState<VanexSubCity[]>([]);
   const [citiesLoading, setCitiesLoading] = useState(false);
-  const [subCitiesLoading, setSubCitiesLoading] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<"cod" | "bank_transfer">("cod");
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [transferProofUrl, setTransferProofUrl] = useState<string | null>(null);
+  const [proofUploading, setProofUploading] = useState(false);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const proofInputRef = useRef<HTMLInputElement>(null);
+
+  // Derive delivery fee from selected sub-city
+  const selectedSubCity = vanexSubCities.find((s) => s.sub_city_id === formData.vanexSubCityId);
+  const deliveryFee = selectedSubCity?.price ?? 0;
 
   // Load Vanex cities once when checkout opens
   useEffect(() => {
@@ -119,21 +133,19 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
       .finally(() => setCitiesLoading(false));
   }, [isCheckoutOpen, vanexCities.length]);
 
-  const handleCitySelect = async (cityId: string) => {
+  const handleCitySelect = (cityId: string) => {
     const id = Number(cityId);
     const city = vanexCities.find((c) => c.id === id);
     setFormData((prev) => ({
       ...prev,
       vanexCityId: id,
-      city: city ? `${city.name_en} / ${city.name}` : cityId,
+      city: city?.name || cityId,
       vanexSubCityId: null,
       placeName: "",
     }));
-    setVanexSubCities([]);
-    setSubCitiesLoading(true);
-    const subs = await fetchVanexSubCities(id);
+    // Extract sub-cities from the city's locations (already fetched with /city/all)
+    const subs = city ? getSubCitiesFromCity(city) : [];
     setVanexSubCities(subs);
-    setSubCitiesLoading(false);
   };
 
   const handleSubCitySelect = (subCityId: string) => {
@@ -144,6 +156,57 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
       vanexSubCityId: id,
       placeName: sub?.sub_city_name || subCityId,
     }));
+  };
+
+  const handleCopyBankDetail = (text: string, field: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    toast.success(t("cart.copied"));
+    clearTimeout(copyTimerRef.current);
+    copyTimerRef.current = setTimeout(() => setCopiedField(null), 2000);
+  };
+
+  const handleProofUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Only JPEG, PNG, and WebP images are allowed");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be less than 5MB");
+      return;
+    }
+
+    setProofUploading(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const fileName = `proof_${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("transfer-proofs")
+        .upload(fileName, file, { upsert: false, cacheControl: "3600" });
+
+      if (uploadError) {
+        console.error("Upload error:", uploadError);
+        toast.error("Failed to upload image");
+        return;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("transfer-proofs")
+        .getPublicUrl(fileName);
+
+      setTransferProofUrl(publicUrl);
+      toast.success(t("cart.proofUploaded"));
+    } catch (err) {
+      console.error("Upload error:", err);
+      toast.error("Failed to upload image");
+    } finally {
+      setProofUploading(false);
+      if (proofInputRef.current) proofInputRef.current.value = "";
+    }
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -186,6 +249,7 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
   const cartSubtotal = getTotalPrice();
   const cartDiscount = appliedPromo?.discount ?? 0;
   const cartFinalTotal = appliedPromo?.finalTotal ?? cartSubtotal;
+  const cartGrandTotal = cartFinalTotal + deliveryFee;
 
   const translatePromoError = (
     error: PromoValidationError | undefined,
@@ -240,6 +304,11 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
       !formData.vanexSubCityId
     ) {
       toast.error(t("cart.fillAllFields"));
+      return;
+    }
+
+    if (paymentMethod === "bank_transfer" && !transferProofUrl) {
+      toast.error(t("cart.proofRequired"));
       return;
     }
 
@@ -309,7 +378,10 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
         vanex_sub_city_id: formData.vanexSubCityId,
         subtotal: confirmedPromo?.subtotal ?? cartSubtotal,
         discount_amount: confirmedPromo?.discount ?? 0,
-        total: confirmedPromo?.finalTotal ?? cartSubtotal,
+        delivery_fee: deliveryFee,
+        payment_method: paymentMethod,
+        transfer_proof_url: paymentMethod === "bank_transfer" ? transferProofUrl : null,
+        total: (confirmedPromo?.finalTotal ?? cartSubtotal) + deliveryFee,
         promo_code_id: confirmedPromo?.promo?.id ?? null,
         promo_code_snapshot: confirmedPromo?.promo?.code ?? null,
         order_date: new Date().toISOString(),
@@ -357,6 +429,8 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
         vanexSubCityId: null,
       });
       setVanexSubCities([]);
+      setPaymentMethod("cod");
+      setTransferProofUrl(null);
       setAppliedPromo(null);
       setPromoInput("");
       setPromoError(null);
@@ -717,11 +791,21 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                       </div>
                     )}
 
+                    {deliveryFee > 0 && (
+                      <div className="flex justify-between text-sm dark:text-white/80 text-[#6B7B8D]">
+                        <span className="flex items-center gap-1.5">
+                          <Truck className="w-3.5 h-3.5" />
+                          {t("cart.deliveryFee")}
+                        </span>
+                        <span>{deliveryFee.toFixed(2)} LYD</span>
+                      </div>
+                    )}
+
                     <div className="border-t dark:border-white/10 border-[#323D50]/10 pt-3 pb-3 ">
                       <div className="flex justify-between text-lg sm:text-xl font-bold">
                         <span className="dark:text-[#F5F5F5] text-[#323D50]">{t("cart.total")}</span>
                         <span className="text-[#e879f9] drop-shadow-sm">
-                          {cartFinalTotal.toFixed(2)} LYD
+                          {cartGrandTotal.toFixed(2)} LYD
                         </span>
                       </div>
                     </div>
@@ -885,7 +969,7 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                                   value={String(city.id)}
                                   className="dark:text-[#F5F5F5] text-[#323D50] dark:hover:bg-white/10 hover:bg-[#EDF1F7] dark:focus:bg-white/10 focus:bg-white/10"
                                 >
-                                  {city.name_en} / {city.name}
+                                  {city.name}
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -902,11 +986,7 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                               <MapPin className="w-4 h-4 inline me-2" />
                               {t("cart.placeName")}
                             </Label>
-                            {subCitiesLoading ? (
-                              <div className="h-11 rounded-xl glass dark:bg-white/10 bg-white/80 border dark:border-white/30 border-[#323D50]/15 flex items-center px-4 text-sm text-[#6B7B8D] dark:text-white/50">
-                                Loading areas...
-                              </div>
-                            ) : vanexSubCities.length > 0 ? (
+                            {vanexSubCities.length > 0 ? (
                               <Select
                                 value={
                                   formData.vanexSubCityId
@@ -925,7 +1005,7 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                                       value={String(sub.sub_city_id)}
                                       className="dark:text-[#F5F5F5] text-[#323D50] dark:hover:bg-white/10 hover:bg-[#EDF1F7] dark:focus:bg-white/10 focus:bg-white/10"
                                     >
-                                      {sub.sub_city_name}
+                                      {sub.sub_city_name}{sub.price != null && sub.price > 0 ? ` (${sub.price} LYD)` : ""}
                                     </SelectItem>
                                   ))}
                                 </SelectContent>
@@ -949,6 +1029,164 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                           </div>
                         )}
 
+                        {/* Delivery fee indicator */}
+                        {deliveryFee > 0 && formData.vanexSubCityId && (
+                          <div className="flex items-center gap-2 p-3 rounded-xl bg-[#5B8DD9]/10 border border-[#5B8DD9]/20">
+                            <Truck className="w-4 h-4 text-[#5B8DD9] shrink-0" />
+                            <span className="text-sm text-[#323D50] dark:text-white">
+                              {t("cart.deliveryFeeLabel")}: <strong>{deliveryFee.toFixed(2)} LYD</strong>
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Payment method selector */}
+                        <div className="space-y-3">
+                          <Label className="dark:text-white/90 text-[#6B7B8D] dark:text-[#D6D6D6] font-medium">
+                            <CreditCard className="w-4 h-4 inline me-2" />
+                            {t("cart.paymentMethod")}
+                          </Label>
+                          <div className="grid grid-cols-2 gap-3">
+                            <button
+                              type="button"
+                              onClick={() => setPaymentMethod("cod")}
+                              className={`p-3 rounded-xl border-2 text-start transition-all duration-200 ${
+                                paymentMethod === "cod"
+                                  ? "border-[#5B8DD9] bg-[#5B8DD9]/10 dark:bg-[#5B8DD9]/20"
+                                  : "border-[#323D50]/15 dark:border-white/15 hover:border-[#5B8DD9]/50"
+                              }`}
+                            >
+                              <Banknote className={`w-5 h-5 mb-1.5 ${paymentMethod === "cod" ? "text-[#5B8DD9]" : "text-[#6B7B8D] dark:text-white/60"}`} />
+                              <p className={`text-sm font-semibold ${paymentMethod === "cod" ? "text-[#5B8DD9]" : "dark:text-[#F5F5F5] text-[#323D50]"}`}>
+                                {t("cart.cod")}
+                              </p>
+                              <p className="text-xs text-[#6B7B8D] dark:text-white/50 mt-0.5 line-clamp-2">
+                                {t("cart.codDesc")}
+                              </p>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setPaymentMethod("bank_transfer")}
+                              className={`p-3 rounded-xl border-2 text-start transition-all duration-200 ${
+                                paymentMethod === "bank_transfer"
+                                  ? "border-[#5B8DD9] bg-[#5B8DD9]/10 dark:bg-[#5B8DD9]/20"
+                                  : "border-[#323D50]/15 dark:border-white/15 hover:border-[#5B8DD9]/50"
+                              }`}
+                            >
+                              <CreditCard className={`w-5 h-5 mb-1.5 ${paymentMethod === "bank_transfer" ? "text-[#5B8DD9]" : "text-[#6B7B8D] dark:text-white/60"}`} />
+                              <p className={`text-sm font-semibold ${paymentMethod === "bank_transfer" ? "text-[#5B8DD9]" : "dark:text-[#F5F5F5] text-[#323D50]"}`}>
+                                {t("cart.bankTransfer")}
+                              </p>
+                              <p className="text-xs text-[#6B7B8D] dark:text-white/50 mt-0.5 line-clamp-2">
+                                {t("cart.bankTransferDesc")}
+                              </p>
+                            </button>
+                          </div>
+
+                          {/* Bank details card */}
+                          {paymentMethod === "bank_transfer" && (<>
+                            <div className="glass-card dark:bg-white/5 bg-white border dark:border-white/10 border-[#323D50]/10 rounded-xl p-4 space-y-3">
+                              <h4 className="text-sm font-semibold dark:text-[#F5F5F5] text-[#323D50] flex items-center gap-2">
+                                <CreditCard className="w-4 h-4 text-[#5B8DD9]" />
+                                {t("cart.bankDetails")}
+                              </h4>
+                              <div className="space-y-2.5">
+                                <div>
+                                  <p className="text-xs text-[#6B7B8D] dark:text-white/50">{t("cart.accountHolder")}</p>
+                                  <p className="text-sm font-medium dark:text-[#F5F5F5] text-[#323D50]">{BANK_DETAILS.accountHolder}</p>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <p className="text-xs text-[#6B7B8D] dark:text-white/50">{t("cart.accountNumber")}</p>
+                                    <p className="text-sm font-mono font-medium dark:text-[#F5F5F5] text-[#323D50]">{BANK_DETAILS.accountNumber}</p>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleCopyBankDetail(BANK_DETAILS.accountNumber, "account")}
+                                    className="h-8 w-8 p-0 hover:bg-[#5B8DD9]/10"
+                                  >
+                                    {copiedField === "account" ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5 text-[#6B7B8D]" />}
+                                  </Button>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <p className="text-xs text-[#6B7B8D] dark:text-white/50">{t("cart.iban")}</p>
+                                    <p className="text-xs font-mono font-medium dark:text-[#F5F5F5] text-[#323D50]">{BANK_DETAILS.iban}</p>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleCopyBankDetail(BANK_DETAILS.iban, "iban")}
+                                    className="h-8 w-8 p-0 hover:bg-[#5B8DD9]/10"
+                                  >
+                                    {copiedField === "iban" ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5 text-[#6B7B8D]" />}
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Transfer proof upload */}
+                            <div className="glass-card dark:bg-white/5 bg-white border dark:border-white/10 border-[#323D50]/10 rounded-xl p-4 space-y-3">
+                              <h4 className="text-sm font-semibold dark:text-[#F5F5F5] text-[#323D50]">
+                                {t("cart.transferProof")} <span className="text-red-500">*</span>
+                              </h4>
+                              <p className="text-xs text-[#6B7B8D] dark:text-white/50">
+                                {t("cart.uploadProofDesc")}
+                              </p>
+                              <input
+                                ref={proofInputRef}
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                onChange={handleProofUpload}
+                                className="hidden"
+                              />
+                              {transferProofUrl ? (
+                                <div className="space-y-2">
+                                  <img
+                                    src={transferProofUrl}
+                                    alt="Transfer proof"
+                                    className="w-full max-h-48 object-contain rounded-lg border dark:border-white/10 border-[#323D50]/10"
+                                  />
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-xs text-green-600 dark:text-green-400 font-medium flex items-center gap-1">
+                                      <Check className="w-3.5 h-3.5" />
+                                      {t("cart.proofUploaded")}
+                                    </span>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => proofInputRef.current?.click()}
+                                      className="text-xs text-[#5B8DD9] hover:bg-[#5B8DD9]/10 h-7 px-2"
+                                    >
+                                      {t("cart.changeProof")}
+                                    </Button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => proofInputRef.current?.click()}
+                                  disabled={proofUploading}
+                                  className="w-full border-2 border-dashed dark:border-white/20 border-[#323D50]/20 rounded-xl p-6 text-center hover:border-[#5B8DD9]/50 transition-colors disabled:opacity-50"
+                                >
+                                  {proofUploading ? (
+                                    <div className="flex flex-col items-center gap-2">
+                                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#5B8DD9]" />
+                                      <span className="text-xs text-[#6B7B8D] dark:text-white/50">{t("cart.uploadingProof")}</span>
+                                    </div>
+                                  ) : (
+                                    <div className="flex flex-col items-center gap-2">
+                                      <CreditCard className="w-6 h-6 text-[#6B7B8D] dark:text-white/40" />
+                                      <span className="text-sm font-medium dark:text-[#F5F5F5] text-[#323D50]">{t("cart.uploadProof")}</span>
+                                      <span className="text-xs text-[#6B7B8D] dark:text-white/50">JPEG, PNG, WebP (max 5MB)</span>
+                                    </div>
+                                  )}
+                                </button>
+                              )}
+                            </div>
+                          </>)}
+                        </div>
+
                         <div className="border-t dark:border-white/10 border-[#323D50]/10 pt-4 sm:pt-6">
                           {appliedPromo?.promo && (
                             <>
@@ -966,10 +1204,16 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                               )}
                             </>
                           )}
+                          {deliveryFee > 0 && (
+                            <div className="flex justify-between text-sm dark:text-white/80 text-[#6B7B8D] mb-1">
+                              <span>{t("cart.deliveryFee")}</span>
+                              <span>{deliveryFee.toFixed(2)} LYD</span>
+                            </div>
+                          )}
                           <div className="flex justify-between text-lg sm:text-xl font-bold mb-4 sm:mb-6">
                             <span className="dark:text-[#F5F5F5] text-[#323D50]">{t("cart.total")}</span>
                             <span className="text-[#e879f9] drop-shadow-sm">
-                              {cartFinalTotal.toFixed(2)} LYD
+                              {cartGrandTotal.toFixed(2)} LYD
                             </span>
                           </div>
                           <LoadingButton

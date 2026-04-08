@@ -169,6 +169,13 @@
       "eachSuffix": "د.ل للقطعة",
       "subtotal": "المجموع الفرعي:",
       "orderTotal": "إجمالي الطلب:",
+      "deliveryFee": "رسوم التوصيل:",
+      "paymentMethod": "طريقة الدفع:",
+      "cod": "الدفع عند الاستلام",
+      "bankTransfer": "تحويل بنكي",
+      "transferProof": "إثبات التحويل",
+      "viewProof": "عرض إثبات التحويل",
+      "noProof": "لم يتم رفع إثبات",
       "close": "إغلاق"
     },
     "imageDialog": {
@@ -179,7 +186,14 @@
       "acceptOrder": "هل أنت متأكد من قبول هذا الطلب؟ سيتم تقليل كميات المخزون.",
       "returnOrder": "هل أنت متأكد من معالجة هذا الإرجاع؟ سيتم زيادة كميات المخزون.",
       "deletePerfume": "هل أنت متأكد من حذف هذا العطر؟",
-      "deleteImage": "هل أنت متأكد من حذف هذه الصورة؟"
+      "deleteImage": "هل أنت متأكد من حذف هذه الصورة؟",
+      "sendToVanex": "إرسال هذا الطلب إلى فانكس؟ سيتم إنشاء طرد توصيل وتحديث حالة الطلب إلى مشحون."
+    },
+    "vanex": {
+      "sendSuccess": "تم الإرسال إلى فانكس! رمز الطرد: {code}",
+      "sendFailed": "فشل إنشاء طرد فانكس. تحقق من الرمز وبيانات الطلب.",
+      "saveFailed": "تم إنشاء الطرد لكن فشل حفظ الرمز. الرمز: {code}",
+      "sendError": "خطأ في الإرسال إلى فانكس."
     },
     "status": {
       "active": "نشط",
@@ -382,7 +396,8 @@
     "signedOutSuccess": "تم تسجيل الخروج بنجاح",
     "account": "الحساب",
     "whisperMode": "وضع الهمس",
-    "exitWhisperMode": "خروج من وضع الهمس"
+    "exitWhisperMode": "خروج من وضع الهمس",
+    "myOrders": "طلباتي"
   },
   "home": {
     "hero": {
@@ -537,6 +552,26 @@
     "available": "متوفر",
     "subtotal": "المجموع الفرعي",
     "discount": "الخصم",
+    "deliveryFee": "رسوم التوصيل",
+    "deliveryFeeLabel": "رسوم التوصيل",
+    "freeDelivery": "توصيل مجاني",
+    "paymentMethod": "طريقة الدفع",
+    "cod": "الدفع عند الاستلام",
+    "codDesc": "ادفع المبلغ كاملاً (المنتجات + التوصيل) للسائق",
+    "bankTransfer": "تحويل بنكي",
+    "bankTransferDesc": "حوّل ثمن المنتجات لحسابنا البنكي، وادفع فقط رسوم التوصيل للسائق",
+    "bankDetails": "تفاصيل الحساب البنكي",
+    "accountHolder": "صاحب الحساب",
+    "accountNumber": "رقم الحساب (دينار ليبي)",
+    "iban": "الآيبان",
+    "copied": "تم النسخ!",
+    "transferProof": "صورة التحويل",
+    "uploadProof": "ارفع صورة التحويل",
+    "uploadProofDesc": "ارفع لقطة شاشة للتحويل البنكي كإثبات للدفع",
+    "proofUploaded": "تم رفع الصورة",
+    "proofRequired": "يرجى رفع صورة التحويل البنكي",
+    "changeProof": "تغيير",
+    "uploadingProof": "جاري الرفع...",
     "promoCode": {
       "label": "كود الخصم",
       "placeholder": "أدخل الكود",
@@ -969,5 +1004,39 @@
     "error": "فشل حفظ التفضيلات",
     "loginRequired": "يرجى تسجيل الدخول لإدارة تفضيلات البريد الإلكتروني",
     "loading": "جاري تحميل التفضيلات..."
+  },
+  "myOrders": {
+    "title": "طلباتي",
+    "description": "عرض وتتبع جميع طلباتك",
+    "empty": "لم تقم بتقديم أي طلبات بعد",
+    "emptyDesc": "عند تقديم طلب، سيظهر هنا",
+    "startShopping": "ابدأ التسوق",
+    "orderNumber": "طلب",
+    "placed": "تاريخ الطلب",
+    "items": "منتجات",
+    "item": "منتج",
+    "deliveryFee": "رسوم التوصيل",
+    "subtotal": "المجموع الفرعي",
+    "discount": "الخصم",
+    "total": "المجموع",
+    "status": "الحالة",
+    "trackWithVanex": "تتبع مع فانكس",
+    "viewDetails": "عرض التفاصيل",
+    "hideDetails": "إخفاء التفاصيل",
+    "vanexTracking": "تتبع فانكس المباشر",
+    "packageCode": "رمز الطرد",
+    "copied": "تم نسخ رمز الطرد!",
+    "loadingTracking": "جاري تحميل التتبع المباشر...",
+    "trackingUnavailable": "تعذر تحميل بيانات التتبع المباشر.",
+    "awaitingDispatch": "يتم تجهيز طلبك. سيظهر رمز التتبع عند الإرسال.",
+    "signInRequired": "يرجى تسجيل الدخول لعرض طلباتك",
+    "paymentMethod": "طريقة الدفع",
+    "cod": "الدفع عند الاستلام",
+    "bankTransfer": "تحويل بنكي",
+    "paymentVerified": "تم التحقق من الدفع",
+    "awaitingPayment": "في انتظار الدفع",
+    "currentStatus": "الحالة الحالية",
+    "estimatedDelivery": "التوصيل المتوقع",
+    "currentLocation": "الموقع الحالي"
   }
 }

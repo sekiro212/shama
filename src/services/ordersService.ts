@@ -11,6 +11,9 @@ export interface Order {
   vanex_city_id?: number;
   vanex_sub_city_id?: number;
   vanex_package_code?: string;
+  delivery_fee?: number;
+  payment_method?: "cod" | "bank_transfer";
+  transfer_proof_url?: string;
   total: number;
   order_date: string;
   items: OrderItem[];
@@ -88,6 +91,27 @@ export const fetchOrders = async (filters?: OrderFilters): Promise<Order[]> => {
     return data || [];
   } catch (error) {
     console.error("Error fetching orders:", error);
+    return [];
+  }
+};
+
+// Fetch orders by user email (for My Orders page)
+export const fetchOrdersByEmail = async (email: string): Promise<Order[]> => {
+  try {
+    const { data, error } = await supabase
+      .from("orders")
+      .select("*")
+      .eq("email", email.trim().toLowerCase())
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching user orders:", error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("Error fetching user orders:", error);
     return [];
   }
 };
