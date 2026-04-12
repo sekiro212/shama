@@ -454,6 +454,32 @@ export async function executeTool(
     }
   }
 
+  // ── generate_product_image ───────────────────────────────────────────────
+  if (toolName === "generate_product_image") {
+    if (typeof args.id !== "string") {
+      return { text: "Error: generate_product_image requires id (string). Use search_products first to get the UUID." };
+    }
+    const id = args.id as string;
+
+    try {
+      const product = await getProductById(id);
+      const { generateProductImage } = await import("../services/imageGeneration");
+      const { savePerfumeImage } = await import("../services/supabase");
+
+      const { buffer, mimeType } = await generateProductImage(
+        product.name, "", product.description ?? ""
+      );
+
+      const publicUrl = await savePerfumeImage(id, buffer, mimeType, true, 1);
+
+      return {
+        text: `Image generated and saved for "${product.name}". URL: ${publicUrl}`,
+      };
+    } catch (err) {
+      return { text: `Image generation failed: ${err instanceof Error ? err.message : String(err)}` };
+    }
+  }
+
   // ── unknown ──────────────────────────────────────────────────────────────
   throw new Error(`Unknown tool: ${toolName}`);
 }

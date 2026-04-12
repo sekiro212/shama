@@ -57,6 +57,12 @@ function buildSystemPrompt(lang: BotLanguage): string {
 3. استدعِ create_product (يظهر زر التأكيد)
 4. بعد التأكيد، انتقل للعطر التالي
 
+═══ الصور ═══
+يمكنك توليد صور تسويقية بالذكاء الاصطناعي. عندما يطلب المسؤول إنشاء صورة لمنتج:
+1. استخدم search_products للحصول على UUID المنتج
+2. استدعِ generate_product_image مع UUID
+هذا يعمل لأي منتج موجود.
+
 عند تحديث أو حذف منتج، استخدم search_products أولاً للحصول على المعرّف الصحيح. لا تطلب تأكيداً نصياً للحذف/الإنشاء/التحديث — الواجهة تتولى ذلك بالأزرار.`
     : `You are an intelligent admin assistant for a perfume store called "Shama". Help the admin manage products, orders, and inventory.
 Always reply in English. Be concise and professional.
@@ -96,6 +102,12 @@ If the admin asks to create multiple perfumes at once (via text or voice), proce
 3. Call create_product for it (shows Confirm button)
 4. After confirmation, move to the NEXT perfume
 Do NOT try to create all at once — the confirmation UI handles one product at a time.
+
+═══ Images ═══
+You CAN generate AI marketing images. When the admin asks to create/generate/make an image for a product:
+1. Use search_products to find the product UUID
+2. Call generate_product_image with the UUID
+This works for any existing product, not just newly created ones.
 
 When updating or deleting a product, use search_products first to get the correct UUID. NEVER ask for text confirmation on create/update/delete — the UI handles it with buttons.`;
 }

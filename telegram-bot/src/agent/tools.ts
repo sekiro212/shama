@@ -206,4 +206,19 @@ export const toolDeclarations: ToolFunction[] = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "generate_product_image",
+      description:
+        "Generate an AI marketing image for a product and save it. Use search_products first to get the product ID. Call this when the admin asks to create/generate/make an image for any product.",
+      parameters: {
+        type: "object",
+        properties: {
+          id: { type: "string", description: "Product UUID" },
+        },
+        required: ["id"],
+      },
+    },
+  },
 ];
