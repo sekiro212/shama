@@ -33,8 +33,7 @@ Do NOT include any text overlays, watermarks, or logos.`;
         body: JSON.stringify({
           model: IMAGE_MODEL,
           messages: [{ role: "user", content: prompt }],
-          modalities: ["text", "image"],
-          max_tokens: 1024,
+          modalities: ["image", "text"],
         }),
       });
 
@@ -44,18 +43,40 @@ Do NOT include any text overlays, watermarks, or logos.`;
       }
 
       const data = await res.json();
-      const content = data.choices?.[0]?.message?.content;
+      const message = data.choices?.[0]?.message;
+      if (!message) throw new Error("No response from image model");
 
-      // Response content can be a string or array of parts
-      // Image parts have: { type: "image_url", image_url: { url: "data:image/png;base64,..." } }
+      // OpenRouter returns images in message.images[] array
+      // Each: { type: "image_url", image_url: { url: "data:image/png;base64,..." } }
       let base64Data: string | undefined;
       let mimeType = "image/png";
 
-      if (Array.isArray(content)) {
-        for (const part of content) {
-          if (part.type === "image_url" && part.image_url?.url) {
-            const dataUrl = part.image_url.url as string;
+      // Check message.images (OpenRouter format)
+      const images = message.images as Array<{
+        type: string;
+        image_url?: { url?: string };
+      }> | undefined;
+
+      if (images && images.length > 0) {
+        for (const img of images) {
+          const dataUrl = img.image_url?.url;
+          if (dataUrl) {
             const match = dataUrl.match(/^data:(image\/\w+);base64,(.+)$/);
+            if (match) {
+              mimeType = match[1];
+              base64Data = match[2];
+              break;
+            }
+          }
+        }
+      }
+
+      // Fallback: check if content is array with image parts
+      if (!base64Data && Array.isArray(message.content)) {
+        for (const part of message.content) {
+          const p = part as { type?: string; image_url?: { url?: string } };
+          if (p.type === "image_url" && p.image_url?.url) {
+            const match = p.image_url.url.match(/^data:(image\/\w+);base64,(.+)$/);
             if (match) {
               mimeType = match[1];
               base64Data = match[2];
@@ -70,6 +91,6 @@ Do NOT include any text overlays, watermarks, or logos.`;
       }
 
       return { buffer: Buffer.from(base64Data, "base64"), mimeType };
-    }, 60_000) // image gen can take 30-45s
+    }, 60_000)
   );
 }
