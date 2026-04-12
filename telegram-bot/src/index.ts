@@ -135,7 +135,7 @@ interface MediaGroupEntry {
 const mediaGroupBuffer = new Map<string, MediaGroupEntry>();
 
 async function handleMediaGroupPhoto(ctx: BotContext, mediaGroupId: string, lang: BotLanguage) {
-  const photos = ctx.message!.photo!;
+  const photos = (ctx.message as unknown as { photo: Array<{ file_id: string }> }).photo;
   const fileId = photos[photos.length - 1].file_id;
 
   // Download immediately — can't access Telegram file later
@@ -238,7 +238,7 @@ bot.on("photo", async (ctx) => {
 
   // ── Image collection mode: save photo to product ──
   if (imageCol) {
-    const mediaGroupId = (ctx.message as Record<string, unknown>).media_group_id as string | undefined;
+    const mediaGroupId = (ctx.message as unknown as Record<string, unknown>).media_group_id as string | undefined;
     if (mediaGroupId) {
       await handleMediaGroupPhoto(ctx as BotContext, mediaGroupId, lang);
       return;
