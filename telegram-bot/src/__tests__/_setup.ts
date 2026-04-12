@@ -6,7 +6,7 @@ import { vi } from "vitest";
 vi.mock("../config", () => ({
   config: {
     telegramToken: "test-token",
-    geminiApiKey: "test-gemini-key",
+    openRouterApiKey: "test-openrouter-key",
     groqApiKey: "test-groq-key",
     supabaseUrl: "http://localhost",
     supabaseServiceKey: "test-key",

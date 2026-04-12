@@ -39,18 +39,39 @@ export async function searchProducts(query: string, limit = 5): Promise<Product[
   const parsed = SearchProductsSchema.safeParse({ query });
   if (!parsed.success) throw new Error(`Invalid search query: ${parsed.error.message}`);
 
+  const cols =
+    "id, name, name_ar, price, size, gender, description, description_ar, " +
+    "fragrance_notes, fragrance_notes_ar, stock_quantity, is_active, has_samples, rating, created_at";
+
+  // Try exact phrase match first
   const { data, error } = await supabase
     .from("perfumes")
-    .select(
-      "id, name, name_ar, price, size, gender, description, description_ar, " +
-      "fragrance_notes, fragrance_notes_ar, stock_quantity, is_active, has_samples, rating, created_at"
-    )
+    .select(cols)
     .or(`name.ilike.%${query}%,name_ar.ilike.%${query}%`)
     .order("created_at", { ascending: false })
     .limit(limit);
 
   if (error) throw new Error(`Search failed: ${error.message}`);
-  return (data as unknown as Product[]) || [];
+  if (data && data.length > 0) return data as unknown as Product[];
+
+  // No exact match → split into words and match ANY word (fuzzy fallback)
+  const words = query.split(/\s+/).filter((w) => w.length >= 2);
+  if (words.length === 0) return [];
+
+  // Build OR filter: name.ilike.%word1%,name_ar.ilike.%word1%,name.ilike.%word2%,...
+  const conditions = words
+    .flatMap((w) => [`name.ilike.%${w}%`, `name_ar.ilike.%${w}%`])
+    .join(",");
+
+  const { data: fuzzyData, error: fuzzyError } = await supabase
+    .from("perfumes")
+    .select(cols)
+    .or(conditions)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (fuzzyError) throw new Error(`Search failed: ${fuzzyError.message}`);
+  return (fuzzyData as unknown as Product[]) || [];
 }
 
 // ─── Get by ID ────────────────────────────────

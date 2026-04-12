@@ -13,7 +13,6 @@
     "test:orders": "tsx src/scripts/testOrderFlow.ts"
   },
   "dependencies": {
-    "@google/genai": "^1.10.0",
     "@supabase/supabase-js": "^2.52.0",
     "dotenv": "^16.4.5",
     "groq-sdk": "^1.1.2",

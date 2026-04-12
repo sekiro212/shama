@@ -16,6 +16,6 @@ export const config = {
     .map((id) => parseInt(id.trim(), 10)),
   supabaseUrl: requireEnv("SUPABASE_URL"),
   supabaseServiceKey: requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
-  geminiApiKey: requireEnv("GEMINI_API_KEY"),
+  openRouterApiKey: requireEnv("OPENROUTER_API_KEY"),
   groqApiKey: requireEnv("GROQ_API_KEY"),
 } as const;

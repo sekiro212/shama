@@ -1,5 +1,18 @@
-import type { Content } from "@google/genai";
 import { z } from "zod";
+
+// OpenAI-compatible message format (used with OpenRouter)
+export interface ToolCall {
+  id: string;
+  type: "function";
+  function: { name: string; arguments: string };
+}
+
+export interface ChatMessage {
+  role: "system" | "user" | "assistant" | "tool";
+  content: string | null;
+  tool_calls?: ToolCall[];
+  tool_call_id?: string;
+}
 
 // ─── Core Domain Types ───
 
@@ -83,7 +96,7 @@ export type PendingConfirmation =
 // ─── Session (3 fields) ───
 
 export interface BotSession {
-  history: Content[];
+  history: ChatMessage[];
   confirmation: PendingConfirmation | null;
   language?: BotLanguage;  // "en" | "ar", defaults to "en"
 }
@@ -185,6 +198,6 @@ export interface BotSessionData {
   deleteProductId?: string;
   pendingActions?: AIAction[];
   // New fields for agent architecture
-  history?: import("@google/genai").Content[];
+  history?: ChatMessage[];
   confirmation?: PendingConfirmation | null;
 }

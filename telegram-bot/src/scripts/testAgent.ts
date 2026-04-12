@@ -1,13 +1,13 @@
 /**
- * Real-Gemini integration test for the agent loop.
+ * Real integration test for the agent loop.
  *
- * Runs the actual `runAgent` against the live Gemini API and live Supabase
+ * Runs the actual `runAgent` against the live OpenRouter API and live Supabase
  * (read-only paths only). Destructive flows — create/update/delete — are
  * exercised up to the confirmation step, which the agent loop already
  * short-circuits without touching the database.
  *
  * Requires `telegram-bot/.env` with:
- *   GEMINI_API_KEY, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY,
+ *   OPENROUTER_API_KEY, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY,
  *   GROQ_API_KEY, TELEGRAM_BOT_TOKEN, ADMIN_CHAT_IDS
  *
  * The script never actually talks to Telegram — it builds a fake Telegraf
@@ -104,15 +104,13 @@ function extractToolCallsAfter(
   const out: ToolCallRecord[] = [];
   const slice = ctx.session.history.slice(startIndex);
   for (const msg of slice) {
-    const parts = msg.parts ?? [];
-    for (const p of parts) {
-      // @google/genai's Content.parts is a discriminated union — `functionCall`
-      // is only set on tool-call parts. Cast to a permissive shape so we can
-      // poke at it without dragging in the SDK's type machinery.
-      const fc = (p as { functionCall?: { name?: string; args?: Record<string, unknown> } })
-        .functionCall;
-      if (fc?.name) {
-        out.push({ name: fc.name, args: fc.args ?? {} });
+    // OpenAI-compatible ChatMessage format — tool calls live in msg.tool_calls
+    const tcs = msg.tool_calls ?? [];
+    for (const tc of tcs) {
+      if (tc.function?.name) {
+        let args: Record<string, unknown> = {};
+        try { args = JSON.parse(tc.function.arguments); } catch { /* empty */ }
+        out.push({ name: tc.function.name, args });
       }
     }
   }

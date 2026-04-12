@@ -1,12 +1,57 @@
-import { GoogleGenAI } from "@google/genai";
 import { config } from "../config";
 import { withRetry, withTimeout } from "../utils/retry";
 import type { ProductDraft, FragranceNotes } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: config.geminiApiKey });
+const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+const MODEL = "openai/gpt-5.2";
 
-// Keep this exact model — confirmed valid Gemini 3.x preview. Do not change.
-const MODEL = "gemini-3.1-flash-lite-preview";
+// ─── Private helpers ─────────────────────────────
+
+function headers() {
+  return {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${config.openRouterApiKey}`,
+    "HTTP-Referer": "https://shama.ly",
+    "X-Title": "Shama Admin Bot",
+  };
+}
+
+async function chatCompletion(
+  messages: { role: string; content: string }[],
+  maxTokens = 1200
+): Promise<string> {
+  const res = await fetch(OPENROUTER_URL, {
+    method: "POST",
+    headers: headers(),
+    body: JSON.stringify({
+      model: MODEL,
+      messages,
+      temperature: 0.2,
+      max_tokens: maxTokens,
+    }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "");
+    throw new Error(`OpenRouter ${res.status}: ${errText.slice(0, 200)}`);
+  }
+
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content?.trim() ?? "";
+}
+
+function parseJsonResponse(text: string): Partial<ProductDraft> {
+  if (!text) throw new Error("Empty response from AI");
+  const cleaned = text
+    .trim()
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/```\s*$/i, "")
+    .trim();
+  const match = cleaned.match(/\{[\s\S]*\}/);
+  if (!match) throw new Error(`No JSON in response: ${text.slice(0, 200)}`);
+  return JSON.parse(match[0]);
+}
 
 // ─── Bilingual JSON schema prompt ─────────────
 
@@ -28,27 +73,15 @@ const BILINGUAL_SCHEMA = `{
   }
 }`;
 
-// ─── Private JSON parser ──────────────────────
-
-function parseGeminiJson(text: string): Partial<ProductDraft> {
-  if (!text) throw new Error("Empty response from Gemini");
-  const cleaned = text
-    .trim()
-    .replace(/^```json\s*/i, "")
-    .replace(/^```\s*/i, "")
-    .replace(/```\s*$/i, "")
-    .trim();
-  const match = cleaned.match(/\{[\s\S]*\}/);
-  if (!match) throw new Error(`No JSON in Gemini response: ${text.slice(0, 200)}`);
-  return JSON.parse(match[0]);
-}
-
 // ─── Image analysis (accepts Buffer) ─────────
 
 export async function analyzeImage(
   imageBuffer: Buffer,
   mimeType: string
 ): Promise<Partial<ProductDraft>> {
+  const base64 = imageBuffer.toString("base64");
+  const dataUrl = `data:${mimeType};base64,${base64}`;
+
   const prompt = `You are a perfume expert. Carefully analyze this image of a perfume bottle.
 Identify the perfume brand and name from the bottle label, cap, and packaging.
 
@@ -63,32 +96,20 @@ The Arabic fragrance notes should be proper Arabic names for each note.`;
 
   return withRetry(() =>
     withTimeout(async () => {
-      const response = await ai.models.generateContent({
-        model: MODEL,
-        contents: [
-          {
-            role: "user",
-            parts: [
-              {
-                inlineData: {
-                  data: imageBuffer.toString("base64"),
-                  mimeType,
-                },
-              },
-              { text: prompt },
-            ],
-          },
-        ],
-        config: {
-          maxOutputTokens: 1200,
-          temperature: 0.2,
-          thinkingConfig: { thinkingBudget: 0 },
+      const text = await chatCompletion([
+        {
+          role: "user",
+          content: JSON.stringify([
+            {
+              type: "image_url",
+              image_url: { url: dataUrl },
+            },
+            { type: "text", text: prompt },
+          ]),
         },
-      });
-
-      const text = response.text;
-      if (!text) throw new Error("Gemini returned empty text response for image");
-      return parseGeminiJson(text);
+      ]);
+      if (!text) throw new Error("Empty response for image analysis");
+      return parseJsonResponse(text);
     }, 30_000)
   );
 }
@@ -127,18 +148,11 @@ If fragrance notes are unknown, make educated guesses based on the brand and sty
 
     return await withRetry(() =>
       withTimeout(async () => {
-        const response = await ai.models.generateContent({
-          model: MODEL,
-          contents: [{ role: "user", parts: [{ text: prompt }] }],
-          config: {
-            maxOutputTokens: 1200,
-            temperature: 0.2,
-            thinkingConfig: { thinkingBudget: 0 },
-          },
-        });
-        const text = response.text;
+        const text = await chatCompletion([
+          { role: "user", content: prompt },
+        ]);
         if (!text) return SAFE_DEFAULT;
-        const parsed = parseGeminiJson(text);
+        const parsed = parseJsonResponse(text);
         return {
           description: (parsed.description as string) ?? "",
           description_ar: (parsed.description_ar as string) ?? "",

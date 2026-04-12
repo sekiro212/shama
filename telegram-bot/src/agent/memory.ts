@@ -1,56 +1,66 @@
-import type { Content } from "@google/genai";
+import type { ChatMessage } from "../types";
 
 const MAX_HISTORY = 20; // ~10 exchanges
 
-export function appendUserMessage(history: Content[], text: string): Content[] {
+export function appendUserMessage(history: ChatMessage[], text: string): ChatMessage[] {
   return [
     ...history,
-    { role: "user", parts: [{ text }] },
+    { role: "user", content: text },
   ];
 }
 
-export function appendModelMessage(history: Content[], text: string): Content[] {
+export function appendModelMessage(history: ChatMessage[], text: string): ChatMessage[] {
   return [
     ...history,
-    { role: "model", parts: [{ text }] },
+    { role: "assistant", content: text },
   ];
 }
 
 export function appendToolCall(
-  history: Content[],
+  history: ChatMessage[],
+  toolCallId: string,
   toolName: string,
   args: Record<string, unknown>
-): Content[] {
+): ChatMessage[] {
   return [
     ...history,
     {
-      role: "model",
-      parts: [{ functionCall: { name: toolName, args } }],
+      role: "assistant",
+      content: null,
+      tool_calls: [
+        {
+          id: toolCallId,
+          type: "function" as const,
+          function: { name: toolName, arguments: JSON.stringify(args) },
+        },
+      ],
     },
   ];
 }
 
 export function appendToolResult(
-  history: Content[],
-  toolName: string,
+  history: ChatMessage[],
+  toolCallId: string,
+  _toolName: string,
   result: string
-): Content[] {
+): ChatMessage[] {
   return [
     ...history,
     {
-      role: "user",
-      parts: [{ functionResponse: { name: toolName, response: { result } } }],
+      role: "tool",
+      content: result,
+      tool_call_id: toolCallId,
     },
   ];
 }
 
-export function trimHistory(history: Content[]): Content[] {
+export function trimHistory(history: ChatMessage[]): ChatMessage[] {
   if (history.length > MAX_HISTORY) {
     return history.slice(-MAX_HISTORY);
   }
   return [...history];
 }
 
-export function resetHistory(): Content[] {
+export function resetHistory(): ChatMessage[] {
   return [];
 }

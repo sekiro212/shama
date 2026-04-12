@@ -1,22 +1,20 @@
-import { GoogleGenAI } from "@google/genai";
 import type { Context } from "telegraf";
-import type { BotSession, BotLanguage } from "../types";
+import type { BotSession, BotLanguage, ChatMessage } from "../types";
 import { config } from "../config";
 import { toolDeclarations } from "./tools";
 import { executeTool, type ToolResult } from "./toolExecutor";
 import {
   appendUserMessage,
   appendModelMessage,
+  appendToolCall,
   appendToolResult,
   trimHistory,
 } from "./memory";
 import { withRetry, withTimeout } from "../utils/retry";
 import { confirmKeyboard } from "../confirmation/keyboards";
 
-const ai = new GoogleGenAI({ apiKey: config.geminiApiKey });
-
-// Keep this exact model — confirmed valid Gemini 3.x preview. Do not change.
-const MODEL = "gemini-3.1-flash-lite-preview";
+const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+const MODEL = "openai/gpt-5.2";
 
 const MAX_ITERATIONS = 5;
 
@@ -49,14 +47,6 @@ function buildSystemPrompt(lang: BotLanguage): string {
 
 إذا قال المسؤول إن لديه عينات، مرّر has_samples=true والمصفوفة samples (مع size و price لكل عينة). أحجام العينات المسموح بها فقط: 3ml, 5ml, 10ml, 15ml, 20ml, 25ml, 30ml.
 
-مثال على المسار الصحيح:
-- المسؤول: "أنشئ Sauvage"
-- أنت: "أحتاج السعر والحجم والجنس والكمية لإنشاء Sauvage."
-- المسؤول: "السعر 250، الحجم 100ml، رجالي، الكمية 20"
-- أنت: "هل لهذا العطر عينات؟ إذا نعم، ما الأحجام والأسعار؟"
-- المسؤول: "نعم 3ml بـ 8 دينار و 5ml بـ 12 دينار"
-- أنت: استدعِ create_product مع كل القيم بما في ذلك samples=[{size:"3ml",price:8},{size:"5ml",price:12}]
-
 عند تحديث أو حذف منتج، استخدم search_products أولاً للحصول على المعرّف الصحيح. لا تطلب تأكيداً نصياً للحذف/الإنشاء/التحديث — الواجهة تتولى ذلك بالأزرار.`
     : `You are an intelligent admin assistant for a perfume store called "Shama". Help the admin manage products, orders, and inventory.
 Always reply in English. Be concise and professional.
@@ -79,31 +69,16 @@ The 5 required fields (each must come from the admin's OWN words):
 4. gender ("men" | "women" | "unisex" — lowercase)
 5. stock_quantity (non-negative integer)
 
-If ANY of the 5 is missing → do NOT call create_product. Reply with a single short text question listing ONLY the missing fields. Example: "I need the price, size, and stock quantity for Sauvage."
+If ANY of the 5 is missing → do NOT call create_product. Reply with a single short text question listing ONLY the missing fields.
 
 After collecting the 5 required fields, you MUST ask:
 "Does this perfume have samples? If yes, what sizes and prices? (e.g., 3ml at 5 LYD, 5ml at 8 LYD)"
 
 If the admin says yes, pass has_samples=true and the samples array with {size, price} for each. Allowed sample sizes ONLY: 3ml, 5ml, 10ml, 15ml, 20ml, 25ml, 30ml.
 
-Correct end-to-end example:
-- Admin: "create Sauvage"
-- You: "I need the price, size, gender, and stock quantity for Sauvage."
-- Admin: "price 250, size 100ml, men, stock 20"
-- You: "Does this perfume have samples? If yes, what sizes and prices?"
-- Admin: "yes 3ml at 8 LYD and 5ml at 12 LYD"
-- You: call create_product with name="Sauvage", price=250, size="100ml", gender="men", stock_quantity=20, has_samples=true, samples=[{size:"3ml",price:8},{size:"5ml",price:12}]
-
-Order lookup example:
-- Admin: "check order abc12345"
-- You: call get_order_by_id with id_or_short_id="abc12345"
-
 When updating or deleting a product, use search_products first to get the correct UUID. NEVER ask for text confirmation on create/update/delete — the UI handles it with buttons.`;
 }
 
-// Precompute both prompts at module load — they're pure functions of `lang`
-// and the strings are ~1.6KB each, so allocating them on every Gemini call
-// (up to MAX_ITERATIONS times per request) is wasted work.
 const SYSTEM_PROMPTS: Record<BotLanguage, string> = {
   en: buildSystemPrompt("en"),
   ar: buildSystemPrompt("ar"),
@@ -114,6 +89,56 @@ export type AgentStatusCallback = (
   kind: "thinking" | "tool",
   toolName?: string
 ) => Promise<void> | void;
+
+interface OpenRouterResponse {
+  choices?: Array<{
+    message?: {
+      role: string;
+      content: string | null;
+      tool_calls?: Array<{
+        id: string;
+        type: "function";
+        function: { name: string; arguments: string };
+      }>;
+    };
+    finish_reason?: string;
+  }>;
+  error?: { message: string };
+}
+
+async function callOpenRouter(
+  messages: ChatMessage[],
+  systemPrompt: string
+): Promise<OpenRouterResponse> {
+  const body = {
+    model: MODEL,
+    messages: [
+      { role: "system", content: systemPrompt },
+      ...messages,
+    ],
+    tools: toolDeclarations,
+    temperature: 0.3,
+    max_tokens: 2048,
+  };
+
+  const response = await fetch(OPENROUTER_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${config.openRouterApiKey}`,
+      "HTTP-Referer": "https://shama.ly",
+      "X-Title": "Shama Admin Bot",
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text().catch(() => "");
+    throw new Error(`OpenRouter ${response.status}: ${errText.slice(0, 200)}`);
+  }
+
+  return response.json() as Promise<OpenRouterResponse>;
+}
 
 export async function runAgent(
   ctx: Context & { session: BotSession },
@@ -128,50 +153,34 @@ export async function runAgent(
   session.history = appendUserMessage(session.history, userText);
 
   for (let iteration = 0; iteration < MAX_ITERATIONS; iteration++) {
-    // Tell the caller we're about to hit Gemini — they typically refresh
-    // a "Thinking..." status message in Telegram.
     await onStatus?.("thinking");
 
-    // 15s per attempt × 2 attempts = ~31s worst case (was ~78s).
-    // thinkingBudget=0 disables Gemini 3.x's default thinking, which on its
-    // own added 5–15s of latency before any tool call/text — by far the
-    // biggest contributor to the bot feeling frozen.
+    // 20s per attempt × 2 retries
     const response = await withRetry(() =>
       withTimeout(() =>
-        ai.models.generateContent({
-          model: MODEL,
-          contents: session.history,
-          config: {
-            tools: [{ functionDeclarations: toolDeclarations }],
-            systemInstruction,
-            thinkingConfig: { thinkingBudget: 0 },
-          },
-        }), 15_000
+        callOpenRouter(session.history, systemInstruction),
+        20_000
       ),
       2
     );
 
-    // Step 3: Get the candidate
-    const candidate = response.candidates?.[0];
-    if (!candidate) {
+    if (response.error) {
+      await ctx.reply(`API error: ${response.error.message}`);
+      return;
+    }
+
+    const choice = response.choices?.[0];
+    if (!choice?.message) {
       await ctx.reply("No response from AI.");
       return;
     }
 
-    const parts = candidate.content?.parts ?? [];
+    const msg = choice.message;
+    const toolCalls = msg.tool_calls;
 
-    // Step 4: Check for function call vs text response
-    // Note: only the first function call is processed per iteration.
-    // Gemini may return multiple in one response; we handle one at a time
-    // to keep the loop predictable. The confirmation pattern also requires
-    // a single pending action at a time.
-    const functionCallPart = parts.find((p) => p.functionCall != null);
-
-    if (!functionCallPart) {
-      // Model returned text — done
-      const textPart = parts.find((p) => p.text != null);
-      const modelText = textPart?.text ?? "";
-
+    // No tool calls — model returned text
+    if (!toolCalls || toolCalls.length === 0) {
+      const modelText = msg.content ?? "";
       session.history = appendModelMessage(session.history, modelText);
       session.history = trimHistory(session.history);
 
@@ -181,34 +190,33 @@ export async function runAgent(
       return;
     }
 
-    // Step 5: Handle function call
-    const { name: toolName, args } = functionCallPart.functionCall!;
-    const toolArgs = (args ?? {}) as Record<string, unknown>;
+    // Process first tool call only (one at a time for confirmation pattern)
+    const tc = toolCalls[0];
+    const toolName = tc.function.name;
+    const toolCallId = tc.id;
+    let toolArgs: Record<string, unknown>;
+    try {
+      toolArgs = JSON.parse(tc.function.arguments);
+    } catch {
+      toolArgs = {};
+    }
 
-    // Echo the model's exact content back into history. Gemini 3.x attaches
-    // a `thoughtSignature` to functionCall parts and rejects the next request
-    // (HTTP 400 INVALID_ARGUMENT — "Function call is missing a
-    // thought_signature in functionCall parts") if we strip it. The previous
-    // appendToolCall() helper rebuilt the part from scratch and lost the
-    // signature, so every multi-turn tool call broke. Pushing the original
-    // `candidate.content` preserves every field the SDK sends back.
-    session.history = [...session.history, candidate.content!];
+    // Append assistant message with tool call to history
+    session.history = appendToolCall(session.history, toolCallId, toolName, toolArgs);
 
-    // Surface which tool we're about to run so the caller can update the
-    // visible status message in Telegram.
-    await onStatus?.("tool", toolName!);
+    await onStatus?.("tool", toolName);
 
     // Execute the tool
     let result: ToolResult;
     try {
-      result = await executeTool(toolName!, toolArgs, lang);
+      result = await executeTool(toolName, toolArgs, lang);
     } catch (err) {
       console.error(`[Tool Error] ${toolName}:`, err);
       result = { text: `Tool error: ${err instanceof Error ? err.message : String(err)}` };
     }
 
     // Append tool result to history
-    session.history = appendToolResult(session.history, toolName!, result.text);
+    session.history = appendToolResult(session.history, toolCallId, toolName, result.text);
 
     // If confirmation needed: store it and stop
     if (result.confirmation) {
@@ -221,10 +229,8 @@ export async function runAgent(
       return;
     }
 
-    // Trim history between iterations to prevent unbounded growth
     session.history = trimHistory(session.history);
-
-    // No confirmation — loop back to let Gemini respond with text
+    // Loop back to let model respond with text
   }
 
   // Exceeded max iterations
