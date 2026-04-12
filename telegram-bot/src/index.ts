@@ -367,8 +367,13 @@ bot.on("text", async (ctx) => {
       return;
     }
 
-    // AI image generation
-    if (lower.includes("generate") || lower.includes("توليد") || lower.includes("انشاء صورة")) {
+    // AI image generation — broad keyword match
+    const imageKeywords = [
+      "generate", "create image", "make image", "ai image",
+      "marketing image", "product image", "generate image",
+      "توليد", "انشاء صورة", "صورة تسويقية", "اصنع صورة", "ولد صورة",
+    ];
+    if (imageKeywords.some((kw) => lower.includes(kw))) {
       await handleGenerateImage(ctx as BotContext, imageCol, lang);
       return;
     }
