@@ -123,6 +123,40 @@ export const messages = {
     ar: "تم العثور على منتجات متعددة. يرجى التحديد أكثر.",
   },
 
+  // ─── Image Collection ───
+  sendProductPhotos: {
+    en: "📸 Now send product photos, say 'generate image' for AI marketing photo, or 'skip' to finish without images.",
+    ar: "📸 أرسل صور المنتج الآن، أو قل 'توليد صورة' لصورة تسويقية بالذكاء الاصطناعي، أو 'تخطي' للإنهاء بدون صور.",
+  },
+  imageSaved: {
+    en: "✅ Image {n} saved for {name}. Send more, say 'generate image', or 'done'.",
+    ar: "✅ تم حفظ الصورة {n} لـ {name}. أرسل المزيد، أو 'توليد صورة'، أو 'تم'.",
+  },
+  mediaGroupSaved: {
+    en: "✅ {n} photos saved for {name} ({total} total). Send more or 'done'.",
+    ar: "✅ تم حفظ {n} صور لـ {name} ({total} إجمالي). أرسل المزيد أو 'تم'.",
+  },
+  imageCollectionDone: {
+    en: "✅ Done! {n} image(s) saved for {name}.",
+    ar: "✅ تم! تم حفظ {n} صورة لـ {name}.",
+  },
+  generatingImage: {
+    en: "🎨 Generating AI marketing image...",
+    ar: "🎨 جاري توليد صورة تسويقية...",
+  },
+  imageGenerated: {
+    en: "✅ AI image saved for {name}. Send more photos or 'done'.",
+    ar: "✅ تم حفظ صورة AI لـ {name}. أرسل المزيد أو 'تم'.",
+  },
+  imageGenNotAvailable: {
+    en: "⚠️ AI image generation not configured. Send a photo instead.",
+    ar: "⚠️ توليد الصور غير مُعد. أرسل صورة بدلاً من ذلك.",
+  },
+  errorImageGeneration: {
+    en: "❌ Failed to generate image. Try again or send a photo.",
+    ar: "❌ فشل توليد الصورة. حاول مرة أخرى أو أرسل صورة.",
+  },
+
   // ─── Orders ───
   noOrdersFound: {
     en: "No orders found for the selected period.",

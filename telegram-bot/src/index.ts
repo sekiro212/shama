@@ -1,10 +1,12 @@
 import { Telegraf, session, Markup } from "telegraf";
 import { config } from "./config";
-import type { BotSession, BotLanguage } from "./types";
+import type { BotSession, BotLanguage, ImageCollectionState } from "./types";
 import { runAgent } from "./agent/agent";
 import { analyzeImage } from "./services/gemini";
 import { transcribeVoice } from "./services/voice";
+import { generateProductImage } from "./services/imageGeneration";
 import { downloadTelegramFile } from "./utils/fileDownload";
+import { savePerfumeImage } from "./services/supabase";
 import { executeConfirmation, cancelConfirmation } from "./confirmation/machine";
 import { t } from "./i18n/messages";
 import { appendUserMessage } from "./agent/memory";
@@ -20,6 +22,7 @@ bot.use(session({
     history: [],
     confirmation: null,
     language: "en",
+    imageCollection: null,
   }),
 }));
 
@@ -71,6 +74,7 @@ bot.command("end", async (ctx) => {
   const lang = getLang(ctx);
   ctx.session.history = [];
   ctx.session.confirmation = null;
+  ctx.session.imageCollection = null;
   await ctx.reply(t(lang, "cancelled"));
 });
 
@@ -118,31 +122,173 @@ bot.action(/^cancel_(create|update|delete)$/, async (ctx) => {
 });
 
 // ═════════════════════════════════════════════
-// PHOTO HANDLER — analyze image then run agent
+// MEDIA GROUP DEBOUNCE (multiple photos at once)
 // ═════════════════════════════════════════════
 
-// NOTE: The photo flow is simplified — it analyzes the image and asks the
-// agent to create the product based on the text description only. The raw
-// image buffer is NOT forwarded to the agent or stored in the session; the
-// agent creates the product from the AI-generated description without an
-// actual image attached. Full image-upload-on-confirm can be added as a
-// follow-up (would require storing the buffer in session and passing it
-// through ProductDraft.imageBuffer before executeConfirmation).
+interface MediaGroupEntry {
+  photos: Array<{ buffer: Buffer; mimeType: string }>;
+  timer: ReturnType<typeof setTimeout>;
+  ctx: BotContext;
+  lang: BotLanguage;
+}
+
+const mediaGroupBuffer = new Map<string, MediaGroupEntry>();
+
+async function handleMediaGroupPhoto(ctx: BotContext, mediaGroupId: string, lang: BotLanguage) {
+  const photos = ctx.message!.photo!;
+  const fileId = photos[photos.length - 1].file_id;
+
+  // Download immediately — can't access Telegram file later
+  const { buffer, mimeType } = await downloadTelegramFile(
+    bot as unknown as import("telegraf").Telegraf, fileId
+  );
+
+  const existing = mediaGroupBuffer.get(mediaGroupId);
+  if (existing) {
+    existing.photos.push({ buffer, mimeType });
+    clearTimeout(existing.timer);
+    existing.timer = setTimeout(() => processMediaGroup(mediaGroupId), 800);
+  } else {
+    const timer = setTimeout(() => processMediaGroup(mediaGroupId), 800);
+    mediaGroupBuffer.set(mediaGroupId, {
+      photos: [{ buffer, mimeType }],
+      timer,
+      ctx,
+      lang,
+    });
+  }
+}
+
+async function processMediaGroup(mediaGroupId: string) {
+  const entry = mediaGroupBuffer.get(mediaGroupId);
+  if (!entry) return;
+  mediaGroupBuffer.delete(mediaGroupId);
+
+  const { photos, ctx, lang } = entry;
+  const imageCol = ctx.session.imageCollection;
+  if (!imageCol) return;
+
+  const stopTyping = startTypingLoop(ctx);
+  try {
+    for (const photo of photos) {
+      const isPrimary = imageCol.imageCount === 0;
+      const displayOrder = imageCol.imageCount + 1;
+      await savePerfumeImage(imageCol.perfumeId, photo.buffer, photo.mimeType, isPrimary, displayOrder);
+      imageCol.imageCount++;
+    }
+
+    await ctx.reply(
+      t(lang, "mediaGroupSaved")
+        .replace("{n}", String(photos.length))
+        .replace("{total}", String(imageCol.imageCount))
+        .replace("{name}", imageCol.perfumeName)
+    );
+  } catch (err) {
+    console.error("Media group save error:", err);
+    await ctx.reply(t(lang, "errorImageUpload"));
+  } finally {
+    stopTyping();
+  }
+}
+
+// ═════════════════════════════════════════════
+// AI IMAGE GENERATION
+// ═════════════════════════════════════════════
+
+async function handleGenerateImage(ctx: BotContext, imageCol: ImageCollectionState, lang: BotLanguage) {
+  if (!config.geminiApiKey) {
+    await ctx.reply(t(lang, "imageGenNotAvailable"));
+    return;
+  }
+
+  const stopTyping = startTypingLoop(ctx);
+  const statusMsg = await ctx.reply(t(lang, "generatingImage"));
+
+  try {
+    const { buffer, mimeType } = await generateProductImage(
+      imageCol.perfumeName, "", ""
+    );
+
+    const isPrimary = imageCol.imageCount === 0;
+    const displayOrder = imageCol.imageCount + 1;
+
+    const publicUrl = await savePerfumeImage(
+      imageCol.perfumeId, buffer, mimeType, isPrimary, displayOrder
+    );
+    imageCol.imageCount++;
+
+    await ctx.telegram.deleteMessage(ctx.chat!.id, statusMsg.message_id).catch(() => {});
+
+    // Show generated image to admin
+    await ctx.replyWithPhoto({ url: publicUrl });
+    await ctx.reply(
+      t(lang, "imageGenerated").replace("{name}", imageCol.perfumeName)
+    );
+  } catch (err) {
+    console.error("Image generation error:", err);
+    await ctx.telegram.deleteMessage(ctx.chat!.id, statusMsg.message_id).catch(() => {});
+    await ctx.reply(t(lang, "errorImageGeneration"));
+  } finally {
+    stopTyping();
+  }
+}
+
+// ═════════════════════════════════════════════
+// PHOTO HANDLER
+// ═════════════════════════════════════════════
 
 bot.on("photo", async (ctx) => {
   const lang = getLang(ctx);
+  const imageCol = ctx.session.imageCollection;
+
+  // ── Image collection mode: save photo to product ──
+  if (imageCol) {
+    const mediaGroupId = (ctx.message as Record<string, unknown>).media_group_id as string | undefined;
+    if (mediaGroupId) {
+      await handleMediaGroupPhoto(ctx as BotContext, mediaGroupId, lang);
+      return;
+    }
+
+    // Single photo — save directly
+    const stopTyping = startTypingLoop(ctx);
+    try {
+      const photos = ctx.message.photo;
+      const fileId = photos[photos.length - 1].file_id;
+      const { buffer, mimeType } = await downloadTelegramFile(
+        bot as unknown as import("telegraf").Telegraf, fileId
+      );
+
+      const isPrimary = imageCol.imageCount === 0;
+      const displayOrder = imageCol.imageCount + 1;
+
+      await savePerfumeImage(imageCol.perfumeId, buffer, mimeType, isPrimary, displayOrder);
+      imageCol.imageCount++;
+
+      await ctx.reply(
+        t(lang, "imageSaved")
+          .replace("{n}", String(imageCol.imageCount))
+          .replace("{name}", imageCol.perfumeName)
+      );
+    } catch (err) {
+      console.error("Image save error:", err);
+      await ctx.reply(t(lang, "errorImageUpload"));
+    } finally {
+      stopTyping();
+    }
+    return;
+  }
+
+  // ── Normal mode: analyze image for product creation ──
   const stopTyping = startTypingLoop(ctx);
   const thinking = await ctx.reply(t(lang, "thinking"), { parse_mode: "HTML" });
 
   try {
-    // Get highest-resolution photo
     const photos = ctx.message.photo;
     const fileId = photos[photos.length - 1].file_id;
 
     const { buffer, mimeType } = await downloadTelegramFile(bot as unknown as import("telegraf").Telegraf, fileId);
     const perfumeData = await analyzeImage(buffer, mimeType);
 
-    // Build a natural language description of what was found for the agent
     const imageContext = [
       perfumeData.name ? `Name: ${perfumeData.name}` : "",
       perfumeData.brand ? `Brand: ${perfumeData.brand}` : "",
@@ -154,14 +300,12 @@ bot.on("photo", async (ctx) => {
     await ctx.telegram.deleteMessage(ctx.chat!.id, thinking.message_id).catch(() => {});
     await ctx.reply(`📸 ${userText}`, { parse_mode: "HTML" });
 
-    // Append the analyzed data as a user message so agent knows what was in the photo
     ctx.session.history = appendUserMessage(
       ctx.session.history,
       `I sent a photo of a perfume bottle. The AI identified it as: ${imageContext}. Please create this product for me.`
     );
 
-    // Run agent with the image context (history already has the user message)
-    await runAgentWithExistingHistory(ctx, lang);
+    await runAgentWithExistingHistory(ctx as BotContext, lang);
   } catch (err) {
     console.error("Photo error:", err);
     await ctx.telegram.deleteMessage(ctx.chat!.id, thinking.message_id).catch(() => {});
@@ -204,35 +348,51 @@ bot.on("voice", async (ctx) => {
 });
 
 // ═════════════════════════════════════════════
-// TEXT HANDLER — run agent
+// TEXT HANDLER — image collection or agent
 // ═════════════════════════════════════════════
 
 bot.on("text", async (ctx) => {
   const text = ctx.message.text.trim();
-  if (text.startsWith("/")) return;  // ignore commands caught above
+  if (text.startsWith("/")) return;
   const lang = getLang(ctx);
+
+  const imageCol = ctx.session.imageCollection;
+  if (imageCol) {
+    const lower = text.toLowerCase();
+
+    // Exit image collection
+    if (lower === "done" || lower === "skip" || lower === "تم" || lower === "تخطي") {
+      const count = imageCol.imageCount;
+      ctx.session.imageCollection = null;
+      await ctx.reply(
+        t(lang, "imageCollectionDone")
+          .replace("{n}", String(count))
+          .replace("{name}", imageCol.perfumeName)
+      );
+      return;
+    }
+
+    // AI image generation
+    if (lower.includes("generate") || lower.includes("توليد") || lower.includes("انشاء صورة")) {
+      await handleGenerateImage(ctx as BotContext, imageCol, lang);
+      return;
+    }
+
+    // Other text: pass through to agent (admin not locked out)
+  }
+
   await runAgentWithFeedback(ctx as BotContext, text, lang);
 });
 
 // ─── Helper: run agent without prepending another user message ───
-// The photo handler already appended the user message to history.
-// We extract the last message text, remove it, then call runAgent normally
-// so runAgent re-appends it (avoiding double entries in history).
 async function runAgentWithExistingHistory(ctx: BotContext, lang: BotLanguage) {
   const lastMsg = ctx.session.history[ctx.session.history.length - 1];
   const lastText = lastMsg?.content ?? "process the photo";
-  // Remove the last message we added (runAgent will re-add it)
   ctx.session.history = ctx.session.history.slice(0, -1);
   await runAgentWithFeedback(ctx, lastText, lang);
 }
 
 // ─── Helper: run agent with live progress feedback in Telegram ───
-// Wraps runAgent with:
-//  • a typing-indicator loop (re-sent every 4s while work runs)
-//  • a single status message that gets edited as the agent moves through
-//    "thinking" → "using tool: X" iterations, then deleted at the end.
-// Both side effects are guarded so a transient Telegram API error never
-// breaks the underlying request.
 async function runAgentWithFeedback(
   ctx: BotContext,
   text: string,
@@ -244,7 +404,7 @@ async function runAgentWithFeedback(
   const chatId = ctx.chat?.id;
 
   const setStatus = async (newText: string) => {
-    if (newText === lastStatusText) return;  // avoid noisy edit churn
+    if (newText === lastStatusText) return;
     if (!chatId) return;
     if (statusMsgId == null) {
       try {

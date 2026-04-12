@@ -93,12 +93,21 @@ export type PendingConfirmation =
     }
   | { type: "delete"; payload: { id: string; name: string }; preview: string };
 
-// ─── Session (3 fields) ───
+// ─── Image Collection State ───
+
+export interface ImageCollectionState {
+  perfumeId: string;
+  perfumeName: string;
+  imageCount: number;
+}
+
+// ─── Session ───
 
 export interface BotSession {
   history: ChatMessage[];
   confirmation: PendingConfirmation | null;
   language?: BotLanguage;  // "en" | "ar", defaults to "en"
+  imageCollection?: ImageCollectionState | null;
 }
 
 // ─── Zod Tool Argument Schemas ───

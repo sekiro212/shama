@@ -26,6 +26,7 @@ export async function executeConfirmation(
     switch (confirmation.type) {
       case "create": {
         const productId = await createProduct(confirmation.payload);
+        let imageCount = 0;
 
         if (confirmation.payload.imageBuffer && confirmation.payload.imageMimeType) {
           await savePerfumeImage(
@@ -35,9 +36,18 @@ export async function executeConfirmation(
             true,
             1
           );
+          imageCount = 1;
         }
 
         await ctx.reply(`${t(lang, "productCreated")}\nID: ${productId}`);
+
+        // Enter image collection mode
+        ctx.session.imageCollection = {
+          perfumeId: productId,
+          perfumeName: confirmation.payload.name,
+          imageCount,
+        };
+        await ctx.reply(t(lang, "sendProductPhotos"));
         break;
       }
 
