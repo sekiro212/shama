@@ -18,5 +18,4 @@ export const config = {
   supabaseServiceKey: requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
   openRouterApiKey: requireEnv("OPENROUTER_API_KEY"),
   groqApiKey: requireEnv("GROQ_API_KEY"),
-  geminiApiKey: process.env.GEMINI_API_KEY ?? "",  // optional — for AI image generation
 } as const;

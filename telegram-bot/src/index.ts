@@ -196,11 +196,6 @@ async function processMediaGroup(mediaGroupId: string) {
 // ═════════════════════════════════════════════
 
 async function handleGenerateImage(ctx: BotContext, imageCol: ImageCollectionState, lang: BotLanguage) {
-  if (!config.geminiApiKey) {
-    await ctx.reply(t(lang, "imageGenNotAvailable"));
-    return;
-  }
-
   const stopTyping = startTypingLoop(ctx);
   const statusMsg = await ctx.reply(t(lang, "generatingImage"));
 

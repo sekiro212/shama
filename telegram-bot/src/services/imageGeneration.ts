@@ -1,22 +1,18 @@
 import { config } from "../config";
 import { withRetry, withTimeout } from "../utils/retry";
 
-const GEMINI_URL =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent";
+const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+const IMAGE_MODEL = "google/gemini-2.5-flash-image";
 
 /**
- * Generate a professional marketing image for a perfume product using Gemini.
- * Returns the raw image buffer and MIME type.
+ * Generate a professional marketing image for a perfume product
+ * using OpenRouter's image generation (Gemini image model).
  */
 export async function generateProductImage(
   productName: string,
   brand: string,
   description: string
 ): Promise<{ buffer: Buffer; mimeType: string }> {
-  if (!config.geminiApiKey) {
-    throw new Error("GEMINI_API_KEY not configured");
-  }
-
   const prompt = `Create a professional, luxurious marketing photograph of a perfume bottle.
 Product: "${productName}" by ${brand || "luxury brand"}.
 ${description ? `Description: ${description}` : ""}
@@ -26,41 +22,54 @@ Do NOT include any text overlays, watermarks, or logos.`;
 
   return withRetry(() =>
     withTimeout(async () => {
-      const res = await fetch(`${GEMINI_URL}?key=${config.geminiApiKey}`, {
+      const res = await fetch(OPENROUTER_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${config.openRouterApiKey}`,
+          "HTTP-Referer": "https://shama.ly",
+          "X-Title": "Shama Admin Bot",
+        },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            responseModalities: ["IMAGE", "TEXT"],
-            imageMimeType: "image/png",
-          },
+          model: IMAGE_MODEL,
+          messages: [{ role: "user", content: prompt }],
+          modalities: ["text", "image"],
+          max_tokens: 1024,
         }),
       });
 
       if (!res.ok) {
         const errText = await res.text().catch(() => "");
-        throw new Error(`Gemini ${res.status}: ${errText.slice(0, 200)}`);
+        throw new Error(`OpenRouter ${res.status}: ${errText.slice(0, 200)}`);
       }
 
       const data = await res.json();
-      const parts = data.candidates?.[0]?.content?.parts;
-      const imagePart = parts?.find(
-        (p: Record<string, unknown>) => p.inlineData
-      );
+      const content = data.choices?.[0]?.message?.content;
 
-      if (!imagePart?.inlineData) {
-        throw new Error("Gemini did not return an image");
+      // Response content can be a string or array of parts
+      // Image parts have: { type: "image_url", image_url: { url: "data:image/png;base64,..." } }
+      let base64Data: string | undefined;
+      let mimeType = "image/png";
+
+      if (Array.isArray(content)) {
+        for (const part of content) {
+          if (part.type === "image_url" && part.image_url?.url) {
+            const dataUrl = part.image_url.url as string;
+            const match = dataUrl.match(/^data:(image\/\w+);base64,(.+)$/);
+            if (match) {
+              mimeType = match[1];
+              base64Data = match[2];
+              break;
+            }
+          }
+        }
       }
 
-      const buffer = Buffer.from(
-        (imagePart.inlineData as { data: string }).data,
-        "base64"
-      );
-      const mimeType =
-        (imagePart.inlineData as { mimeType?: string }).mimeType || "image/png";
+      if (!base64Data) {
+        throw new Error("Model did not return an image");
+      }
 
-      return { buffer, mimeType };
-    }, 45_000) // image gen takes 15-30s
+      return { buffer: Buffer.from(base64Data, "base64"), mimeType };
+    }, 60_000) // image gen can take 30-45s
   );
 }
