@@ -220,7 +220,7 @@ bot.on("text", async (ctx) => {
 // so runAgent re-appends it (avoiding double entries in history).
 async function runAgentWithExistingHistory(ctx: BotContext, lang: BotLanguage) {
   const lastMsg = ctx.session.history[ctx.session.history.length - 1];
-  const lastText = (lastMsg?.parts?.[0] as { text?: string })?.text ?? "process the photo";
+  const lastText = lastMsg?.content ?? "process the photo";
   // Remove the last message we added (runAgent will re-add it)
   ctx.session.history = ctx.session.history.slice(0, -1);
   await runAgentWithFeedback(ctx, lastText, lang);

@@ -149,7 +149,7 @@ async function runOne(scenario: ScenarioInput): Promise<CaseResult> {
   // Hydrate prelude history if present (multi-turn cases).
   if (scenario.prelude) {
     for (const turn of scenario.prelude) {
-      ctx.session.history.push({ role: turn.role, parts: [{ text: turn.text }] });
+      ctx.session.history.push({ role: turn.role as "user" | "assistant", content: turn.text });
     }
   }
 
