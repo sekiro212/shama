@@ -10,9 +10,10 @@ interface Props {
   onChange: (value: GiftCustomization) => void;
   onNext: () => void;
   onBack: () => void;
+  isLoading?: boolean;
 }
 
-export default function GiftStep3Customize({ value, onChange, onNext, onBack }: Props) {
+export default function GiftStep3Customize({ value, onChange, onNext, onBack, isLoading = false }: Props) {
   const { t, isRTL } = useLanguage();
 
   const set = <K extends keyof GiftCustomization>(key: K, val: GiftCustomization[K]) =>
@@ -168,10 +169,20 @@ export default function GiftStep3Customize({ value, onChange, onNext, onBack }: 
         </button>
         <button
           onClick={onNext}
-          className="flex-1 bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] hover:from-[#3E6BB5] hover:to-[#5B8DD9] text-white py-3 px-4 rounded-xl font-semibold transition-all hover:scale-105 flex items-center justify-center gap-2"
+          disabled={isLoading}
+          className="flex-1 bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] hover:from-[#3E6BB5] hover:to-[#5B8DD9] text-white py-3 px-4 rounded-xl font-semibold transition-all hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2"
         >
-          {t("giftBuilder.step3Next")}
-          <ChevronRight className={`h-5 w-5 ${isRTL ? "rotate-180" : ""}`} />
+          {isLoading ? (
+            <>
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
+              {t("giftBuilder.generating")}
+            </>
+          ) : (
+            <>
+              {t("giftBuilder.step3Next")}
+              <ChevronRight className={`h-5 w-5 ${isRTL ? "rotate-180" : ""}`} />
+            </>
+          )}
         </button>
       </div>
     </div>

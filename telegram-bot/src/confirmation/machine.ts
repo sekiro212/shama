@@ -55,7 +55,8 @@ export async function executeConfirmation(
     }
   } catch (err) {
     console.error(`[Confirm Error] ${confirmation.type}:`, err);
-    await ctx.reply(t(lang, "errorGeneral"));
+    const msg = err instanceof Error ? err.message : String(err);
+    await ctx.reply(`❌ ${confirmation.type} failed: ${msg.slice(0, 300)}`);
   } finally {
     ctx.session.confirmation = null;
   }

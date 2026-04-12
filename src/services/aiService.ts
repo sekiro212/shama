@@ -496,6 +496,75 @@ Return ONLY valid JSON array, nothing else. Example:
   }
 }
 
+export async function generateGiftImage(
+  prompt: string,
+  productImageUrls: string[]
+): Promise<string | null> {
+  if (!OPENROUTER_API_KEY) return null;
+
+  // Build multimodal content: detailed text prompt + product images as visual reference
+  const content: object[] = [{ type: "text", text: prompt }];
+  productImageUrls.slice(0, 3).forEach((url) => {
+    content.push({ type: "image_url", image_url: { url } });
+  });
+
+  try {
+    const response = await fetch(OPENROUTER_URL, {
+      method: "POST",
+      headers: OPENROUTER_HEADERS,
+      body: JSON.stringify({
+        model: "google/gemini-3.1-flash-image-preview",
+        modalities: ["text", "image"],
+        messages: [{ role: "user", content }],
+      }),
+    });
+
+    if (!response.ok) {
+      console.error("Gift image generation error:", response.status, await response.text());
+      return null;
+    }
+
+    const data = await response.json();
+    const msg = data?.choices?.[0]?.message;
+
+    console.log("[GiftImage] msg keys:", Object.keys(msg || {}));
+    console.log("[GiftImage] images field:", Array.isArray(msg?.images) ? `array[${msg.images.length}]` : msg?.images);
+    console.log("[GiftImage] content type:", typeof msg?.content, Array.isArray(msg?.content) ? `array[${msg.content.length}]` : "");
+
+    // Gemini 3.1 returns images in message.images[], not in content
+    if (Array.isArray(msg?.images) && msg.images.length > 0) {
+      const url = msg.images[0]?.image_url?.url ?? null;
+      console.log("[GiftImage] ✅ Found in images[]:", url ? `data URL (${url.length} chars)` : "null");
+      return url;
+    }
+
+    // Fallback: older models return images in content array
+    const msgContent = msg?.content;
+    if (Array.isArray(msgContent)) {
+      const imgPart = msgContent.find(
+        (p: { type: string; image_url?: { url: string } }) => p.type === "image_url"
+      );
+      const url = imgPart?.image_url?.url ?? null;
+      console.log("[GiftImage] ✅ Found in content[]:", url ? `data URL (${url.length} chars)` : "null");
+      return url;
+    }
+
+    // Last fallback: content is directly a base64 data URL string
+    if (typeof msgContent === "string" && msgContent.startsWith("data:image/")) {
+      console.log("[GiftImage] ✅ Found as string content:", msgContent.length, "chars");
+      return msgContent;
+    }
+
+    console.warn("[GiftImage] ❌ No image found. Full msg:", JSON.stringify(msg, (k, v) =>
+      typeof v === "string" && v.length > 100 ? `[...${v.length}]` : v
+    ));
+    return null;
+  } catch (error) {
+    console.error("Gift image generation error:", error);
+    return null;
+  }
+}
+
 export async function getGiftSuggestions(description: string): Promise<Product[]> {
   if (!OPENROUTER_API_KEY) return [];
   try {

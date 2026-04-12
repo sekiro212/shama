@@ -9,6 +9,7 @@ interface Props {
   onBack: () => void;
   selectedProducts: Product[];
   isPlacingOrder: boolean;
+  generatedImageUrl?: string;
 }
 
 export default function GiftStep4Preview({
@@ -16,6 +17,7 @@ export default function GiftStep4Preview({
   onBack,
   selectedProducts,
   isPlacingOrder,
+  generatedImageUrl,
 }: Props) {
   const { t, isRTL } = useLanguage();
   const { addToCart } = useCart();
@@ -41,6 +43,21 @@ export default function GiftStep4Preview({
           {t("giftBuilder.step4Title")}
         </h2>
       </div>
+
+      {/* AI-generated gift preview */}
+      {generatedImageUrl && (
+        <div className="relative rounded-2xl overflow-hidden border dark:border-white/10 border-[#323D50]/10 shadow-lg">
+          <img
+            src={generatedImageUrl}
+            alt={t("giftBuilder.step4Title")}
+            className="w-full rounded-2xl"
+            onError={(e) => console.error("[GiftImage] Failed to render img:", e)}
+          />
+          <div className="absolute top-3 end-3 bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] text-white text-xs font-semibold px-3 py-1 rounded-full shadow">
+            ✨ AI Gift Preview
+          </div>
+        </div>
+      )}
 
       {/* Product image grid */}
       <div className={`grid ${selectedProducts.length === 1 ? "grid-cols-1" : "grid-cols-2"} gap-3`}>

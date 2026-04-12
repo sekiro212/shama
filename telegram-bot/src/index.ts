@@ -95,15 +95,26 @@ bot.action("lang_ar", async (ctx) => {
 // ═════════════════════════════════════════════
 
 bot.action(/^confirm_(create|update|delete)$/, async (ctx) => {
-  await ctx.answerCbQuery();
-  const lang = getLang(ctx);
-  await executeConfirmation(ctx as BotContext, lang);
+  try {
+    await ctx.answerCbQuery();
+    const lang = getLang(ctx);
+    await executeConfirmation(ctx as BotContext, lang);
+  } catch (err) {
+    console.error("[Callback Error] confirm:", err);
+    const msg = err instanceof Error ? err.message : String(err);
+    await ctx.reply(`❌ Confirm failed: ${msg.slice(0, 300)}`).catch(() => {});
+  }
 });
 
 bot.action(/^cancel_(create|update|delete)$/, async (ctx) => {
-  await ctx.answerCbQuery();
-  const lang = getLang(ctx);
-  await cancelConfirmation(ctx as BotContext, lang);
+  try {
+    await ctx.answerCbQuery();
+    const lang = getLang(ctx);
+    await cancelConfirmation(ctx as BotContext, lang);
+  } catch (err) {
+    console.error("[Callback Error] cancel:", err);
+    await ctx.reply("❌ Cancel failed.").catch(() => {});
+  }
 });
 
 // ═════════════════════════════════════════════
@@ -264,6 +275,14 @@ async function runAgentWithFeedback(
         await setStatus(template.replace("{name}", toolName ?? ""));
       }
     });
+  } catch (err) {
+    console.error("[Agent Error]", err);
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes("timed out")) {
+      await ctx.reply("⏱ AI service timed out. Please try again.").catch(() => {});
+    } else {
+      await ctx.reply(`❌ Error: ${msg.slice(0, 200)}`).catch(() => {});
+    }
   } finally {
     stopTyping();
     if (statusMsgId != null && chatId != null) {

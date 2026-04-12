@@ -2,8 +2,8 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { X } from "lucide-react";
 import { Product } from "@/services/productsService";
-import { getGiftSuggestions } from "@/services/aiService";
-import { placeCustomGiftOrder } from "@/services/giftBuilderService";
+import { getGiftSuggestions, generateGiftImage } from "@/services/aiService";
+import { placeCustomGiftOrder, buildGiftImagePrompt } from "@/services/giftBuilderService";
 import { GiftWizardState, DEFAULT_CUSTOMIZATION } from "@/types/giftBuilder";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -62,10 +62,30 @@ export default function GiftWizard({ onClose }: Props) {
     }
   }, [state.description, t]);
 
-  const handleStep3Next = useCallback(() => {
-    // Skip image generation — go directly to preview with product images
-    setState((prev) => ({ ...prev, step: 4, isGenerating: false, generatedImageUrl: "" }));
-  }, []);
+  const handleStep3Next = useCallback(async () => {
+    set("isGenerating", true);
+    try {
+      const prompt = buildGiftImagePrompt(
+        state.selectedProducts,
+        state.customization,
+        state.imageStyle
+      );
+      const imageUrls = state.selectedProducts
+        .flatMap((p) => p.images?.map((i) => i.image_url) ?? [])
+        .filter((url): url is string => Boolean(url));
+
+      const imageUrl = await generateGiftImage(prompt, imageUrls);
+      setState((prev) => ({
+        ...prev,
+        step: 4,
+        isGenerating: false,
+        generatedImageUrl: imageUrl ?? "",
+      }));
+    } catch {
+      toast.error(t("giftBuilder.errorGenerating"));
+      setState((prev) => ({ ...prev, step: 4, isGenerating: false, generatedImageUrl: "" }));
+    }
+  }, [state.selectedProducts, state.customization, state.imageStyle, t]);
 
   const handlePlaceOrder = useCallback(async () => {
     set("isPlacingOrder", true);
@@ -73,7 +93,7 @@ export default function GiftWizard({ onClose }: Props) {
       await placeCustomGiftOrder({
         products: state.selectedProducts,
         customization: state.customization,
-        generatedImageUrl: state.selectedProducts[0]?.images?.[0]?.image_url || "",
+        generatedImageUrl: state.generatedImageUrl || state.selectedProducts[0]?.images?.[0]?.image_url || "",
         imageStyle: state.imageStyle,
         userId: user?.id,
       });
@@ -85,7 +105,7 @@ export default function GiftWizard({ onClose }: Props) {
         set("isPlacingOrder", false);
       }
     }
-  }, [state.selectedProducts, state.customization, state.imageStyle, user, t, onClose]);
+  }, [state.selectedProducts, state.customization, state.generatedImageUrl, state.imageStyle, user, t, onClose]);
 
   const toggleProduct = useCallback((product: Product) => {
     setState((prev) => {
@@ -163,6 +183,7 @@ export default function GiftWizard({ onClose }: Props) {
             onChange={(v) => set("customization", v)}
             onNext={handleStep3Next}
             onBack={() => set("step", 2)}
+            isLoading={state.isGenerating}
           />
         )}
         {state.step === 4 && (
@@ -171,6 +192,7 @@ export default function GiftWizard({ onClose }: Props) {
             onBack={() => set("step", 3)}
             selectedProducts={state.selectedProducts}
             isPlacingOrder={state.isPlacingOrder}
+            generatedImageUrl={state.generatedImageUrl}
           />
         )}
       </div>
