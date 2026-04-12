@@ -43,10 +43,11 @@ export async function fetchOrders(options?: {
   timeRange?: "today" | "week" | "month" | "all";
   status?: string;
 }): Promise<Order[]> {
-  const parsed = GetOrdersSchema.safeParse(options ?? {});
-  const { time_range: timeRange, status } = parsed.success
-    ? parsed.data
-    : { time_range: "today" as const, status: "all" as const };
+  // Use values directly — toolExecutor already validates via Zod schema.
+  // Previous bug: Zod schema uses snake_case `time_range` but caller sends
+  // camelCase `timeRange`, causing safeParse to silently default to "today".
+  const timeRange = options?.timeRange ?? "today";
+  const status = options?.status ?? "all";
 
   let query = supabase
     .from("orders")

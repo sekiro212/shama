@@ -175,12 +175,17 @@ export async function updateProduct(id: string, changes: Record<string, unknown>
     throw new Error(`Invalid update input: ${parsed.error.message}`);
   }
 
-  const invalidFields = Object.keys(parsed.data.changes).filter((k) => !UPDATABLE_FIELDS.has(k));
-  if (invalidFields.length > 0) {
-    throw new Error(`Invalid field(s) for update: ${invalidFields.join(", ")}`);
+  // Strip fields that don't exist in the DB (e.g. brand) instead of throwing
+  const cleanChanges: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(parsed.data.changes)) {
+    if (UPDATABLE_FIELDS.has(k)) cleanChanges[k] = v;
   }
 
-  const { error } = await supabase.from("perfumes").update(parsed.data.changes).eq("id", parsed.data.id);
+  if (Object.keys(cleanChanges).length === 0) {
+    throw new Error("No valid fields to update");
+  }
+
+  const { error } = await supabase.from("perfumes").update(cleanChanges).eq("id", parsed.data.id);
   if (error) throw new Error(`Failed to update product ${id}: ${error.message}`);
 }
 
