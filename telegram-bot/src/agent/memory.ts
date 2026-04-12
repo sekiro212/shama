@@ -55,10 +55,24 @@ export function appendToolResult(
 }
 
 export function trimHistory(history: ChatMessage[]): ChatMessage[] {
-  if (history.length > MAX_HISTORY) {
-    return history.slice(-MAX_HISTORY);
+  if (history.length <= MAX_HISTORY) {
+    return [...history];
   }
-  return [...history];
+
+  let trimmed = history.slice(-MAX_HISTORY);
+
+  // OpenAI requires every "tool" message to have a matching "assistant"
+  // message with tool_calls preceding it. If trimming cut off the assistant
+  // message, drop orphaned tool messages from the front.
+  while (
+    trimmed.length > 0 &&
+    (trimmed[0].role === "tool" ||
+      (trimmed[0].role === "assistant" && trimmed[0].tool_calls && !trimmed[0].content))
+  ) {
+    trimmed = trimmed.slice(1);
+  }
+
+  return trimmed;
 }
 
 export function resetHistory(): ChatMessage[] {
