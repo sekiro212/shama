@@ -18,17 +18,25 @@ function headers() {
 
 async function chatCompletion(
   messages: { role: string; content: string }[],
-  maxTokens = 1200
+  maxTokens = 1200,
+  webSearch = false
 ): Promise<string> {
+  const body: Record<string, unknown> = {
+    model: MODEL,
+    messages,
+    temperature: 0.2,
+    max_tokens: maxTokens,
+  };
+
+  // Enable web search for accurate perfume data from Fragrantica etc.
+  if (webSearch) {
+    body.tools = [{ type: "openrouter:web_search" }];
+  }
+
   const res = await fetch(OPENROUTER_URL, {
     method: "POST",
     headers: headers(),
-    body: JSON.stringify({
-      model: MODEL,
-      messages,
-      temperature: 0.2,
-      max_tokens: maxTokens,
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!res.ok) {
@@ -135,22 +143,23 @@ export async function enrichProductData(
   };
 
   try {
-    const prompt = `You are a perfume expert with encyclopedic knowledge of fragrances.
-Look up this perfume: "${name}" by "${brand || "Unknown brand"}".
+    const prompt = `You are a perfume expert. Search the web for accurate details about this perfume: "${name}" by "${brand || "Unknown brand"}".
+
+Look up the REAL fragrance notes on Fragrantica, Parfumo, or the official brand website. Do NOT guess — use actual data from your web search results.
 
 Return ONLY this JSON object with no extra text. You MUST provide content in BOTH English AND Arabic:
 ${BILINGUAL_SCHEMA}
 
 The Arabic name should be a natural Arabic translation/transliteration.
 The Arabic description should be a unique marketing description in Arabic, not a direct translation.
-The Arabic fragrance notes should be proper Arabic names for each note.
-If fragrance notes are unknown, make educated guesses based on the brand and style.`;
+The Arabic fragrance notes should be proper Arabic names for each note.`;
 
     return await withRetry(() =>
       withTimeout(async () => {
+        // Web search enabled — gets real fragrance notes from Fragrantica etc.
         const text = await chatCompletion([
           { role: "user", content: prompt },
-        ]);
+        ], 1200, true);
         if (!text) return SAFE_DEFAULT;
         const parsed = parseJsonResponse(text);
         return {

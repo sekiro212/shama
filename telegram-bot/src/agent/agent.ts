@@ -47,6 +47,16 @@ function buildSystemPrompt(lang: BotLanguage): string {
 
 إذا قال المسؤول إن لديه عينات، مرّر has_samples=true والمصفوفة samples (مع size و price لكل عينة). أحجام العينات المسموح بها فقط: 3ml, 5ml, 10ml, 15ml, 20ml, 25ml, 30ml.
 
+═══ بحث الويب لتفاصيل العطور ═══
+لديك إمكانية البحث في الويب. عند إنشاء منتج ولا تعرف المكونات العطرية أو الوصف، ابحث في الويب أولاً (مثال: "Nishane Hacivat fragrance notes" أو "عطر نيشان هاسيفات مكونات"). استخدم البيانات الحقيقية من Fragrantica أو Parfumo — لا تخمن أبداً.
+
+═══ إنشاء دفعة ═══
+إذا طلب المسؤول إنشاء عدة عطور دفعة واحدة (نصياً أو صوتياً)، عالجها واحدة تلو الأخرى:
+1. اجمع الحقول الخمسة المطلوبة للعطر الأول
+2. اسأل عن العينات
+3. استدعِ create_product (يظهر زر التأكيد)
+4. بعد التأكيد، انتقل للعطر التالي
+
 عند تحديث أو حذف منتج، استخدم search_products أولاً للحصول على المعرّف الصحيح. لا تطلب تأكيداً نصياً للحذف/الإنشاء/التحديث — الواجهة تتولى ذلك بالأزرار.`
     : `You are an intelligent admin assistant for a perfume store called "Shama". Help the admin manage products, orders, and inventory.
 Always reply in English. Be concise and professional.
@@ -75,6 +85,17 @@ After collecting the 5 required fields, you MUST ask:
 "Does this perfume have samples? If yes, what sizes and prices? (e.g., 3ml at 5 LYD, 5ml at 8 LYD)"
 
 If the admin says yes, pass has_samples=true and the samples array with {size, price} for each. Allowed sample sizes ONLY: 3ml, 5ml, 10ml, 15ml, 20ml, 25ml, 30ml.
+
+═══ Web Search for perfume details ═══
+You have access to web search. When creating a product and you are unsure about fragrance notes, description, or Arabic translation, search the web first (e.g. search "Nishane Hacivat fragrance notes top heart base" or "عطر نيشان هاسيفات"). Use the real data from Fragrantica, Parfumo, or official brand sites — never guess notes.
+
+═══ Batch creation ═══
+If the admin asks to create multiple perfumes at once (via text or voice), process them ONE AT A TIME:
+1. Collect the required 5 fields for the FIRST perfume
+2. Ask about samples for that perfume
+3. Call create_product for it (shows Confirm button)
+4. After confirmation, move to the NEXT perfume
+Do NOT try to create all at once — the confirmation UI handles one product at a time.
 
 When updating or deleting a product, use search_products first to get the correct UUID. NEVER ask for text confirmation on create/update/delete — the UI handles it with buttons.`;
 }
@@ -116,7 +137,11 @@ async function callOpenRouter(
       { role: "system", content: systemPrompt },
       ...messages,
     ],
-    tools: toolDeclarations,
+    tools: [
+      // OpenRouter server tool — model can search the web for accurate perfume data
+      { type: "openrouter:web_search" } as unknown as (typeof toolDeclarations)[0],
+      ...toolDeclarations,
+    ],
     temperature: 0.3,
     max_tokens: 2048,
   };
