@@ -615,7 +615,8 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                             <Button
                               variant="default"
                               size="sm"
-                              className="dark:bg-white/10 bg-[#EDF1F7] dark:hover:bg-white/20 hover:bg-[#EDF1F7] dark:text-[#F5F5F5] text-[#323D50] border-0 rounded-lg h-7 w-7 sm:h-8 sm:w-8 p-0 transition-all duration-200 hover:scale-105"
+                              aria-label={t("cart.decreaseQuantity")}
+                              className="dark:bg-white/10 bg-[#EDF1F7] dark:hover:bg-white/20 hover:bg-[#EDF1F7] dark:text-[#F5F5F5] text-[#323D50] border-0 rounded-lg h-10 w-10 sm:h-8 sm:w-8 p-0 transition-all duration-200 hover:scale-105"
                               onClick={() =>
                                 handleQuantityChange(
                                   item.id,
@@ -625,15 +626,16 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                                 )
                               }
                             >
-                              <Minus className="h-3 w-3" />
+                              <Minus className="h-4 w-4 sm:h-3 sm:w-3" />
                             </Button>
-                            <span className="dark:text-[#F5F5F5] text-[#323D50] font-bold text-sm sm:text-base w-8 sm:w-10 text-center dark:bg-white/10 bg-[#EDF1F7] rounded-lg py-1">
+                            <span className="dark:text-[#F5F5F5] text-[#323D50] font-bold text-base sm:text-base w-10 sm:w-10 text-center dark:bg-white/10 bg-[#EDF1F7] rounded-lg py-1">
                               {item.quantity}
                             </span>
                             <Button
                               variant="default"
                               size="sm"
-                              className="dark:bg-white/10 bg-[#EDF1F7] dark:hover:bg-white/20 hover:bg-[#EDF1F7] dark:text-[#F5F5F5] text-[#323D50] border-0 rounded-lg h-7 w-7 sm:h-8 sm:w-8 p-0 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                              aria-label={t("cart.increaseQuantity")}
+                              className="dark:bg-white/10 bg-[#EDF1F7] dark:hover:bg-white/20 hover:bg-[#EDF1F7] dark:text-[#F5F5F5] text-[#323D50] border-0 rounded-lg h-10 w-10 sm:h-8 sm:w-8 p-0 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
                               onClick={() =>
                                 handleQuantityChange(
                                   item.id,
@@ -644,7 +646,7 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                               }
                               disabled={!canAddToCart(item)}
                             >
-                              <Plus className="h-3 w-3" />
+                              <Plus className="h-4 w-4 sm:h-3 sm:w-3" />
                             </Button>
                           </div>
 
@@ -853,14 +855,14 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                     open={isCheckoutOpen}
                     onOpenChange={setIsCheckoutOpen}
                   >
-                    <DialogContent className="glass-card bg-[#F8F9FB] dark:bg-[#1a2235] dark:border-white/10 border-[#323D50]/10 dark:text-[#F5F5F5] text-[#323D50] max-w-md mx-4 sm:mx-auto">
-                      <DialogHeader>
+                    <DialogContent className="glass-card bg-[#F8F9FB] dark:bg-[#1a2235] dark:border-white/10 border-[#323D50]/10 dark:text-[#F5F5F5] text-[#323D50] max-w-md mx-4 sm:mx-auto max-h-[90vh] !flex !flex-col !gap-0 p-0">
+                      <DialogHeader className="p-6 pb-2 shrink-0">
                         <DialogTitle className="dark:text-[#F5F5F5] text-[#323D50] gradient-text text-xl sm:text-2xl">
                           {t("cart.completeOrder")}
                         </DialogTitle>
                       </DialogHeader>
 
-                      <div className="space-y-4 sm:space-y-6">
+                      <div className="space-y-4 sm:space-y-6 overflow-y-auto overscroll-contain px-6 pb-6 flex-1 min-h-0">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div className="space-y-2">
                             <Label

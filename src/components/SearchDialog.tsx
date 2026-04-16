@@ -62,10 +62,10 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="p-0 gap-0 max-w-2xl w-[95vw] overflow-hidden rounded-3xl border-0 shadow-[0_32px_80px_rgba(0,0,0,0.25)] bg-white/95 dark:bg-[#0f1521]/95 backdrop-blur-2xl">
+      <DialogContent className="p-0 gap-0 max-w-2xl w-[95vw] sm:w-[95vw] max-h-[85vh] overflow-hidden rounded-2xl sm:rounded-3xl border-0 shadow-[0_32px_80px_rgba(0,0,0,0.25)] bg-white/95 dark:bg-[#0f1521]/95 backdrop-blur-2xl">
 
         {/* ── Input bar ── */}
-        <div className={`relative flex items-center gap-3 px-5 py-4 border-b border-black/5 dark:border-white/5 ${isRTL ? "flex-row-reverse" : ""}`}>
+        <div className={`relative flex items-center gap-2 sm:gap-3 px-4 sm:px-5 py-3 sm:py-4 border-b border-black/5 dark:border-white/5 ${isRTL ? "flex-row-reverse" : ""}`}>
           <Search className="w-5 h-5 text-[#5B8DD9] flex-shrink-0" />
           <input
             ref={inputRef}
@@ -73,7 +73,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t("search.placeholder")}
             dir={isRTL ? "rtl" : "ltr"}
-            className="flex-1 bg-transparent text-[15px] font-medium text-[#1a1a2e] dark:text-white placeholder:text-[#9ca3af] dark:placeholder:text-white/25 outline-none"
+            className="flex-1 bg-transparent text-base font-medium text-[#1a1a2e] dark:text-white placeholder:text-[#9ca3af] dark:placeholder:text-white/25 outline-none"
           />
           <div className={`flex items-center gap-2 flex-shrink-0 ${isRTL ? "flex-row-reverse" : ""}`}>
             {(isSearching) && (
@@ -96,7 +96,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
         </div>
 
         {/* ── Scrollable results ── */}
-        <div className="overflow-y-auto" style={{ maxHeight: "62vh" }}>
+        <div className="overflow-y-auto max-h-[60vh] sm:max-h-[62vh]">
           <AnimatePresence mode="wait" initial={false}>
 
             {/* Empty state: quick searches */}
@@ -243,11 +243,11 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
         </div>
 
         {/* ── Footer ── */}
-        <div className={`px-5 py-3 border-t border-black/5 dark:border-white/5 flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
+        <div className={`px-4 sm:px-5 py-3 border-t border-black/5 dark:border-white/5 flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
           <span className="text-[11px] text-[#9ca3af] dark:text-white/20 tabular-nums">
-            {query ? `${totalCount} ${t("search.results")}` : "Cmd+K"}
+            {query ? `${totalCount} ${t("search.results")}` : <span className="hidden sm:inline">Cmd+K</span>}
           </span>
-          <div className={`flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
+          <div className={`hidden sm:flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
             <span className="text-[11px] text-[#9ca3af] dark:text-white/20 flex items-center gap-1.5">
               <kbd className="inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium bg-black/5 dark:bg-white/5 rounded-md border border-black/8 dark:border-white/8 text-[#6b7280] dark:text-white/30">
                 Esc

@@ -8,7 +8,7 @@ import HomePage from "@/pages/HomePage";
 import ProductPage from "@/pages/ProductPage";
 import CollectionPage from "@/pages/CollectionPage";
 import GiftSetsPage from "@/pages/GiftSetsPage";
-import AdminPage from "@/pages/AdminPage";
+import AdminRedirect from "@/pages/AdminRedirect";
 import FragranceQuizPage from "@/pages/FragranceQuizPage";
 import WishlistPage from "@/pages/WishlistPage";
 import OrderTrackingPage from "@/pages/OrderTrackingPage";
@@ -43,13 +43,16 @@ function PageTransition({ children }: { children: React.ReactNode }) {
 function AnimatedRoutes({ isCartOpen, setIsCartOpen }: { isCartOpen: boolean; setIsCartOpen: (v: boolean) => void }) {
   const location = useLocation();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const isAdminRoute = location.pathname.startsWith("/admin");
 
   return (
     <>
-      <Header
-        onCartClick={() => setIsCartOpen(true)}
-        onSearchClick={() => setIsSearchOpen(true)}
-      />
+      {!isAdminRoute && (
+        <Header
+          onCartClick={() => setIsCartOpen(true)}
+          onSearchClick={() => setIsSearchOpen(true)}
+        />
+      )}
       <SearchDialog open={isSearchOpen} onOpenChange={setIsSearchOpen} />
       <main>
         <AnimatePresence mode="wait">
@@ -64,13 +67,13 @@ function AnimatedRoutes({ isCartOpen, setIsCartOpen }: { isCartOpen: boolean; se
             <Route path="/samples" element={<PageTransition><SamplesPage /></PageTransition>} />
             <Route path="/track-order" element={<PageTransition><OrderTrackingPage /></PageTransition>} />
             <Route path="/my-orders" element={<PageTransition><MyOrdersPage /></PageTransition>} />
-            <Route path="/admin" element={<PageTransition><AdminPage /></PageTransition>} />
+            <Route path="/admin" element={<PageTransition><AdminRedirect /></PageTransition>} />
             <Route path="/ai-finder" element={<PageTransition><AIFinderPage /></PageTransition>} />
             <Route path="/settings" element={<PageTransition><EmailPreferencesPage /></PageTransition>} />
           </Routes>
         </AnimatePresence>
       </main>
-      <Footer />
+      {!isAdminRoute && <Footer />}
       <CartSidebar
         isOpen={isCartOpen}
         onClose={() => setIsCartOpen(false)}

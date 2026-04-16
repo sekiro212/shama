@@ -38,12 +38,13 @@ export default function Footer() {
             </div>
           </div>
 
-          <div className="flex space-x-3 sm:space-x-4 rtl:space-x-reverse mt-4 sm:mt-0">
+          <div className="flex gap-2 sm:gap-3 rtl:space-x-reverse mt-2 sm:mt-0">
             <a
               href="https://www.instagram.com/shama._200/?igsh=dDcyZmc3ODByNHBl&utm_source=qr"
               target="_blank"
               rel="noopener noreferrer"
-              className="dark:text-white/60 text-[#6B7B8D] hover:text-[#5B8DD9] transition-colors"
+              aria-label="Instagram"
+              className="dark:text-white/60 text-[#6B7B8D] hover:text-[#5B8DD9] transition-colors flex items-center justify-center w-11 h-11 rounded-lg hover:bg-[#5B8DD9]/10"
             >
               <Instagram className="h-5 w-5" />
             </a>
@@ -51,7 +52,8 @@ export default function Footer() {
               href="https://www.facebook.com/profile.php?id=61575028689348&mibextid=wwXIfr&rdid=ziyFSHbQTmrIb4HW&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F1EqWpzXQyk%2F%3Fmibextid%3DwwXIfr"
               target="_blank"
               rel="noopener noreferrer"
-              className="dark:text-white/60 text-[#6B7B8D] hover:text-[#5B8DD9] transition-colors"
+              aria-label="Facebook"
+              className="dark:text-white/60 text-[#6B7B8D] hover:text-[#5B8DD9] transition-colors flex items-center justify-center w-11 h-11 rounded-lg hover:bg-[#5B8DD9]/10"
             >
               <Facebook className="h-5 w-5" />
             </a>
@@ -59,7 +61,8 @@ export default function Footer() {
               href="https://www.tiktok.com/@shama_625?_r=1&_d=ehaiidj2573dih&sec_uid=MS4wLjABAAAAtWhwVbsiMc_T7iAluhIopScG5tmdWhTlCRauHrAVmp3Eo_PnjOOOITTHFURnrnqF&share_author_id=7492887353330516997&sharer_language=en&source=h5_m&u_code=ejkmi594adgdl5&ug_btm=b8727,b0&social_share_type=4&utm_source=copy&sec_user_id=MS4wLjABAAAAtWhwVbsiMc_T7iAluhIopScG5tmdWhTlCRauHrAVmp3Eo_PnjOOOITTHFURnrnqF&tt_from=copy&utm_medium=ios&utm_campaign=client_share&enable_checksum=1&user_id=7492887353330516997&share_link_id=87C185B6-D290-4FE5-876D-5F6E6C350F98&share_app_id=1233"
               target="_blank"
               rel="noopener noreferrer"
-              className="dark:text-white/60 text-[#6B7B8D] hover:text-[#5B8DD9] transition-colors"
+              aria-label="TikTok"
+              className="dark:text-white/60 text-[#6B7B8D] hover:text-[#5B8DD9] transition-colors flex items-center justify-center w-11 h-11 rounded-lg hover:bg-[#5B8DD9]/10"
             >
               <TikTokIcon className="h-5 w-5" />
             </a>

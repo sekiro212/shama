@@ -197,7 +197,7 @@ export default function FragranceQuizPage() {
   };
 
   return (
-    <div className="min-h-screen pt-[80px] md:pt-24 pb-16 px-4 relative">
+    <div className="min-h-screen pt-20 md:pt-24 pb-16 px-3 sm:px-4 relative">
       {/* Background decorations */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 -left-32 w-64 h-64 bg-[#5B8DD9]/10 rounded-full blur-3xl" />
@@ -211,16 +211,16 @@ export default function FragranceQuizPage() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="text-center mb-10"
+            className="text-center mb-6 sm:mb-10"
           >
             <div className="flex items-center justify-center gap-2 mb-3">
-              <Sparkles className="w-6 h-6 text-[#5B8DD9]" />
-              <h1 className="text-3xl md:text-4xl font-bold gradient-text">
+              <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-[#5B8DD9] flex-shrink-0" />
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold gradient-text leading-tight">
                 {t("quiz.title")}
               </h1>
-              <Sparkles className="w-6 h-6 text-[#5B8DD9]" />
+              <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-[#5B8DD9] flex-shrink-0" />
             </div>
-            <p className="text-[#6B7B8D] dark:text-white/50 text-sm md:text-base max-w-md mx-auto">
+            <p className="text-[#6B7B8D] dark:text-white/50 text-xs sm:text-sm md:text-base max-w-md mx-auto px-2">
               {t("quiz.description")}
             </p>
           </motion.div>
@@ -258,7 +258,7 @@ export default function FragranceQuizPage() {
             </motion.div>
 
             {/* Quiz Steps with Animations */}
-            <div className="relative overflow-hidden min-h-[400px]">
+            <div className="relative overflow-hidden min-h-[320px] sm:min-h-[400px]">
               <AnimatePresence mode="wait" custom={direction}>
                 <motion.div
                   key={currentStep}
@@ -288,31 +288,31 @@ export default function FragranceQuizPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4 }}
-              className="flex items-center justify-between mt-8"
+              className="flex items-center justify-between gap-2 mt-6 sm:mt-8"
             >
               {/* Back Button */}
               <Button
                 onClick={handleBack}
                 disabled={currentStep === 0}
                 variant="ghost"
-                className={`glass border border-[#323D50]/10 dark:border-white/10 text-[#6B7B8D] dark:text-white/70 hover:text-[#323D50] dark:hover:text-white hover:bg-[#5B8DD9]/10 dark:hover:bg-white/10 rounded-xl px-5 py-3 font-medium transition-all duration-300 ${
+                className={`glass border border-[#323D50]/10 dark:border-white/10 text-[#6B7B8D] dark:text-white/70 hover:text-[#323D50] dark:hover:text-white hover:bg-[#5B8DD9]/10 dark:hover:bg-white/10 rounded-xl px-4 sm:px-5 py-3 min-h-[48px] font-medium transition-all duration-300 ${
                   currentStep === 0
                     ? "opacity-0 pointer-events-none"
                     : "opacity-100"
                 }`}
               >
-                <ArrowLeft className="w-4 h-4 me-2" />
-                {t("quiz.back")}
+                <ArrowLeft className="w-4 h-4 me-1 sm:me-2" />
+                <span className="text-sm sm:text-base">{t("quiz.back")}</span>
               </Button>
 
               {/* Step dots */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
                 {quizSteps.map((_, index) => (
                   <div
                     key={index}
                     className={`h-2 rounded-full transition-all duration-300 ${
                       index === currentStep
-                        ? "w-6 bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5]"
+                        ? "w-5 sm:w-6 bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5]"
                         : index < currentStep
                         ? "w-2 bg-[#5B8DD9]/60"
                         : "w-2 bg-[#323D50]/20 dark:bg-white/20"
@@ -321,9 +321,9 @@ export default function FragranceQuizPage() {
                 ))}
               </div>
 
-              {/* Next indicator */}
+              {/* Next indicator - hidden on mobile (no horizontal room) */}
               <div
-                className={`flex items-center gap-2 text-[#6B7B8D] dark:text-white/40 text-sm ${
+                className={`hidden sm:flex items-center gap-2 text-[#6B7B8D] dark:text-white/40 text-sm ${
                   currentStep === totalSteps - 1 ? "opacity-0" : "opacity-100"
                 }`}
               >

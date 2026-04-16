@@ -23,6 +23,7 @@ import { useWishlist } from "@/contexts/WishlistContext";
 import { fetchProductById, Product } from "@/services/productsService";
 import { toast } from "sonner";
 import React, { useState, useEffect } from "react";
+import { PLACEHOLDER_IMAGE_URL } from "@/lib/productImage";
 import RelatedProducts from "@/components/RelatedProducts";
 import RecentlyViewed from "@/components/RecentlyViewed";
 import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
@@ -62,7 +63,7 @@ export default function ProductPage() {
   // Get product images from the database
   const productImages = product?.images?.length
     ? product.images.map((img) => img.image_url)
-    : ["https://source.unsplash.com/100x100/?perfume,bottle"];
+    : [PLACEHOLDER_IMAGE_URL];
 
   // Language-aware content
   const productName = product ? (language === "ar" && product.name_ar ? product.name_ar : product.name) : "";
@@ -238,9 +239,7 @@ export default function ProductPage() {
           : selectedBottleSizeData
           ? selectedBottleSizeData.price
           : product.price,
-        image:
-          product.images?.[0]?.image_url ||
-          "https://source.unsplash.com/100x100/?perfume,bottle",
+        image: product.images?.[0]?.image_url || PLACEHOLDER_IMAGE_URL,
         size: selectedSampleData
           ? selectedSampleData.size
           : selectedBottleSizeData
@@ -277,9 +276,9 @@ export default function ProductPage() {
         />
       </div>
 
-      <div className="container mx-auto px-4 pt-[80px] md:pt-24 pb-8 relative z-10">
+      <div className="container mx-auto px-3 sm:px-4 pt-20 md:pt-24 pb-8 relative z-10">
         {/* Breadcrumb */}
-        <div className="flex items-center space-x-4 rtl:space-x-reverse mb-8 mt-4 sm:mt-6 animate-slide-up relative z-50">
+        <div className="flex items-center space-x-2 sm:space-x-4 rtl:space-x-reverse mb-4 sm:mb-8 mt-2 sm:mt-6 animate-slide-up relative z-50 text-sm flex-wrap">
           <Link
             to="/collection"
             className="bg-[#3E6BB5] hover:bg-[#2d5699] text-white px-4 py-2 rounded-lg inline-flex items-center font-medium transition-all duration-300 hover:scale-105 shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#5B8DD9]/50"
@@ -293,12 +292,12 @@ export default function ProductPage() {
           </span>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-10 lg:gap-16">
           {/* Product Images */}
-          <div className="space-y-6 animate-scale-in">
+          <div className="space-y-4 sm:space-y-6 animate-scale-in">
             {/* Main Image */}
             <div className="relative group">
-              <div className="glass-card rounded-2xl overflow-hidden p-4">
+              <div className="glass-card rounded-2xl overflow-hidden p-3 sm:p-4">
                 <div className="relative aspect-square rounded-xl overflow-hidden">
                   <img
                     src={productImages[selectedImage]}
@@ -962,14 +961,14 @@ export default function ProductPage() {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`flex items-center space-x-2 rtl:space-x-reverse px-4 py-3 rounded-lg font-medium transition-all duration-300 flex-1 justify-center ${
+                    className={`flex items-center space-x-2 rtl:space-x-reverse px-2 sm:px-4 py-2.5 sm:py-3 rounded-lg font-medium transition-all duration-300 flex-1 justify-center ${
                       activeTab === tab.id
                         ? "bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] text-white shadow-lg"
                         : " dark:hover:bg-white dark:bg-white/5 hover:bg-white/5"
                     }`}
                   >
                     <tab.icon className="w-4 h-4" />
-                    <span>{tab.label}</span>
+                    <span className="hidden sm:inline">{tab.label}</span>
                   </button>
                 ))}
               </div>
@@ -1302,7 +1301,7 @@ const NotesTab = React.memo(({ product, t, language }: { product: Product; t: (k
   return (
   <div className="space-y-6 animate-fade-in">
     <h3 className="text-xl font-bold dark:text-[#F5F5F5] text-[#323D50] mb-4">{t("product.fragranceNotes")}</h3>
-    <div className="grid grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <div>
         <div className="text-xs dark:text-white/50 text-[#6B7B8D] dark:text-[#D6D6D6] font-medium uppercase mb-1">
           {t("product.topNotes")}

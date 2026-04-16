@@ -98,7 +98,7 @@ export default function EmailPreferencesPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen pt-[80px] md:pt-24 pb-16 px-4">
+      <div className="min-h-screen pt-20 md:pt-24 pb-12 sm:pb-16 px-3 sm:px-4">
         <div className="max-w-md mx-auto text-center py-20">
           <Mail className="w-16 h-16 text-[#5B8DD9]/30 mx-auto mb-6" />
           <h2 className="text-xl font-bold text-[#323D50] dark:text-white mb-3">
@@ -131,7 +131,7 @@ export default function EmailPreferencesPage() {
   ];
 
   return (
-    <div className="min-h-screen pt-[80px] md:pt-24 pb-16 px-4">
+    <div className="min-h-screen pt-20 md:pt-24 pb-12 sm:pb-16 px-3 sm:px-4">
       <div className="max-w-lg mx-auto">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -140,12 +140,12 @@ export default function EmailPreferencesPage() {
           className="text-center mb-10"
         >
           <div className="flex items-center justify-center gap-2 mb-3">
-            <Mail className="w-6 h-6 text-[#5B8DD9]" />
-            <h1 className="text-3xl md:text-4xl font-bold gradient-text">
+            <Mail className="w-5 h-5 sm:w-6 sm:h-6 text-[#5B8DD9] flex-shrink-0" />
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold gradient-text leading-tight">
               {t("settings.title")}
             </h1>
           </div>
-          <p className="text-[#6B7B8D] dark:text-white/50 text-sm">
+          <p className="text-[#6B7B8D] dark:text-white/50 text-xs sm:text-sm px-2">
             {t("settings.subtitle")}
           </p>
         </motion.div>
@@ -154,10 +154,10 @@ export default function EmailPreferencesPage() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="space-y-4"
+          className="space-y-3 sm:space-y-4"
         >
           {/* Master toggle */}
-          <div className="glass-card p-6 rounded-2xl">
+          <div className="glass-card p-4 sm:p-6 rounded-2xl">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] flex items-center justify-center">
@@ -181,7 +181,7 @@ export default function EmailPreferencesPage() {
           </div>
 
           {/* Individual toggles */}
-          <div className={`glass-card p-6 rounded-2xl space-y-5 transition-opacity ${!prefs.email_enabled ? "opacity-50 pointer-events-none" : ""}`}>
+          <div className={`glass-card p-4 sm:p-6 rounded-2xl space-y-4 sm:space-y-5 transition-opacity ${!prefs.email_enabled ? "opacity-50 pointer-events-none" : ""}`}>
             {toggleItems.map((item) => (
               <div key={item.key} className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -222,7 +222,7 @@ export default function EmailPreferencesPage() {
                 <button
                   onClick={() => updatePref("language_pref", "en")}
                   disabled={saving}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                  className={`px-4 py-2 sm:px-3 sm:py-1.5 min-h-[40px] sm:min-h-0 rounded-lg text-xs sm:text-xs font-medium transition-all ${
                     prefs.language_pref === "en"
                       ? "bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] text-white"
                       : "bg-[#323D50]/10 dark:bg-white/10 text-[#6B7B8D]"
@@ -233,7 +233,7 @@ export default function EmailPreferencesPage() {
                 <button
                   onClick={() => updatePref("language_pref", "ar")}
                   disabled={saving}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                  className={`px-4 py-2 sm:px-3 sm:py-1.5 min-h-[40px] sm:min-h-0 rounded-lg text-xs sm:text-xs font-medium transition-all ${
                     prefs.language_pref === "ar"
                       ? "bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] text-white"
                       : "bg-[#323D50]/10 dark:bg-white/10 text-[#6B7B8D]"

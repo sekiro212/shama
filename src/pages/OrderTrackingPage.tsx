@@ -103,17 +103,17 @@ const OrderTrackingPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FB] dark:bg-[#1a2235] pt-[80px] md:pt-24 pb-16">
-      <div className="container mx-auto px-4 max-w-3xl">
+    <div className="min-h-screen bg-[#F8F9FB] dark:bg-[#1a2235] pt-20 md:pt-24 pb-12 sm:pb-16">
+      <div className="container mx-auto px-3 sm:px-4 max-w-3xl">
         {/* Header */}
-        <div className="text-center mb-10">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] flex items-center justify-center mx-auto mb-5 shadow-lg shadow-[#5B8DD9]/20">
-            <Package className="w-8 h-8 text-white" />
+        <div className="text-center mb-6 sm:mb-10">
+          <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] flex items-center justify-center mx-auto mb-4 sm:mb-5 shadow-lg shadow-[#5B8DD9]/20">
+            <Package className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold gradient-text mb-3">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold gradient-text mb-2 sm:mb-3 leading-tight">
             {t("tracking.title")}
           </h1>
-          <p className="dark:text-white/50 text-[#6B7B8D] dark:text-[#D6D6D6] max-w-md mx-auto">
+          <p className="dark:text-white/50 text-[#6B7B8D] dark:text-[#D6D6D6] max-w-md mx-auto text-sm sm:text-base px-2">
             {t("tracking.description")}
           </p>
         </div>
@@ -121,23 +121,23 @@ const OrderTrackingPage = () => {
         {/* Search Form */}
         <form
           onSubmit={handleSearch}
-          className="glass-card rounded-2xl p-6 mb-8"
+          className="glass-card rounded-2xl p-4 sm:p-6 mb-6 sm:mb-8"
         >
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 dark:text-white/30 text-[#6B7B8D] dark:text-[#D6D6D6]" />
+              <Search className="absolute start-4 top-1/2 -translate-y-1/2 w-5 h-5 dark:text-white/30 text-[#6B7B8D] dark:text-[#D6D6D6]" />
               <input
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={t("tracking.placeholder")}
-                className="w-full pl-12 pr-4 py-3.5 rounded-xl dark:bg-white/5 bg-white border dark:border-white/10 border-[#323D50]/10 dark:text-[#F5F5F5] text-[#323D50] dark:placeholder:text-white/30 placeholder:text-[#6B7B8D] dark:text-[#D6D6D6] focus:outline-none focus:border-[#5B8DD9] focus:ring-1 focus:ring-[#5B8DD9] transition-all duration-300"
+                className="w-full ps-12 pe-4 py-3.5 min-h-[48px] text-base rounded-xl dark:bg-white/5 bg-white border dark:border-white/10 border-[#323D50]/10 dark:text-[#F5F5F5] text-[#323D50] dark:placeholder:text-white/30 placeholder:text-[#6B7B8D] dark:text-[#D6D6D6] focus:outline-none focus:border-[#5B8DD9] focus:ring-1 focus:ring-[#5B8DD9] transition-all duration-300"
               />
             </div>
             <Button
               type="submit"
               disabled={loading || !query.trim()}
-              className="bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] hover:opacity-90 text-white px-8 py-3.5 rounded-xl transition-all duration-300 disabled:opacity-50"
+              className="bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] hover:opacity-90 text-white px-6 sm:px-8 py-3.5 min-h-[48px] rounded-xl transition-all duration-300 disabled:opacity-50"
             >
               {loading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

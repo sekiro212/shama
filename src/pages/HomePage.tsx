@@ -25,7 +25,6 @@ import { motion } from "framer-motion";
 import RecentlyViewed from "@/components/RecentlyViewed";
 import { BackgroundBeamsWithCollision } from "@/components/ui/background-beams-with-collision";
 import PixelTransition from "@/components/ui/PixelTransition";
-import { PinContainer } from "@/components/ui/3d-pin";
 import MarketingVideoSection from "@/components/MarketingVideoSection";
 import ScentMemoryWall from "@/components/ScentMemoryWall";
 
@@ -275,9 +274,9 @@ export default function HomePage() {
       </section>
 
       {/* Stats Section */}
-      <section className="py-20 relative z-10">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 md:gap-8">
+      <section className="py-12 sm:py-16 md:py-20 relative z-10">
+        <div className="container mx-auto px-3 sm:px-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 md:gap-8">
             {[
               { icon: Users, label: t("home.stats.happyCustomers"), value: "150+" },
               { icon: Wind, label: t("home.stats.ourPerfumes"), value: "100+" },
@@ -308,28 +307,28 @@ export default function HomePage() {
       <MarketingVideoSection />
 
       {/* AI Finder Banner */}
-      <section className="py-12 relative z-10">
-        <div className="container mx-auto px-4">
+      <section className="py-8 sm:py-12 relative z-10">
+        <div className="container mx-auto px-3 sm:px-4">
           <AIFinderBanner />
         </div>
       </section>
 
       {/* Enhanced Featured Products */}
-      <section id="products" className="py-24 relative z-10">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16 animate-slide-up">
-            <span className="inline-block text-[#5B8DD9] text-sm font-semibold tracking-wider uppercase mb-4">
+      <section id="products" className="py-12 sm:py-16 md:py-24 relative z-10">
+        <div className="container mx-auto px-3 sm:px-4">
+          <div className="text-center mb-8 sm:mb-12 md:mb-16 animate-slide-up">
+            <span className="inline-block text-[#5B8DD9] text-xs sm:text-sm font-semibold tracking-wider uppercase mb-3 sm:mb-4">
               {t("home.featured.badge")}
             </span>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold gradient-text mb-4 sm:mb-6">
+            <h2 className="text-2xl sm:text-4xl md:text-5xl font-bold gradient-text mb-3 sm:mb-6 leading-tight">
               {t("home.featured.title")}
             </h2>
-            <p className="dark:text-white/70 text-[#6B7B8D] text-lg sm:text-xl max-w-xs sm:max-w-lg md:max-w-2xl lg:max-w-3xl mx-auto leading-relaxed px-4 sm:px-0">
+            <p className="dark:text-white/70 text-[#6B7B8D] text-sm sm:text-lg md:text-xl max-w-xs sm:max-w-lg md:max-w-2xl lg:max-w-3xl mx-auto leading-relaxed px-2 sm:px-0">
               {t("home.featured.description")}
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8 mb-8 sm:mb-16">
             {loading
               ? // Loading skeleton
                 Array.from({ length: 3 }).map((_, index) => (
@@ -369,31 +368,31 @@ export default function HomePage() {
       </section>
 
       {/* Enhanced About Section */}
-      <section className="py-24 relative z-10">
-        <div className="container mx-auto px-4">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-            <div className="space-y-8 animate-slide-up">
+      <section className="py-12 sm:py-16 md:py-24 relative z-10">
+        <div className="container mx-auto px-3 sm:px-4">
+          <div className="grid lg:grid-cols-2 gap-8 md:gap-12 lg:gap-16 items-center">
+            <div className="space-y-6 sm:space-y-8 animate-slide-up">
               <div>
-                <span className="inline-block text-[#5B8DD9] text-sm font-semibold tracking-wider uppercase mb-4">
+                <span className="inline-block text-[#5B8DD9] text-xs sm:text-sm font-semibold tracking-wider uppercase mb-3 sm:mb-4">
                   {t("home.about.badge")}
                 </span>
-                <h2 className="text-5xl font-bold gradient-text mb-6">
+                <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold gradient-text mb-4 sm:mb-6 leading-tight">
                   {t("home.about.title")}
                 </h2>
-                <p className="dark:text-white/80 text-[#6B7B8D] text-lg leading-relaxed mb-6">
+                <p className="dark:text-white/80 text-[#6B7B8D] text-base sm:text-lg leading-relaxed mb-4 sm:mb-6">
                   {t("home.about.description1")}
                 </p>
-                <p className="dark:text-white/70 text-[#6B7B8D] leading-relaxed">
+                <p className="dark:text-white/70 text-[#6B7B8D] text-sm sm:text-base leading-relaxed">
                   {t("home.about.description2")}
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-2 gap-3 sm:gap-6">
                 {[
                   { label: t("home.about.premiumIngredients"), desc: t("home.about.sourcedGlobally") },
                   { label: t("home.about.masterCrafted"), desc: t("home.about.yearsOfExpertise") },
                 ].map((feature, index) => (
-                  <div key={index} className="glass-card p-6 rounded-xl">
+                  <div key={index} className="glass-card p-4 sm:p-6 rounded-xl">
                     <div className="dark:text-[#F5F5F5] text-[#323D50] font-semibold mb-2">
                       {feature.label}
                     </div>
@@ -465,71 +464,68 @@ export default function HomePage() {
       </section>
 
       {/* Enhanced Instagram Feed */}
-      <section className="py-24 relative z-10">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16 animate-slide-up">
-            <span className="inline-block text-[#5B8DD9] text-sm font-semibold tracking-wider uppercase mb-4">
+      <section className="py-12 sm:py-16 md:py-24 relative z-10">
+        <div className="container mx-auto px-3 sm:px-4">
+          <div className="text-center mb-8 sm:mb-12 md:mb-16 animate-slide-up">
+            <span className="inline-block text-[#5B8DD9] text-xs sm:text-sm font-semibold tracking-wider uppercase mb-3 sm:mb-4">
               {t("home.social.badge")}
             </span>
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold gradient-text mb-4 sm:mb-6">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold gradient-text mb-3 sm:mb-6 leading-tight">
               {t("home.social.title")}
             </h2>
-            <p className="dark:text-white/70 text-[#6B7B8D] text-base sm:text-lg max-w-xs sm:max-w-lg md:max-w-2xl mx-auto px-4 sm:px-0">
+            <p className="dark:text-white/70 text-[#6B7B8D] text-sm sm:text-base md:text-lg max-w-xs sm:max-w-lg md:max-w-2xl mx-auto px-2 sm:px-0">
               {t("home.social.description")}
             </p>
           </div>
 
-          <div className="mt-12 flex justify-center">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-14">
-              {[
-                {
-                  image:
-                    "https://images.unsplash.com/photo-1541643600914-78b084683601?w=400&h=400&fit=crop",
-                  href: "https://www.instagram.com/shama._200/?igsh=dDcyZmc3ODByNHBl&utm_source=qr",
-                  icon: <Instagram className="h-8 w-8 text-white" />,
-                  title: "Instagram",
-                },
-                {
-                  image:
-                    "https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?w=400&h=400&fit=crop",
-                  href: "https://www.instagram.com/shama._200/?igsh=dDcyZmc3ODByNHBl&utm_source=qr",
-                  icon: <Instagram className="h-8 w-8 text-white" />,
-                  title: "Instagram",
-                },
-                {
-                  image:
-                    "https://images.unsplash.com/photo-1523293182086-7651a899d37f?w=400&h=400&fit=crop",
-                  href: "https://www.tiktok.com/@shama_625?_r=1&_d=ehaiidj2573dih&sec_uid=MS4wLjABAAAAtWhwVbsiMc_T7iAluhIopScG5tmdWhTlCRauHrAVmp3Eo_PnjOOOITTHFURnrnqF&share_author_id=7492887353330516997&sharer_language=en&source=h5_m&u_code=ejkmi594adgdl5&ug_btm=b8727,b0&social_share_type=4&utm_source=copy&sec_user_id=MS4wLjABAAAAtWhwVbsiMc_T7iAluhIopScG5tmdWhTlCRauHrAVmp3Eo_PnjOOOITTHFURnrnqF&tt_from=copy&utm_medium=ios&utm_campaign=client_share&enable_checksum=1&user_id=7492887353330516997&share_link_id=87C185B6-D290-4FE5-876D-5F6E6C350F98&share_app_id=1233",
-                  icon: <TikTokIcon className="h-8 w-8 text-white" />,
-                  title: "TikTok",
-                },
-                {
-                  image:
-                    "https://images.unsplash.com/photo-1615634260167-c8cdede054de?w=400&h=400&fit=crop",
-                  href: "https://www.facebook.com/profile.php?id=61575028689348&mibextid=wwXIfr&rdid=ziyFSHbQTmrIb4HW&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F1EqWpzXQyk%2F%3Fmibextid%3DwwXIfr",
-                  icon: <Facebook className="h-8 w-8 text-white" />,
-                  title: "Facebook",
-                },
-              ].map((card, index) => (
-                <PinContainer
-                  key={index}
-                  title={card.title}
-                  href={card.href}
-                  containerClassName="relative w-[20rem] h-[20rem]"
+          <div className="mt-8 sm:mt-12 grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 max-w-5xl mx-auto">
+            {[
+              {
+                image: "https://images.unsplash.com/photo-1541643600914-78b084683601?w=400&h=400&fit=crop",
+                href: "https://www.instagram.com/shama._200/?igsh=dDcyZmc3ODByNHBl&utm_source=qr",
+                icon: <Instagram className="h-6 w-6 text-white" />,
+                title: "Instagram",
+              },
+              {
+                image: "https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?w=400&h=400&fit=crop",
+                href: "https://www.instagram.com/shama._200/?igsh=dDcyZmc3ODByNHBl&utm_source=qr",
+                icon: <Instagram className="h-6 w-6 text-white" />,
+                title: "Instagram",
+              },
+              {
+                image: "https://images.unsplash.com/photo-1523293182086-7651a899d37f?w=400&h=400&fit=crop",
+                href: "https://www.tiktok.com/@shama_625?_r=1&_d=ehaiidj2573dih&sec_uid=MS4wLjABAAAAtWhwVbsiMc_T7iAluhIopScG5tmdWhTlCRauHrAVmp3Eo_PnjOOOITTHFURnrnqF&share_author_id=7492887353330516997&sharer_language=en&source=h5_m&u_code=ejkmi594adgdl5&ug_btm=b8727,b0&social_share_type=4&utm_source=copy&sec_user_id=MS4wLjABAAAAtWhwVbsiMc_T7iAluhIopScG5tmdWhTlCRauHrAVmp3Eo_PnjOOOITTHFURnrnqF&tt_from=copy&utm_medium=ios&utm_campaign=client_share&enable_checksum=1&user_id=7492887353330516997&share_link_id=87C185B6-D290-4FE5-876D-5F6E6C350F98&share_app_id=1233",
+                icon: <TikTokIcon className="h-6 w-6 text-white" />,
+                title: "TikTok",
+              },
+              {
+                image: "https://images.unsplash.com/photo-1615634260167-c8cdede054de?w=400&h=400&fit=crop",
+                href: "https://www.facebook.com/profile.php?id=61575028689348&mibextid=wwXIfr&rdid=ziyFSHbQTmrIb4HW&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F1EqWpzXQyk%2F%3Fmibextid%3DwwXIfr",
+                icon: <Facebook className="h-6 w-6 text-white" />,
+                title: "Facebook",
+              },
+            ].map((card, index) => (
+              <a
+                key={index}
+                href={card.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group glass-card rounded-2xl overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-[#5B8DD9]/20"
+              >
+                <div
+                  className="aspect-square bg-cover bg-center relative"
+                  style={{ backgroundImage: `url(${card.image})` }}
                 >
-                  <div className="flex flex-col p-4 tracking-tight text-slate-100/50 w-[20rem] h-[20rem]">
-                    <div
-                      className="flex flex-1 w-full rounded-lg mt-4 bg-cover bg-center relative"
-                      style={{ backgroundImage: `url(${card.image})` }}
-                    >
-                      <div className="absolute bottom-4 right-4 z-10 bg-black/70 rounded-full p-2">
-                        {card.icon}
-                      </div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent group-hover:from-black/80 transition-colors duration-300" />
+                  <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
+                    <span className="text-white font-semibold text-sm sm:text-base">{card.title}</span>
+                    <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/30 group-hover:bg-white/30 transition-colors duration-300">
+                      {card.icon}
                     </div>
                   </div>
-                </PinContainer>
-              ))}
-            </div>
+                </div>
+              </a>
+            ))}
           </div>
 
           <div className="text-center mt-12">

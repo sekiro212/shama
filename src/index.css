@@ -65,7 +65,6 @@ html[lang="ar"] #root {
 * {
   border: 0;
   box-sizing: border-box;
-  transition: all var(--duration-normal) var(--ease-smooth);
 }
 
 *:before,
@@ -264,10 +263,12 @@ button:hover::before {
   left: 100%;
 }
 
-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 25px rgba(91, 141, 217, 0.25),
-    0 0 0 1px rgba(91, 141, 217, 0.15);
+@media (hover: hover) {
+  button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(91, 141, 217, 0.25),
+      0 0 0 1px rgba(91, 141, 217, 0.15);
+  }
 }
 
 button:active {
@@ -308,9 +309,11 @@ button:active {
     transition: all var(--duration-normal) var(--ease-smooth);
   }
 
-  .glow-hover:hover {
-    @apply glow;
-    transform: translateY(-4px);
+  @media (hover: hover) {
+    .glow-hover:hover {
+      @apply glow;
+      transform: translateY(-4px);
+    }
   }
 
   .gradient-text {
@@ -502,12 +505,14 @@ button[data-variant="outline"] {
   color: var(--page-text) !important;
 }
 
-button[data-variant="outline"]:hover {
-  background: linear-gradient(135deg, #5B8DD9, #3E6BB5) !important;
-  border-color: #5B8DD9 !important;
-  color: white !important;
-  transform: translateY(-2px);
-  box-shadow: 0 10px 25px rgba(91, 141, 217, 0.35);
+@media (hover: hover) {
+  button[data-variant="outline"]:hover {
+    background: linear-gradient(135deg, #5B8DD9, #3E6BB5) !important;
+    border-color: #5B8DD9 !important;
+    color: white !important;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(91, 141, 217, 0.35);
+  }
 }
 
 button[data-variant="ghost"] {
@@ -527,12 +532,14 @@ button[data-variant="ghost"]:hover {
   color: var(--page-text) !important;
 }
 
-.btn-outline:hover {
-  background: linear-gradient(135deg, #5B8DD9, #3E6BB5) !important;
-  border-color: #5B8DD9 !important;
-  color: white !important;
-  transform: translateY(-2px);
-  box-shadow: 0 10px 25px rgba(91, 141, 217, 0.35);
+@media (hover: hover) {
+  .btn-outline:hover {
+    background: linear-gradient(135deg, #5B8DD9, #3E6BB5) !important;
+    border-color: #5B8DD9 !important;
+    color: white !important;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(91, 141, 217, 0.35);
+  }
 }
 
 /* Enhanced Focus States */

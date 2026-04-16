@@ -254,14 +254,14 @@ export default function LoginPage() {
           onChange={(e) => handleOtpChange(i, e.target.value)}
           onKeyDown={(e) => handleOtpKeyDown(i, e)}
           onPaste={i === 0 ? handleOtpPaste : undefined}
-          className="w-11 h-13 sm:w-13 sm:h-14 text-center text-xl font-bold rounded-xl glass dark:bg-white/5 bg-white dark:border-white/10 border-[#323D50]/10 dark:text-[#F5F5F5] text-[#323D50] focus:ring-2 focus:ring-[#5B8DD9]/50 focus:outline-none transition-all border"
+          className="w-11 h-12 sm:w-12 sm:h-14 text-center text-xl font-bold rounded-xl glass dark:bg-white/5 bg-white dark:border-white/10 border-[#323D50]/10 dark:text-[#F5F5F5] text-[#323D50] focus:ring-2 focus:ring-[#5B8DD9]/50 focus:outline-none transition-all border"
         />
       ))}
     </div>
   );
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 pt-24 pb-12" dir={isRTL ? "rtl" : "ltr"}>
+    <div className="min-h-screen flex items-center justify-center px-3 sm:px-4 pt-20 md:pt-24 pb-8 sm:pb-12" dir={isRTL ? "rtl" : "ltr"}>
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#5B8DD9]/10 rounded-full blur-3xl" />
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#3E6BB5]/10 rounded-full blur-3xl" />

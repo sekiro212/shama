@@ -102,8 +102,8 @@ const MyOrdersPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F9FB] dark:bg-[#0f1724] py-8 sm:py-12">
-      <div className="container mx-auto px-4 max-w-3xl">
+    <div className="min-h-screen bg-[#F8F9FB] dark:bg-[#0f1724] pt-20 md:pt-24 pb-8 sm:pb-12">
+      <div className="container mx-auto px-3 sm:px-4 max-w-3xl">
         {/* Header */}
         <div className="text-center mb-8 sm:mb-12">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] mb-4">
@@ -258,13 +258,14 @@ const MyOrdersPage = () => {
                               <Button
                                 variant="ghost"
                                 size="sm"
+                                aria-label={t("myOrders.copied")}
                                 onClick={() => handleCopyCode(order.vanex_package_code!, order.id)}
-                                className="h-7 w-7 p-0 hover:bg-[#5B8DD9]/10"
+                                className="h-10 w-10 sm:h-7 sm:w-7 p-0 hover:bg-[#5B8DD9]/10"
                               >
                                 {copiedCode === order.id ? (
-                                  <Check className="w-3.5 h-3.5 text-green-500" />
+                                  <Check className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-green-500" />
                                 ) : (
-                                  <Copy className="w-3.5 h-3.5 text-[#6B7B8D]" />
+                                  <Copy className="w-4 h-4 sm:w-3.5 sm:h-3.5 text-[#6B7B8D]" />
                                 )}
                               </Button>
                             </div>

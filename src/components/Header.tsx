@@ -59,8 +59,8 @@ export default function Header({ onCartClick, onSearchClick }: HeaderProps) {
           : "bg-transparent"
       }`}
     >
-      <div className="container mx-auto px-4 py-4">
-        <div className="flex items-center justify-between">
+      <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
+        <div className="flex items-center justify-between gap-2">
           {/* Logo */}
           <Link
             to="/"
@@ -241,15 +241,32 @@ export default function Header({ onCartClick, onSearchClick }: HeaderProps) {
             </Button>
           </div>
 
-          {/* Mobile Menu Button */}
+          {/* Mobile Actions: Cart + Menu */}
+          <div className="flex items-center gap-2 lg:hidden">
+            {/* Mobile Cart Button */}
+            <Button
+              onClick={onCartClick}
+              aria-label={t("header.cart")}
+              variant="ghost"
+              size="icon"
+              className="glass dark:bg-white/5 bg-[#5B8DD9]/10 dark:hover:bg-white/10 hover:bg-[#5B8DD9]/20 dark:text-[#F5F5F5] text-[#323D50] border dark:border-white/10 border-[#323D50]/10 rounded-xl w-11 h-11 transition-all duration-300 relative"
+            >
+              <ShoppingBag className="h-5 w-5" />
+              {getItemCount() > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 bg-gradient-to-r from-red-500 to-pink-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold shadow-lg shadow-red-500/50 border border-white/50 leading-none">
+                  {getItemCount() > 99 ? "99+" : getItemCount()}
+                </span>
+              )}
+            </Button>
           <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-            <SheetTrigger asChild className="lg:hidden">
+            <SheetTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                className="glass dark:bg-white/5 bg-[#5B8DD9]/10 dark:hover:bg-white/10 hover:bg-[#5B8DD9]/20 dark:text-[#F5F5F5] text-[#323D50] border dark:border-white/10 border-[#323D50]/10 rounded-xl w-10 h-10 tec transition-all duration-300"
+                aria-label={t("header.menu")}
+                className="glass dark:bg-white/5 bg-[#5B8DD9]/10 dark:hover:bg-white/10 hover:bg-[#5B8DD9]/20 dark:text-[#F5F5F5] text-[#323D50] border dark:border-white/10 border-[#323D50]/10 rounded-xl w-11 h-11 transition-all duration-300"
               >
-                <Menu className="h-5 w-5 me-8" />
+                <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
             <SheetContent
@@ -288,6 +305,35 @@ export default function Header({ onCartClick, onSearchClick }: HeaderProps) {
                   </Link>
                 ))}
               </nav>
+
+              {/* Mobile Search Button */}
+              <Button
+                onClick={() => {
+                  onSearchClick?.();
+                  setIsMenuOpen(false);
+                }}
+                variant="ghost"
+                className="w-full glass dark:bg-white/5 bg-[#5B8DD9]/10 dark:hover:bg-white/10 hover:bg-[#5B8DD9]/20 border dark:border-white/10 border-[#323D50]/10 rounded-xl px-3 h-10 text-sm font-semibold transition-all duration-300 hover:scale-105 mb-2"
+              >
+                <Search className="w-4 h-4 me-1.5" />
+                {t("header.search")}
+              </Button>
+
+              {/* Mobile Wishlist Button */}
+              <Link to="/wishlist" onClick={() => setIsMenuOpen(false)}>
+                <Button
+                  variant="ghost"
+                  className="w-full glass dark:bg-white/5 bg-[#5B8DD9]/10 dark:hover:bg-white/10 hover:bg-[#5B8DD9]/20 border dark:border-white/10 border-[#323D50]/10 rounded-xl px-3 h-10 text-sm font-semibold transition-all duration-300 hover:scale-105 mb-2 relative"
+                >
+                  <Heart className="w-4 h-4 me-1.5" />
+                  {t("header.wishlist")}
+                  {wishlistItems.length > 0 && (
+                    <span className="ms-2 min-w-[20px] h-5 px-1 bg-gradient-to-r from-red-500 to-pink-500 text-white text-[10px] rounded-full inline-flex items-center justify-center font-bold">
+                      {wishlistItems.length}
+                    </span>
+                  )}
+                </Button>
+              </Link>
 
               {/* Mobile Theme Toggle */}
               <Button
@@ -365,6 +411,7 @@ export default function Header({ onCartClick, onSearchClick }: HeaderProps) {
               </Button>
             </SheetContent>
           </Sheet>
+          </div>
         </div>
       </div>
 

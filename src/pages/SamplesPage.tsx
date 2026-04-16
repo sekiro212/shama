@@ -104,28 +104,28 @@ export default function SamplesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FB] dark:bg-[#1a2235] dark:text-[#F5F5F5] text-[#323D50] pt-24 pb-20">
+    <div className="min-h-screen bg-[#F8F9FB] dark:bg-[#1a2235] dark:text-[#F5F5F5] text-[#323D50] pt-20 md:pt-24 pb-12 sm:pb-20">
       {/* Hero */}
-      <div className="relative overflow-hidden mb-16">
+      <div className="relative overflow-hidden mb-8 sm:mb-16">
         <div className="absolute inset-0 bg-gradient-to-b from-[#5B8DD9]/10 via-transparent to-transparent pointer-events-none" />
-        <div className="container mx-auto px-4 py-16 text-center relative">
-          <div className="inline-flex items-center space-x-2 rtl:space-x-reverse glass bg-[#5B8DD9]/10 border border-[#5B8DD9]/30 rounded-full px-4 py-2 mb-6">
+        <div className="container mx-auto px-3 sm:px-4 py-8 sm:py-16 text-center relative">
+          <div className="inline-flex items-center space-x-2 rtl:space-x-reverse glass bg-[#5B8DD9]/10 border border-[#5B8DD9]/30 rounded-full px-3 sm:px-4 py-2 mb-4 sm:mb-6">
             <TestTube className="w-4 h-4 text-[#5B8DD9]" />
-            <span className="text-sm text-[#5B8DD9] font-medium">{t("samples.badge")}</span>
+            <span className="text-xs sm:text-sm text-[#5B8DD9] font-medium">{t("samples.badge")}</span>
           </div>
-          <h1 className="text-4xl md:text-6xl font-bold mb-4">
+          <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold mb-3 sm:mb-4 leading-tight">
             <span className="gradient-text">{t("samples.title")}</span>
           </h1>
-          <p className="dark:text-white/60 text-[#6B7B8D] text-lg max-w-xl mx-auto">
+          <p className="dark:text-white/60 text-[#6B7B8D] text-sm sm:text-lg max-w-xl mx-auto px-2">
             {t("samples.description")}
           </p>
         </div>
       </div>
 
       {/* Grid */}
-      <div className="container mx-auto px-4">
+      <div className="container mx-auto px-3 sm:px-4">
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
             {[...Array(8)].map((_, i) => (
               <div key={i} className="glass-card rounded-2xl overflow-hidden animate-pulse">
                 <div className="h-64 bg-white/5" />
@@ -155,7 +155,7 @@ export default function SamplesPage() {
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
             {products.map((product) => {
               const selectedSample = getSelectedSample(product);
               const inCart = selectedSample

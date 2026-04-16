@@ -58,8 +58,8 @@ export default function ChatbotPanel({ isOpen, onClose }: ChatbotPanelProps) {
   if (!isOpen) return null;
 
   return (
-    <div className={`fixed bottom-24 ${isRTL ? "left-4 sm:left-6" : "right-4 sm:right-6"} z-50 w-[calc(100vw-2rem)] sm:w-[400px] h-[min(600px,calc(100vh-8rem))] flex flex-col animate-slide-up`}>
-      <div className="glass-card bg-[#F8F9FB]/95 dark:bg-[#1a2235]/95 backdrop-blur-2xl border border-[#5B8DD9]/30 rounded-2xl overflow-hidden flex flex-col h-full shadow-2xl shadow-[#5B8DD9]/20">
+    <div className={`fixed inset-0 sm:inset-auto sm:bottom-24 ${isRTL ? "sm:left-6" : "sm:right-6"} z-50 sm:w-[400px] sm:h-[min(600px,calc(100vh-8rem))] flex flex-col animate-slide-up`}>
+      <div className="glass-card bg-[#F8F9FB]/95 dark:bg-[#1a2235]/95 backdrop-blur-2xl border border-[#5B8DD9]/30 sm:rounded-2xl overflow-hidden flex flex-col h-full shadow-2xl shadow-[#5B8DD9]/20">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-[#323D50]/10 dark:border-white/10 bg-gradient-to-r from-[#5B8DD9]/10 to-[#3E6BB5]/10">
           <div className="flex items-center gap-3">

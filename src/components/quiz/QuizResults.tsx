@@ -8,6 +8,7 @@ import { fetchProducts, Product, PerfumeSample } from "@/services/productsServic
 import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { ScentDNACard } from "@/services/aiService";
+import { PLACEHOLDER_IMAGE_URL } from "@/lib/productImage";
 
 interface QuizResultsProps {
   recommendations: { name: string; matchScore: number; reason: string }[];
@@ -87,9 +88,7 @@ export default function QuizResults({
       id: product.id,
       name: product.name,
       price: product.price,
-      image:
-        product.images?.[0]?.image_url ||
-        "https://source.unsplash.com/100x100/?perfume,bottle",
+      image: product.images?.[0]?.image_url || PLACEHOLDER_IMAGE_URL,
       size: product.size,
       stock_quantity: product.stock_quantity,
     });
@@ -108,7 +107,7 @@ export default function QuizResults({
       id: sample.id,
       name: `${product.name} Sample (${sample.size})`,
       price: sample.price,
-      image: product.images?.[0]?.image_url || "https://source.unsplash.com/100x100/?perfume,bottle",
+      image: product.images?.[0]?.image_url || PLACEHOLDER_IMAGE_URL,
       size: sample.size,
       stock_quantity: sample.stock_quantity,
     });
@@ -232,15 +231,15 @@ export default function QuizResults({
   return (
     <div className="w-full max-w-4xl mx-auto">
       {/* Header */}
-      <div className="text-center mb-10">
+      <div className="text-center mb-6 sm:mb-10 px-2">
         <div className="flex items-center justify-center gap-2 mb-3">
-          <Sparkles className="w-6 h-6 text-[#5B8DD9]" />
-          <h2 className="text-2xl md:text-3xl font-bold gradient-text">
+          <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-[#5B8DD9] flex-shrink-0" />
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold gradient-text leading-tight">
             {t("quiz.results.title")}
           </h2>
-          <Sparkles className="w-6 h-6 text-[#5B8DD9]" />
+          <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-[#5B8DD9] flex-shrink-0" />
         </div>
-        <p className="text-[#6B7B8D] dark:text-white/50 text-sm">
+        <p className="text-[#6B7B8D] dark:text-white/50 text-xs sm:text-sm">
           {t("quiz.results.description")}
         </p>
       </div>
@@ -250,13 +249,12 @@ export default function QuizResults({
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="space-y-6"
+        className="space-y-4 sm:space-y-6"
       >
         {recommendations.map((rec, index) => {
           const product = findProduct(rec.name);
           const imageUrl =
-            product?.images?.[0]?.image_url ||
-            "https://source.unsplash.com/400x400/?perfume,luxury";
+            product?.images?.[0]?.image_url || PLACEHOLDER_IMAGE_URL;
           const isSoldOut =
             product && (!product.is_active || product.stock_quantity === 0);
 
@@ -267,9 +265,9 @@ export default function QuizResults({
               className="glass-card relative overflow-hidden rounded-2xl border border-[#323D50]/10 dark:border-white/10 hover:border-[#5B8DD9]/30 transition-all duration-500 group"
             >
               {/* Rank badge */}
-              <div className="absolute top-4 left-4 z-10">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] flex items-center justify-center shadow-lg shadow-[#5B8DD9]/30">
-                  <span className="text-white font-bold text-sm">
+              <div className="absolute top-3 start-3 sm:top-4 sm:start-4 z-10">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] flex items-center justify-center shadow-lg shadow-[#5B8DD9]/30">
+                  <span className="text-white font-bold text-xs sm:text-sm">
                     #{index + 1}
                   </span>
                 </div>
@@ -277,7 +275,7 @@ export default function QuizResults({
 
               <div className="flex flex-col md:flex-row">
                 {/* Product Image */}
-                <div className="relative w-full md:w-56 h-56 md:h-auto flex-shrink-0 overflow-hidden">
+                <div className="relative w-full md:w-56 h-44 sm:h-56 md:h-auto flex-shrink-0 overflow-hidden">
                   <img
                     src={imageUrl}
                     alt={rec.name}
@@ -288,12 +286,12 @@ export default function QuizResults({
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 p-6 md:p-8 flex flex-col justify-between">
-                  <div className="space-y-4">
+                <div className="flex-1 p-4 sm:p-6 md:p-8 flex flex-col justify-between">
+                  <div className="space-y-3 sm:space-y-4">
                     {/* Name & Match Score */}
-                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                      <div>
-                        <h3 className="text-xl md:text-2xl font-bold text-[#323D50] dark:text-white group-hover:gradient-text transition-all duration-300">
+                    <div className="flex flex-row items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-[#323D50] dark:text-white group-hover:gradient-text transition-all duration-300 leading-tight">
                           {rec.name}
                         </h3>
                         {product && showBottle && (
@@ -313,9 +311,9 @@ export default function QuizResults({
 
                       {/* Match Score Badge */}
                       <div className="flex-shrink-0">
-                        <div className="relative w-16 h-16">
+                        <div className="relative w-12 h-12 sm:w-16 sm:h-16">
                           {/* Circular progress background */}
-                          <svg className="w-16 h-16 -rotate-90" viewBox="0 0 64 64">
+                          <svg className="w-12 h-12 sm:w-16 sm:h-16 -rotate-90" viewBox="0 0 64 64">
                             <circle
                               cx="32"
                               cy="32"
@@ -349,7 +347,7 @@ export default function QuizResults({
                           </svg>
                           {/* Score text */}
                           <div className="absolute inset-0 flex items-center justify-center">
-                            <span className="text-sm font-bold text-[#323D50] dark:text-white">
+                            <span className="text-[11px] sm:text-sm font-bold text-[#323D50] dark:text-white">
                               {rec.matchScore}%
                             </span>
                           </div>
@@ -396,12 +394,12 @@ export default function QuizResults({
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex flex-col sm:flex-row gap-3 mt-6">
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-4 sm:mt-6">
                     {product && (
                       <>
                         <Button
                           asChild
-                          className="glass bg-[#323D50]/10 dark:bg-white/10 border border-[#323D50]/15 dark:border-white/20 text-[#323D50] dark:text-white hover:bg-[#323D50]/20 dark:hover:bg-white/20 rounded-xl px-6 py-3 font-semibold transition-all duration-300"
+                          className="glass bg-[#323D50]/10 dark:bg-white/10 border border-[#323D50]/15 dark:border-white/20 text-[#323D50] dark:text-white hover:bg-[#323D50]/20 dark:hover:bg-white/20 rounded-xl px-5 sm:px-6 py-3 min-h-[48px] w-full sm:w-auto font-semibold transition-all duration-300"
                         >
                           <Link to={`/product/${product.id}`}>
                             <Eye className="w-4 h-4 me-2" />
@@ -413,7 +411,7 @@ export default function QuizResults({
                           <Button
                             onClick={() => handleAddToCart(product)}
                             disabled={!!isSoldOut}
-                            className={`rounded-xl px-6 py-3 font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-[#5B8DD9]/25 ${
+                            className={`rounded-xl px-5 sm:px-6 py-3 min-h-[48px] w-full sm:w-auto font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-[#5B8DD9]/25 ${
                               isSoldOut
                                 ? "bg-gray-500/50 text-[#6B7B8D] dark:text-white/60 cursor-not-allowed"
                                 : "bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] hover:from-[#3E6BB5] hover:to-[#5B8DD9] text-white"
@@ -452,7 +450,7 @@ export default function QuizResults({
         >
           <div
             id="scent-dna-card"
-            className="max-w-sm mx-auto glass-card p-8 rounded-2xl border border-[#5B8DD9]/30 bg-gradient-to-br from-[#0d1525] to-[#1a2235]"
+            className="max-w-sm mx-auto glass-card p-5 sm:p-8 rounded-2xl border border-[#5B8DD9]/30 bg-gradient-to-br from-[#0d1525] to-[#1a2235]"
           >
             {/* Header */}
             <div className="text-center mb-6">

@@ -21,6 +21,10 @@ import { toast } from "sonner";
 import { useState } from "react";
 import React from "react";
 import ProductQuickView from "@/components/ProductQuickView";
+import {
+  PLACEHOLDER_IMAGE_URL,
+  ProductImageFallback,
+} from "@/lib/productImage";
 
 interface ProductCardProps {
   product: Product;
@@ -29,7 +33,7 @@ interface ProductCardProps {
 const ProductCardComponent = ({ product }: ProductCardProps) => {
   const { addToCart } = useCart();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
-  const { t, isRTL, language } = useLanguage();
+  const { t, language } = useLanguage();
   const [imageLoaded, setImageLoaded] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -41,10 +45,11 @@ const ProductCardComponent = ({ product }: ProductCardProps) => {
   const productDescription = language === "ar" && product.description_ar ? product.description_ar : product.description;
   const productNotes = language === "ar" && product.fragranceNotes_ar?.top?.length ? product.fragranceNotes_ar : product.fragranceNotes;
 
-  // Get all product images
+  // Get all product images (empty array when none uploaded — triggers fallback)
   const productImages = product?.images?.length
     ? product.images.map((img) => img.image_url)
-    : ["https://source.unsplash.com/100x100/?perfume,bottle"];
+    : [];
+  const hasImages = productImages.length > 0;
 
   const handleAddToCart = () => {
     // Check if product is sold out
@@ -57,9 +62,7 @@ const ProductCardComponent = ({ product }: ProductCardProps) => {
       id: product.id,
       name: product.name,
       price: product.price,
-      image:
-        product.images?.[0]?.image_url ||
-        "https://source.unsplash.com/100x100/?perfume,bottle",
+      image: product.images?.[0]?.image_url || PLACEHOLDER_IMAGE_URL,
       size: product.size,
       stock_quantity: product.stock_quantity,
     });
@@ -91,14 +94,14 @@ const ProductCardComponent = ({ product }: ProductCardProps) => {
   };
 
   return (
-    <div className="whisper-card">
+    <div className="whisper-card h-full">
       <CardContainer
         className="w-full h-full"
-        containerClassName="py-0"
+        containerClassName="py-0 h-full w-full"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
-        <CardBody className="glass-card group cursor-pointer animate-scale-in relative overflow-hidden w-full h-full">
+        <CardBody className="glass-card group cursor-pointer animate-scale-in relative overflow-hidden w-full h-full flex flex-col">
           {/* Glow Effect */}
           <div className="absolute inset-0 bg-gradient-to-r from-[#5B8DD9]/20 to-[#3E6BB5]/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl blur-xl -z-10" />
 
@@ -109,26 +112,32 @@ const ProductCardComponent = ({ product }: ProductCardProps) => {
           >
             <Link to={`/product/${product.id}`}>
               <div className="relative">
-                <img
-                  src={productImages[currentImageIndex]}
-                  alt={productName}
-                  loading="lazy"
-                  className={`w-full h-72 object-cover transition-all duration-700 group-hover:scale-110 ${
-                    imageLoaded ? "opacity-100" : "opacity-0"
-                  }`}
-                  onLoad={() => setImageLoaded(true)}
-                />
+                {hasImages ? (
+                  <>
+                    <img
+                      src={productImages[currentImageIndex]}
+                      alt={productName}
+                      loading="lazy"
+                      className={`w-full h-56 sm:h-64 md:h-72 object-cover transition-all duration-700 group-hover:scale-[1.04] ${
+                        imageLoaded ? "opacity-100" : "opacity-0"
+                      }`}
+                      onLoad={() => setImageLoaded(true)}
+                    />
 
-                {/* Image Loading Placeholder */}
-                {!imageLoaded && (
-                  <div className="absolute inset-0 bg-gradient-to-br from-[#5B8DD9]/20 to-[#3E6BB5]/20 animate-pulse flex items-center justify-center">
-                    <Sparkles className="w-8 h-8 text-[#5B8DD9] animate-spin" />
-                  </div>
+                    {/* Image Loading Placeholder */}
+                    {!imageLoaded && (
+                      <div className="absolute inset-0 bg-gradient-to-br from-[#5B8DD9]/20 to-[#3E6BB5]/20 animate-pulse flex items-center justify-center">
+                        <Sparkles className="w-8 h-8 text-[#5B8DD9] animate-spin" />
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <ProductImageFallback className="w-full h-56 sm:h-64 md:h-72 transition-transform duration-700 group-hover:scale-[1.04]" />
                 )}
 
-                {/* Multiple Images Indicator */}
+                {/* Multiple Images Indicator — bottom-end so it doesn't fight the wishlist heart */}
                 {productImages.length > 1 && (
-                  <div className="absolute top-3 right-3 bg-black/50 backdrop-blur-sm rounded-full px-2 py-1 text-white text-xs flex items-center">
+                  <div className="absolute bottom-3 end-3 bg-black/55 backdrop-blur-sm rounded-full px-2 py-1 text-white text-xs flex items-center rtl:space-x-reverse">
                     <ImageIcon className="w-3 h-3 me-1" />
                     {productImages.length}
                   </div>
@@ -172,6 +181,7 @@ const ProductCardComponent = ({ product }: ProductCardProps) => {
 
                 {/* Wishlist Heart Button */}
                 <button
+                  aria-label={t("nav.wishlist")}
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -183,14 +193,14 @@ const ProductCardComponent = ({ product }: ProductCardProps) => {
                         id: product.id,
                         name: productName,
                         price: product.price,
-                        image: product.images?.[0]?.image_url || "",
+                        image: product.images?.[0]?.image_url || PLACEHOLDER_IMAGE_URL,
                         size: product.size,
                         gender: product.gender,
                       });
                       toast.success(`${productName} ${t("product.addedToWishlist")}`);
                     }
                   }}
-                  className="absolute top-4 right-4 z-20 w-9 h-9 rounded-full flex items-center justify-center bg-black/40 backdrop-blur-sm border border-[#323D50]/15 dark:border-white/20 hover:bg-black/60 transition-all duration-200 hover:scale-110"
+                  className="absolute top-3 end-3 z-20 w-11 h-11 sm:w-10 sm:h-10 rounded-full flex items-center justify-center bg-black/40 backdrop-blur-sm border border-[#323D50]/15 dark:border-white/20 hover:bg-black/60 transition-all duration-200 hover:scale-110"
                 >
                   <Heart
                     className={`w-4 h-4 transition-colors duration-200 ${
@@ -220,8 +230,8 @@ const ProductCardComponent = ({ product }: ProductCardProps) => {
             </Link>
 
             {/* Product Type Badge */}
-            <div className="absolute top-4 left-4">
-              <div className="flex items-center space-x-1 rtl:space-x-reverse glass bg-black/40 backdrop-blur-md rounded-full px-3 py-2 border border-[#323D50]/15 dark:border-white/20">
+            <div className="absolute top-3 start-3">
+              <div className="flex items-center space-x-1 rtl:space-x-reverse glass bg-black/40 backdrop-blur-md rounded-full px-2.5 sm:px-3 py-1.5 sm:py-2 border border-[#323D50]/15 dark:border-white/20">
                 {product.type === "sample" ? (
                   <TestTube className="h-4 w-4 text-[#5B8DD9]" />
                 ) : (
@@ -233,42 +243,7 @@ const ProductCardComponent = ({ product }: ProductCardProps) => {
               </div>
             </div>
 
-            {/* Sample Available Badge */}
-            {product.has_samples &&
-              product.samples &&
-              product.samples.length > 0 && (
-                <div className="absolute top-4 right-4">
-                  <div className="flex items-center space-x-1 rtl:space-x-reverse glass bg-[#5B8DD9]/80 backdrop-blur-md rounded-full px-3 py-2 border border-[#5B8DD9]/50">
-                    <TestTube className="h-3 w-3 text-white" />
-                    <span className="text-white text-xs font-medium">
-                      {t("product.samplesAvailable")}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-            {/* Sold Out Badge */}
-            {isSoldOut && (
-              <div className="absolute top-16 right-4">
-                <div className="flex items-center space-x-1 rtl:space-x-reverse glass bg-red-500/80 backdrop-blur-md rounded-full px-3 py-2 border border-red-400/50">
-                  <span className="text-white text-sm font-semibold">
-                    {t("product.soldOut")}
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {/* Premium Quality Indicator */}
-            {product.rating >= 4.5 && !isSoldOut && (
-              <div className="absolute bottom-4 right-4 glass bg-gradient-to-r from-[#5B8DD9]/20 to-[#3E6BB5]/20 backdrop-blur-md border border-[#5B8DD9]/30 rounded-full px-3 py-1">
-                <div className="flex items-center space-x-1 rtl:space-x-reverse">
-                  <Sparkles className="w-3 h-3 text-[#5B8DD9]" />
-                  <span className="text-[#323D50] dark:text-white text-xs font-medium">{t("product.premium")}</span>
-                </div>
-              </div>
-            )}
-
-            {/* Sold Out Overlay */}
+            {/* Sold Out Overlay — single full-image overlay; stray pill removed */}
             {isSoldOut && (
               <div className="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center">
                 <div className="text-center">
@@ -281,135 +256,117 @@ const ProductCardComponent = ({ product }: ProductCardProps) => {
             )}
           </CardItem>
 
-          {/* Image Thumbnails Preview - Show below main image if multiple images */}
-          <CardItem translateZ="15" className="w-full">
-            {productImages.length > 1 && (
-              <div className="px-4 py-2 bg-black/20 border-b border-white/5">
-                <div className="flex space-x-2 rtl:space-x-reverse overflow-x-auto scrollbar-hide">
-                  {productImages.slice(0, 4).map((image, index) => (
-                    <button
-                      key={index}
-                      onClick={(e) => goToImage(index, e)}
-                      className={`flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden border-2 transition-all duration-300 ${
-                        index === currentImageIndex
-                          ? "border-[#5B8DD9] scale-105"
-                          : "border-[#323D50]/15 dark:border-white/20 hover:border-white/40"
-                      }`}
-                    >
-                      <img
-                        src={image}
-                        alt={`${product.name} view ${index + 1}`}
-                        loading="lazy"
-                        className="w-full h-full object-cover"
-                      />
-                    </button>
-                  ))}
-                  {productImages.length > 4 && (
-                    <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-black/40 border-2 border-[#323D50]/15 dark:border-white/20 flex items-center justify-center">
-                      <span className="text-white/60 text-xs">
-                        +{productImages.length - 4}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </CardItem>
-
-          {/* Content Container */}
+          {/* Content Container — flex-1 so all cards in a row reach the same height */}
           <CardItem
             translateZ="30"
-            className="p-4 sm:p-5 md:p-6 space-y-3 sm:space-y-4 w-full"
+            className="p-5 w-full flex flex-col gap-3 flex-1"
           >
-            {/* Product Name */}
+            {/* Product Name — primary */}
             <Link to={`/product/${product.id}`}>
-              <h3 className="text-lg sm:text-xl font-bold dark:text-[#F5F5F5] text-[#323D50] group-hover:gradient-text transition-all duration-300 leading-tight">
+              <h3 className="text-lg sm:text-xl font-bold dark:text-[#F5F5F5] text-[#323D50] transition-colors duration-300 leading-tight line-clamp-1">
                 {productName}
               </h3>
             </Link>
 
-            {/* Rating */}
-            <div className="flex items-center justify-between">
+            {/* Rating row — includes Premium + Samples inline (moved from image overlays) */}
+            <div className="flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center space-x-2 rtl:space-x-reverse">
                 <div className="flex items-center">
                   {[...Array(5)].map((_, i) => (
                     <Star
                       key={i}
-                      className={`h-4 w-4 transition-all duration-200 ${
+                      className={`h-3.5 w-3.5 transition-all duration-200 ${
                         i < Math.floor(product.rating)
-                          ? "fill-[#5B8DD9] text-[#5B8DD9] drop-shadow-sm"
+                          ? "fill-[#5B8DD9] text-[#5B8DD9]"
                           : "text-[#323D50]/20 dark:text-white/20"
                       }`}
-                      style={{ animationDelay: `${i * 0.1}s` }}
                     />
                   ))}
                 </div>
-                <span className="dark:text-white/70 text-[#6B7B8D] text-sm font-medium">
-                  ({product.rating})
+                <span className="dark:text-white/70 text-[#6B7B8D] text-xs font-medium">
+                  {product.rating.toFixed(1)}
                 </span>
+                {product.rating >= 4.5 && !isSoldOut && (
+                  <span className="inline-flex items-center gap-1 rtl:space-x-reverse text-[#5B8DD9] text-[11px] font-semibold uppercase tracking-wider">
+                    <Sparkles className="w-3 h-3" />
+                    {t("product.premium")}
+                  </span>
+                )}
               </div>
 
-              {/* Product Type Label */}
-              <div className="glass dark:bg-white/5 bg-white border dark:border-white/10 border-[#323D50]/10 rounded-full px-3 py-1">
-                <span className="dark:text-white/70 text-[#6B7B8D] text-xs font-medium">
-                  {product.type === "sample" ? t("product.sample") : t("product.fullSize")}
-                </span>
+              {/* Product Type Label + samples-available accent */}
+              <div className="flex items-center gap-1.5">
+                <div className="glass dark:bg-white/5 bg-white border dark:border-white/10 border-[#323D50]/10 rounded-full px-2.5 py-0.5">
+                  <span className="dark:text-white/70 text-[#6B7B8D] text-[11px] font-medium">
+                    {product.type === "sample" ? t("product.sample") : t("product.fullSize")}
+                  </span>
+                </div>
+                {product.has_samples &&
+                  product.samples &&
+                  product.samples.length > 0 && (
+                    <span
+                      className="inline-flex items-center text-[#5B8DD9] text-[11px] font-medium"
+                      title={t("product.samplesAvailable")}
+                    >
+                      <TestTube className="w-3 h-3" />
+                    </span>
+                  )}
               </div>
             </div>
 
-            {/* Description */}
-            <p className="dark:text-white/60 text-[#6B7B8D] text-sm leading-relaxed line-clamp-2 dark:group-hover:text-white/80 group-hover:text-[#6B7B8D] dark:text-[#D6D6D6] transition-colors duration-300">
+            {/* Description — fixed 2-line slot so cards align even with short copy */}
+            <p className="dark:text-white/55 text-[#6B7B8D] text-sm leading-relaxed line-clamp-2 min-h-[2.625rem] transition-colors duration-300">
               {productDescription}
             </p>
 
-            {/* Fragrance Notes Preview */}
-            <div className="space-y-2">
-              <div className="text-xs dark:text-white/50 text-[#6B7B8D] dark:text-[#D6D6D6] font-medium uppercase tracking-wider">
-                {t("product.topNotes")}
-              </div>
-              <div className="flex flex-wrap gap-1">
-                {productNotes.top.slice(0, 3).map((note, index) => (
-                  <span
-                    key={index}
-                    className="glass dark:bg-white/5 bg-white border dark:border-white/10 border-[#323D50]/10 rounded-full px-2 py-1 text-xs dark:text-white/70 text-[#6B7B8D]"
-                  >
-                    {note}
-                  </span>
-                ))}
-              </div>
+            {/* Fragrance Notes — fixed-height slot rendered even when empty */}
+            <div className="flex flex-wrap gap-1.5 min-h-[1.375rem]">
+              {productNotes.top?.slice(0, 2).map((note, index) => (
+                <span
+                  key={index}
+                  className="glass dark:bg-white/5 bg-white border dark:border-white/10 border-[#323D50]/10 rounded-full px-2 py-0.5 text-[11px] dark:text-white/70 text-[#6B7B8D]"
+                >
+                  {note}
+                </span>
+              ))}
+              {(productNotes.top?.length ?? 0) > 2 && (
+                <span className="text-[11px] dark:text-white/40 text-[#6B7B8D]/60 self-center">
+                  +{(productNotes.top?.length ?? 0) - 2}
+                </span>
+              )}
             </div>
 
-            {/* Price and Actions */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between pt-3 sm:pt-4 gap-3 sm:gap-0">
-              <div className="space-y-1">
+            {/* Price + CTA — pinned to card bottom via mt-auto */}
+            <div className="flex items-end justify-between gap-3 pt-2 mt-auto">
+              <div className="space-y-0.5">
                 <div
-                  className={`text-xl sm:text-2xl font-bold ${
+                  className={`text-2xl sm:text-[26px] font-bold leading-none ${
                     isSoldOut ? "text-[#6B7B8D] dark:text-white/50" : "gradient-text"
                   }`}
                 >
                   {product.price} LYD
                 </div>
-                <div className="dark:text-white/50 text-[#6B7B8D] dark:text-[#D6D6D6] text-xs">
+                <div className="dark:text-white/50 text-[#6B7B8D] text-[11px]">
                   {product.type === "sample" ? t("product.sampleSize") : t("product.fullBottle")}
                 </div>
               </div>
 
-              <div
-                className="w-full sm:w-auto relative z-10"
-                style={{ pointerEvents: "auto" }}
-              >
+              <div className="relative z-10" style={{ pointerEvents: "auto" }}>
                 <Button
                   onClick={handleAddToCart}
                   disabled={isSoldOut}
-                  className={`glass border-0 px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-[#5B8DD9]/25 text-sm sm:text-base w-full sm:w-auto ${
+                  className={`border-0 h-11 px-4 rounded-xl font-semibold transition-all duration-300 hover:shadow-lg hover:shadow-[#5B8DD9]/30 text-sm inline-flex items-center ${
                     isSoldOut
                       ? "bg-gray-500/50 text-[#6B7B8D] dark:text-white/60 cursor-not-allowed"
                       : "bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] hover:from-[#3E6BB5] hover:to-[#5B8DD9] text-white"
                   }`}
                   style={{ pointerEvents: "auto" }}
+                  aria-label={isSoldOut ? t("product.soldOut") : t("product.addToCart")}
                 >
-                  <ShoppingBag className="w-3 h-3 sm:w-4 sm:h-4 me-2" />
-                  {isSoldOut ? t("product.soldOut") : t("product.addToCart")}
+                  <ShoppingBag className="w-4 h-4" />
+                  <span className="ms-2 hidden sm:inline">
+                    {isSoldOut ? t("product.soldOut") : t("product.addToCart")}
+                  </span>
                 </Button>
               </div>
             </div>
