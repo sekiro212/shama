@@ -226,11 +226,13 @@ export default function Header({ onCartClick, onSearchClick }: HeaderProps) {
                 <Button
                   onClick={onSearchClick}
                   variant="ghost"
-                  size="icon"
                   aria-label={t("header.search")}
-                  className="rounded-xl w-9 h-9 hover:bg-[#5B8DD9]/15 dark:hover:bg-white/10 transition-colors"
+                  className="rounded-xl h-9 px-2.5 gap-2 hover:bg-warm/10 transition-colors"
                 >
                   <Search className="w-4 h-4" />
+                  <kbd className="hidden xl:inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium bg-warm/10 rounded-md border border-warm/25 text-warm">
+                    ⌘K
+                  </kbd>
                 </Button>
               </div>
 

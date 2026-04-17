@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Sparkles, Search, X, ArrowRight, TrendingUp } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useSearch } from "@/hooks/useSearch";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -26,6 +26,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
   const { t, isRTL } = useLanguage();
   const { query, setQuery, results, aiResults, isSearching, isAiSearching, reset } = useSearch();
   const inputRef = useRef<HTMLInputElement>(null);
+  const reduce = useReducedMotion();
 
   useEffect(() => {
     if (!open) {
@@ -65,15 +66,16 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
       <DialogContent className="p-0 gap-0 max-w-2xl w-[95vw] sm:w-[95vw] max-h-[85vh] overflow-hidden rounded-2xl sm:rounded-3xl border-0 shadow-[0_32px_80px_rgba(0,0,0,0.25)] bg-white/95 dark:bg-[#0f1521]/95 backdrop-blur-2xl">
 
         {/* ── Input bar ── */}
-        <div className={`relative flex items-center gap-2 sm:gap-3 px-4 sm:px-5 py-3 sm:py-4 border-b border-black/5 dark:border-white/5 ${isRTL ? "flex-row-reverse" : ""}`}>
-          <Search className="w-5 h-5 text-[#5B8DD9] flex-shrink-0" />
+        <div className={`relative flex items-center gap-2 sm:gap-3 px-4 sm:px-5 py-3 sm:py-4 border-b border-warm/15 dark:border-warm/10 ${isRTL ? "flex-row-reverse" : ""}`}>
+          <Search className="w-5 h-5 text-warm flex-shrink-0" />
           <input
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t("search.placeholder")}
             dir={isRTL ? "rtl" : "ltr"}
-            className="flex-1 bg-transparent text-base font-medium text-[#1a1a2e] dark:text-white placeholder:text-[#9ca3af] dark:placeholder:text-white/25 outline-none"
+            aria-label={t("search.placeholder")}
+            className="flex-1 bg-transparent text-base font-medium text-[#1a1a2e] dark:text-white placeholder:text-[#9ca3af] dark:placeholder:text-white/30 outline-none"
           />
           <div className={`flex items-center gap-2 flex-shrink-0 ${isRTL ? "flex-row-reverse" : ""}`}>
             {(isSearching) && (
@@ -81,7 +83,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.8 }}
-                className="w-4 h-4 rounded-full border-2 border-[#5B8DD9]/30 border-t-[#5B8DD9] animate-spin"
+                className="w-4 h-4 rounded-full border-2 border-warm/30 border-t-warm animate-spin"
               />
             )}
             {query && (
@@ -108,9 +110,9 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                 className="px-5 py-6"
               >
                 <div className={`flex items-center gap-2 mb-4 ${isRTL ? "flex-row-reverse" : ""}`}>
-                  <TrendingUp className="w-3.5 h-3.5 text-[#9ca3af]" />
-                  <span className="text-[11px] font-semibold tracking-widest uppercase text-[#9ca3af] dark:text-white/30">
-                    {t("search.tryHint") ? "Popular Searches" : "Popular Searches"}
+                  <TrendingUp className="w-3.5 h-3.5 text-warm" />
+                  <span className="font-display text-[11px] tracking-[0.22em] uppercase text-warm">
+                    Popular Searches
                   </span>
                 </div>
                 <div className={`flex flex-wrap gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
@@ -118,7 +120,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                     <button
                       key={s.query}
                       onClick={() => handleQuickSearch(s.query)}
-                      className="px-3.5 py-1.5 text-sm rounded-full border border-black/8 dark:border-white/10 text-[#4b5563] dark:text-white/60 hover:border-[#5B8DD9]/50 hover:text-[#5B8DD9] hover:bg-[#5B8DD9]/5 transition-all duration-200 cursor-pointer"
+                      className="px-3.5 py-1.5 text-sm rounded-full border border-black/8 dark:border-white/10 text-[#4b5563] dark:text-white/60 hover:border-warm/50 hover:text-warm hover:bg-warm/5 transition-all duration-200 cursor-pointer"
                     >
                       {s.label}
                     </button>
@@ -158,10 +160,10 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                 {results.length > 0 && (
                   <div className="pt-3 pb-2">
                     <div className={`px-5 pb-2 flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
-                      <span className="text-[10px] font-bold tracking-[0.12em] uppercase text-[#9ca3af] dark:text-white/25">
+                      <span className="font-display text-[10px] font-semibold tracking-[0.22em] uppercase text-warm">
                         {t("search.searchResults")}
                       </span>
-                      <span className="text-[10px] text-[#c4cad4] dark:text-white/15">
+                      <span className="font-display text-[10px] text-warm/50 tabular-nums">
                         {results.length}
                       </span>
                     </div>
@@ -186,11 +188,11 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                 {/* AI results */}
                 {aiResults.length > 0 && (
                   <div className="pt-3 pb-2">
-                    {/* Gold AI header */}
+                    {/* Amber AI header */}
                     <div className={`px-5 pb-2 flex items-center gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
-                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 dark:bg-amber-500/10">
-                        <Sparkles className="w-3 h-3 text-amber-600 dark:text-amber-400" />
-                        <span className="text-[10px] font-bold tracking-[0.12em] uppercase text-amber-600 dark:text-amber-400">
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-warm/15 border border-warm/30">
+                        <Sparkles className="w-3 h-3 text-warm" />
+                        <span className="font-display text-[10px] font-semibold tracking-[0.22em] uppercase text-warm">
                           {t("search.aiRecommendations")}
                         </span>
                       </div>
@@ -224,14 +226,14 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
                 transition={{ duration: 0.2 }}
                 className="overflow-hidden"
               >
-                <div className={`mx-4 mb-3 px-4 py-3 rounded-2xl bg-gradient-to-r from-[#5B8DD9]/8 to-amber-500/8 dark:from-[#5B8DD9]/15 dark:to-amber-500/15 border border-[#5B8DD9]/15 dark:border-[#5B8DD9]/20 flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
-                  <Sparkles className="w-4 h-4 text-[#5B8DD9] animate-pulse flex-shrink-0" />
-                  <span className="text-xs font-medium text-[#5B8DD9]">{t("search.aiSearching")}</span>
+                <div className={`mx-4 mb-3 px-4 py-3 rounded-2xl bg-warm/10 dark:bg-warm/15 border border-warm/30 flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
+                  <Sparkles className={`w-4 h-4 text-warm flex-shrink-0 ${reduce ? "" : "animate-pulse"}`} />
+                  <span className="font-display text-xs tracking-wide font-medium text-warm">{t("search.aiSearching")}</span>
                   <div className={`flex gap-1 ${isRTL ? "mr-auto" : "ml-auto"}`}>
                     {[0, 150, 300].map((delay) => (
                       <span
                         key={delay}
-                        className="w-1.5 h-1.5 rounded-full bg-[#5B8DD9] animate-bounce"
+                        className={`w-1.5 h-1.5 rounded-full bg-warm ${reduce ? "" : "animate-bounce"}`}
                         style={{ animationDelay: `${delay}ms` }}
                       />
                     ))}
@@ -243,13 +245,19 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
         </div>
 
         {/* ── Footer ── */}
-        <div className={`px-4 sm:px-5 py-3 border-t border-black/5 dark:border-white/5 flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
-          <span className="text-[11px] text-[#9ca3af] dark:text-white/20 tabular-nums">
-            {query ? `${totalCount} ${t("search.results")}` : <span className="hidden sm:inline">Cmd+K</span>}
+        <div className={`px-4 sm:px-5 py-3 border-t border-warm/10 flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
+          <span className="font-display text-[11px] tracking-[0.18em] text-warm/70 tabular-nums">
+            {query ? `${totalCount} ${t("search.results")}` : (
+              <span className="hidden sm:inline-flex items-center gap-1.5">
+                <kbd className="inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium bg-warm/10 rounded-md border border-warm/25 text-warm">
+                  ⌘K
+                </kbd>
+              </span>
+            )}
           </span>
           <div className={`hidden sm:flex items-center gap-3 ${isRTL ? "flex-row-reverse" : ""}`}>
-            <span className="text-[11px] text-[#9ca3af] dark:text-white/20 flex items-center gap-1.5">
-              <kbd className="inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium bg-black/5 dark:bg-white/5 rounded-md border border-black/8 dark:border-white/8 text-[#6b7280] dark:text-white/30">
+            <span className="text-[11px] text-[#9ca3af] dark:text-white/30 flex items-center gap-1.5">
+              <kbd className="inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium bg-warm/10 rounded-md border border-warm/25 text-warm">
                 Esc
               </kbd>
               {t("search.escToClose")}
@@ -279,9 +287,9 @@ function TextResultRow({
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.035, duration: 0.2 }}
       onClick={() => onSelect(product.id)}
-      className={`w-full flex items-center gap-3.5 px-5 py-2.5 hover:bg-black/3 dark:hover:bg-white/4 transition-colors duration-150 group cursor-pointer ${isRTL ? "flex-row-reverse text-right" : ""}`}
+      className={`w-full flex items-center gap-3.5 px-5 py-2.5 hover:bg-warm/5 dark:hover:bg-warm/8 transition-colors duration-150 group cursor-pointer ${isRTL ? "flex-row-reverse text-right" : ""}`}
     >
-      <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 bg-black/4 dark:bg-white/5 shadow-sm">
+      <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 bg-black/4 dark:bg-white/5 shadow-sm ring-1 ring-transparent group-hover:ring-warm/40 transition-colors">
         <img
           src={product.images?.[0]?.image_url || ""}
           alt={product.name}
@@ -289,7 +297,7 @@ function TextResultRow({
         />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-[#1a1a2e] dark:text-white truncate leading-snug">
+        <p className="font-display text-sm font-semibold text-[#1a1a2e] dark:text-white truncate leading-snug">
           {product.name}
         </p>
         <p className="text-xs text-[#9ca3af] dark:text-white/35 mt-0.5">
@@ -302,7 +310,7 @@ function TextResultRow({
             {soldOutLabel}
           </span>
         )}
-        <ArrowRight className={`w-4 h-4 text-[#d1d5db] dark:text-white/15 group-hover:text-[#5B8DD9] group-hover:translate-x-0.5 transition-all duration-200 ${isRTL ? "rotate-180 group-hover:-translate-x-0.5 group-hover:translate-x-0" : ""}`} />
+        <ArrowRight className={`w-4 h-4 text-[#d1d5db] dark:text-white/15 group-hover:text-warm group-hover:translate-x-0.5 transition-all duration-200 ${isRTL ? "rotate-180 group-hover:-translate-x-0.5 group-hover:translate-x-0" : ""}`} />
       </div>
     </motion.button>
   );
@@ -321,9 +329,7 @@ function AIResultRow({
   const scoreColor =
     result.matchScore >= 85
       ? "text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 dark:text-emerald-400"
-      : result.matchScore >= 70
-      ? "text-amber-600 bg-amber-50 dark:bg-amber-500/10 dark:text-amber-400"
-      : "text-[#5B8DD9] bg-[#5B8DD9]/8 dark:bg-[#5B8DD9]/15";
+      : "text-warm bg-warm/15 border border-warm/30";
 
   return (
     <motion.button
@@ -331,10 +337,10 @@ function AIResultRow({
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05, duration: 0.22 }}
       onClick={() => onSelect(result.product.id)}
-      className={`w-full flex items-start gap-3.5 px-5 py-3 hover:bg-amber-50/60 dark:hover:bg-amber-500/5 transition-colors duration-150 group cursor-pointer ${isRTL ? "flex-row-reverse text-right" : ""}`}
+      className={`w-full flex items-start gap-3.5 px-5 py-3 hover:bg-warm/8 dark:hover:bg-warm/10 transition-colors duration-150 group cursor-pointer ${isRTL ? "flex-row-reverse text-right" : ""}`}
     >
-      {/* Image with gold ring */}
-      <div className="w-13 h-13 rounded-xl overflow-hidden flex-shrink-0 ring-1.5 ring-amber-300/60 dark:ring-amber-500/30 shadow-sm" style={{ width: 52, height: 52 }}>
+      {/* Image with amber ring */}
+      <div className="w-13 h-13 rounded-xl overflow-hidden flex-shrink-0 ring-1.5 ring-warm/60 shadow-sm" style={{ width: 52, height: 52 }}>
         <img
           src={result.product.images?.[0]?.image_url || ""}
           alt={result.product.name}
@@ -345,7 +351,7 @@ function AIResultRow({
       {/* Info */}
       <div className="flex-1 min-w-0">
         <div className={`flex items-start justify-between gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
-          <p className="text-sm font-semibold text-[#1a1a2e] dark:text-white truncate leading-snug flex-1">
+          <p className="font-display text-sm font-semibold text-[#1a1a2e] dark:text-white truncate leading-snug flex-1">
             {result.product.name}
           </p>
           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${scoreColor}`}>
@@ -369,7 +375,7 @@ function AIResultRow({
             {soldOutLabel}
           </span>
         )}
-        <ArrowRight className={`w-4 h-4 text-amber-300 dark:text-amber-500/40 group-hover:text-amber-500 group-hover:translate-x-0.5 transition-all duration-200 ${isRTL ? "rotate-180 group-hover:-translate-x-0.5 group-hover:translate-x-0" : ""}`} />
+        <ArrowRight className={`w-4 h-4 text-warm/40 group-hover:text-warm group-hover:translate-x-0.5 transition-all duration-200 ${isRTL ? "rotate-180 group-hover:-translate-x-0.5 group-hover:translate-x-0" : ""}`} />
       </div>
     </motion.button>
   );
