@@ -1133,6 +1133,190 @@
     "loginRequired": "Please log in to manage your email preferences",
     "loading": "Loading preferences..."
   },
+  "cookieBanner": {
+    "body": "We use a few small storage items so your cart, language, theme and preferences stay with you. We do not use analytics or tracking cookies.",
+    "accept": "Accept",
+    "later": "Later",
+    "learnMore": "Learn more",
+    "ariaLabel": "Cookie notice"
+  },
+  "shipping": {
+    "eyebrow": "Shipping & delivery",
+    "title": "Delivered across Libya",
+    "lede": "We partner with Vanex — Libya's trusted courier — to carry each bottle from our atelier to your door with care.",
+    "coverage": {
+      "heading": "Coverage",
+      "body": "We currently ship within Libya only. Every city and sub-city served by Vanex is available at checkout."
+    },
+    "times": {
+      "heading": "Delivery times",
+      "body": "Most orders arrive within 2 to 5 business days after dispatch. Your exact estimate is shown at checkout based on your address, and confirmed once Vanex picks up the package."
+    },
+    "fees": {
+      "heading": "Delivery fees",
+      "body": "Shipping cost depends on your sub-city and is calculated by Vanex in real time during checkout — no hidden fees, no surprise charges on delivery."
+    },
+    "payment": {
+      "heading": "Payment methods",
+      "intro": "You can pay in one of two ways:",
+      "cod": "Cash on Delivery — pay the full amount (products + delivery) to the courier when your order arrives.",
+      "bank": "Bank Transfer — transfer the product price to our account in advance, then pay only the delivery fee on arrival."
+    },
+    "tracking": {
+      "heading": "Tracking your order",
+      "body": "Each order moves through a transparent 6-stage flow: Pending, Confirmed, Processing, Shipped, Delivered, Accepted. Track any order at any time using your order code on the Track Order page.",
+      "cta": "Track an order"
+    },
+    "support": {
+      "heading": "Something off with your delivery?",
+      "body": "Message us on Instagram and we'll look into it right away. If the bottle arrived damaged or doesn't match your order, we'll make it right."
+    }
+  },
+  "returns": {
+    "eyebrow": "Returns",
+    "title": "Simple, fair, and on your terms",
+    "lede": "We want you to love your Shama. If a sealed bottle isn't right for you, here's how to return it — no forms, no friction.",
+    "window": {
+      "heading": "7-day window",
+      "body": "You have 7 days from the day your order is delivered to initiate a return."
+    },
+    "condition": {
+      "heading": "Sealed and unopened only",
+      "body": "For hygiene and authenticity, returns are accepted only on bottles that are still sealed, unopened, and in their original packaging. Once a bottle is sprayed, it cannot be returned."
+    },
+    "mechanism": {
+      "heading": "How it works",
+      "body": "Message us on Instagram with your order code. We'll coordinate the Vanex pickup — you hand the sealed perfume to the courier, and you cover the return delivery fee. Once the bottle arrives and is verified, we refund the product price in full."
+    },
+    "nonReturnable": {
+      "heading": "What cannot be returned",
+      "item1": "Opened or used bottles",
+      "item2": "Samples (3ml, 5ml)",
+      "item3": "Gift sets once the outer seal is broken",
+      "item4": "Items returned after the 7-day window"
+    },
+    "start": {
+      "heading": "Start a return",
+      "body": "Send us a DM on Instagram with your order code and we'll take it from there."
+    },
+    "callout": "If your bottle arrived damaged or wasn't what you ordered, we replace it free of charge — just share a photo with us within 48 hours of delivery."
+  },
+  "privacy": {
+    "eyebrow": "Privacy",
+    "title": "Privacy policy",
+    "updated": "Last updated 17 April 2026",
+    "lede": "We keep things simple. This page explains what we collect, why we need it, and how we protect it.",
+    "collect": {
+      "heading": "What we collect",
+      "intro": "We only collect what we need to process your order and keep your account working:",
+      "item1": "Name, email, phone, and delivery address — to fulfil your order.",
+      "item2": "Order history and preferences — if you create an account.",
+      "item3": "Email address — if you subscribe to our newsletter.",
+      "item4": "Reviews you choose to publish — tied to your account."
+    },
+    "store": {
+      "heading": "How we store it",
+      "body": "Your data lives in our Supabase database, encrypted in transit (HTTPS) and at rest. Access is restricted to the small team that runs Shama."
+    },
+    "never": {
+      "heading": "What we never collect",
+      "intro": "Some things we don't touch — because we don't need them:",
+      "item1": "Credit card numbers — we only support Cash on Delivery and bank transfer.",
+      "item2": "Precise GPS location.",
+      "item3": "Device fingerprints or advertising identifiers.",
+      "item4": "Browsing activity on other sites."
+    },
+    "thirdParties": {
+      "heading": "Third parties we rely on",
+      "intro": "To run Shama we use a handful of trusted services:",
+      "item1": "Vanex — to deliver your order. Shares your name, phone, and address.",
+      "item2": "Supabase — to host our database and handle sign-ins.",
+      "item3": "OpenRouter — to power the AI chatbot, Finder, and Quiz. Your prompts are processed to produce a response.",
+      "item4": "We do not use analytics, advertising, or tracking cookies."
+    },
+    "rights": {
+      "heading": "Your rights",
+      "body": "You can ask us to access, correct, or delete your data at any time — just DM us on Instagram. We'll respond within 7 days."
+    },
+    "children": {
+      "heading": "Age limit",
+      "body": "Shama is intended for customers aged 16 and older. We do not knowingly collect data from children under 16."
+    },
+    "updates": {
+      "heading": "Changes to this policy",
+      "body": "If we update this policy we'll change the date at the top and flag significant changes on the homepage."
+    }
+  },
+  "terms": {
+    "eyebrow": "Terms",
+    "title": "Terms of service",
+    "updated": "Last updated 17 April 2026",
+    "lede": "The short version: be honest with us, respect the brand, and we'll take care of you.",
+    "acceptance": {
+      "heading": "Using this site",
+      "body": "By browsing shama.ly or placing an order you agree to these terms. If you don't agree, please don't use the site."
+    },
+    "products": {
+      "heading": "Product descriptions",
+      "body": "Fragrance is subjective. We describe notes, families, and impressions as accurately as we can, but scent is personal — how a perfume performs on you may differ from our notes or photography."
+    },
+    "pricing": {
+      "heading": "Pricing",
+      "body": "Prices are in Libyan Dinar (LYD). We may change prices at any time; the price you pay is the one shown at checkout. Obvious pricing mistakes may be corrected and the order cancelled."
+    },
+    "orders": {
+      "heading": "Order acceptance",
+      "body": "We may decline or cancel an order for suspected fraud, stock issues, or pricing errors. If we cancel an order you've already paid for, we refund the full amount."
+    },
+    "payment": {
+      "heading": "Payment",
+      "body": "We accept Cash on Delivery or bank transfer. For bank transfers we ask for a screenshot of your transfer before dispatching your order."
+    },
+    "ip": {
+      "heading": "Intellectual property",
+      "body": "The Shama name, logo, images, and content are ours. Please don't copy, resell, or re-brand them without permission."
+    },
+    "liability": {
+      "heading": "Limitation of liability",
+      "body": "We take reasonable care, but we're not liable for indirect losses caused by delivery delays, third-party courier issues, or allergic reactions — please patch-test any new fragrance."
+    },
+    "law": {
+      "heading": "Governing law",
+      "body": "These terms are governed by the laws of Libya. Any dispute will be resolved in the Libyan courts."
+    }
+  },
+  "cookies": {
+    "eyebrow": "Cookies",
+    "title": "Cookies & storage",
+    "updated": "Last updated 17 April 2026",
+    "lede": "A plain-English look at every storage item shama.ly sets — so you know exactly what's kept on your device.",
+    "tableHeading": "Storage keys we use",
+    "colKey": "Key",
+    "colPurpose": "Purpose",
+    "colCategory": "Category",
+    "catEssential": "Essential",
+    "catFunctional": "Functional",
+    "rows": {
+      "cart": "Your shopping cart — remembers items between sessions.",
+      "language": "Your language preference (English or Arabic).",
+      "theme": "Your light/dark mode choice.",
+      "recentlyViewed": "Perfumes you've recently viewed — for the carousel on the home page.",
+      "wishlist": "Your saved wishlist items.",
+      "auth": "Your Supabase sign-in session (if you have an account).",
+      "adminAuth": "Admin panel session — only set if you sign in to the admin area.",
+      "adminSidebar": "Whether the admin sidebar is collapsed.",
+      "announcement": "Whether you've dismissed the top announcement bar (session only).",
+      "consent": "Your response to this cookie notice."
+    },
+    "noAnalytics": {
+      "heading": "What we don't set",
+      "body": "No Google Analytics, no Meta Pixel, no advertising cookies, no cross-site trackers. We don't sell your data and we don't share it with third-party marketers."
+    },
+    "managing": {
+      "heading": "Managing storage",
+      "body": "You can clear any of these keys at any time from your browser's developer tools or privacy settings. Clearing them may sign you out or reset your preferences."
+    }
+  },
   "myOrders": {
     "title": "My Orders",
     "description": "View and track all your orders",

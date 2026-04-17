@@ -17,8 +17,14 @@ import LoginPage from "@/pages/LoginPage";
 import AIFinderPage from "@/pages/AIFinderPage";
 import EmailPreferencesPage from "@/pages/EmailPreferencesPage";
 import MyOrdersPage from "@/pages/MyOrdersPage";
+import PrivacyPage from "@/pages/PrivacyPage";
+import TermsPage from "@/pages/TermsPage";
+import CookiesPage from "@/pages/CookiesPage";
+import ShippingPage from "@/pages/ShippingPage";
+import ReturnsPage from "@/pages/ReturnsPage";
 import CartSidebar from "@/components/CartSidebar";
 import SearchDialog from "@/components/SearchDialog";
+import CookieBanner from "@/components/CookieBanner";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { WishlistProvider } from "@/contexts/WishlistContext";
@@ -70,6 +76,11 @@ function AnimatedRoutes({ isCartOpen, setIsCartOpen }: { isCartOpen: boolean; se
             <Route path="/admin" element={<PageTransition><AdminRedirect /></PageTransition>} />
             <Route path="/ai-finder" element={<PageTransition><AIFinderPage /></PageTransition>} />
             <Route path="/settings" element={<PageTransition><EmailPreferencesPage /></PageTransition>} />
+            <Route path="/shipping" element={<PageTransition><ShippingPage /></PageTransition>} />
+            <Route path="/returns" element={<PageTransition><ReturnsPage /></PageTransition>} />
+            <Route path="/privacy" element={<PageTransition><PrivacyPage /></PageTransition>} />
+            <Route path="/terms" element={<PageTransition><TermsPage /></PageTransition>} />
+            <Route path="/cookies" element={<PageTransition><CookiesPage /></PageTransition>} />
           </Routes>
         </AnimatePresence>
       </main>
@@ -79,6 +90,7 @@ function AnimatedRoutes({ isCartOpen, setIsCartOpen }: { isCartOpen: boolean; se
         onClose={() => setIsCartOpen(false)}
       />
       <ChatbotButton />
+      {!isAdminRoute && <CookieBanner />}
       <Toaster />
     </>
   );
