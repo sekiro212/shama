@@ -387,19 +387,7 @@ export default function HomePage() {
             }
           />
 
-          <motion.div
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: "-80px" }}
-            variants={{
-              hidden: { opacity: 0 },
-              show: {
-                opacity: 1,
-                transition: { staggerChildren: 0.1, delayChildren: 0.05 },
-              },
-            }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8"
-          >
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
             {loading
               ? Array.from({ length: 3 }).map((_, index) => (
                   <div
@@ -412,18 +400,21 @@ export default function HomePage() {
                     <div className="h-8 bg-white/10 rounded w-1/2" />
                   </div>
                 ))
-              : featuredProducts.map((product) => (
+              : featuredProducts.map((product, index) => (
                   <motion.div
                     key={product.id}
-                    variants={{
-                      hidden: { opacity: 0, y: 24 },
-                      show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } },
+                    initial={{ opacity: 0, y: 24 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{
+                      duration: 0.5,
+                      delay: 0.1 + index * 0.08,
+                      ease: "easeOut",
                     }}
                   >
                     <ProductCard product={product} />
                   </motion.div>
                 ))}
-          </motion.div>
+          </div>
 
           {/* Mobile fallback for action — show "View All" under the grid too */}
           <div className="text-center mt-10 md:hidden">
