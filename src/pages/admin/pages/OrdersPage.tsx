@@ -21,6 +21,7 @@ export default function OrdersPage() {
         onOpenChange={ordersApi.setShowOrderDetails}
         order={ordersApi.selectedOrder}
         onImageClick={ordersApi.handleImageClick}
+        vanexActions={ordersApi}
       />
       <ImageModal
         open={ordersApi.showImageModal}

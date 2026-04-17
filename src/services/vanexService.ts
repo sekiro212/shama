@@ -42,12 +42,28 @@ export interface VanexPackage {
   status: string;
 }
 
+export interface VanexTrackingLog {
+  id: number;
+  status: string;
+  status_ar?: string;
+  description?: string;
+  location?: string | null;
+  created_at: string;
+}
+
 export interface VanexTracking {
   code: string;
   status: string;
-  receiver_name: string;
-  current_location: string;
-  estimated_delivery: string;
+  status_ar?: string;
+  receiver_name?: string;
+  current_location?: string | null;
+  estimated_delivery?: string | null;
+  logs?: VanexTrackingLog[];
+}
+
+export interface VanexCreateResult {
+  packageCode: string;
+  packageId: number | null;
 }
 
 /** Fetch all Vanex cities (requires auth) */
@@ -80,11 +96,9 @@ export const getSubCitiesFromCity = (city: VanexCity): VanexSubCity[] => {
     }));
 };
 
-/**
- * Create a Vanex package for an order (admin action).
- * Returns the package code (e.g. "H-13903-TIP-5885703") or null on failure.
- */
-export const createVanexPackage = async (order: Order): Promise<string | null> => {
+export const createVanexPackage = async (
+  order: Order,
+): Promise<VanexCreateResult | null> => {
   try {
     // COD: Vanex collects product total from customer (delivery fee added by Vanex on top)
     // Bank transfer: products already paid via bank, Vanex collects only delivery fee (price=0)
@@ -123,7 +137,12 @@ export const createVanexPackage = async (order: Order): Promise<string | null> =
       return null;
     }
 
-    return (json.data?.["package-code"] as string) || null;
+    const packageCode = (json.data?.["package-code"] as string) ?? null;
+    const packageId =
+      typeof json.data?.id === "number" ? (json.data.id as number) : null;
+
+    if (!packageCode) return null;
+    return { packageCode, packageId };
   } catch (err) {
     console.error("Vanex createPackage error:", err);
     return null;
@@ -133,7 +152,9 @@ export const createVanexPackage = async (order: Order): Promise<string | null> =
 /**
  * Track a Vanex package by its tracking code (public endpoint, no auth).
  */
-export const trackVanexPackage = async (code: string): Promise<VanexTracking | null> => {
+export const trackVanexPackage = async (
+  code: string,
+): Promise<VanexTracking | null> => {
   try {
     const res = await fetch(`${VANEX_BASE}/tracking?code=${encodeURIComponent(code)}`);
     if (!res.ok) return null;
@@ -142,5 +163,47 @@ export const trackVanexPackage = async (code: string): Promise<VanexTracking | n
   } catch (err) {
     console.error("Vanex trackPackage error:", err);
     return null;
+  }
+};
+
+export const cancelVanexPackage = async (
+  packageId: number,
+): Promise<{ cancelled: boolean; cancelled_at?: string } | null> => {
+  try {
+    const res = await fetch(`${VANEX_BASE}/customer/package/${packageId}`, {
+      method: "DELETE",
+      headers: vanexHeaders(),
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      console.error("Vanex cancelPackage error:", json);
+      return null;
+    }
+    return (json.data as { cancelled: boolean; cancelled_at?: string }) || null;
+  } catch (err) {
+    console.error("Vanex cancelPackage error:", err);
+    return null;
+  }
+};
+
+export const recallVanexPackage = async (
+  packageId: number,
+  reason?: string,
+): Promise<boolean> => {
+  try {
+    const res = await fetch(`${VANEX_BASE}/customer/package/${packageId}/recall`, {
+      method: "PUT",
+      headers: vanexHeaders(),
+      body: JSON.stringify(reason ? { reason } : {}),
+    });
+    if (!res.ok) {
+      const json = await res.json().catch(() => ({}));
+      console.error("Vanex recallPackage error:", json);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("Vanex recallPackage error:", err);
+    return false;
   }
 };

@@ -10,6 +10,7 @@ import {
   ShoppingCart,
   Copy,
 } from "lucide-react";
+import { StatusBadge } from "../components/StatusBadge";
 import { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import {
@@ -51,10 +52,14 @@ export function OrdersTab({ ordersApi }: OrdersTabProps) {
     orders,
     ordersLoading,
     updatingOrderStatus,
+    syncingVanex,
+    bulkSyncingVanex,
     confirmDialogProps,
     loadOrders,
     handleDeleteOrder,
     handleSendToVanex,
+    handleSyncVanex,
+    handleBulkSyncVanex,
     handleAcceptOrder,
     handleBackOrder,
     handleViewOrderDetails,
@@ -174,28 +179,39 @@ export function OrdersTab({ ordersApi }: OrdersTabProps) {
       header: "Vanex",
       enableSorting: false,
       cell: ({ row }) => {
-        const code = row.original.vanex_package_code;
+        const order = row.original;
+        const code = order.vanex_package_code;
         if (!code) {
           return <span className="text-[#6B7B8D] dark:text-white/30 text-xs">&mdash;</span>;
         }
+        const vanexStatus = order.vanex_status;
         return (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(code);
-                    toast.success("Package code copied!");
-                  }}
-                  className="inline-flex items-center gap-1.5 font-mono text-xs text-blue-600 dark:text-blue-400 hover:text-blue-500 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 rounded-lg px-2 py-1 transition-colors cursor-pointer"
-                >
-                  {code}
-                  <Copy className="w-3 h-3" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>Click to copy</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <div className="flex flex-col items-start gap-1">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(code);
+                      toast.success("Package code copied!");
+                    }}
+                    className="inline-flex items-center gap-1.5 font-mono text-xs text-blue-600 dark:text-blue-400 hover:text-blue-500 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 rounded-lg px-2 py-1 transition-colors cursor-pointer"
+                  >
+                    {code}
+                    <Copy className="w-3 h-3" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>Click to copy</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            {vanexStatus && (
+              <StatusBadge
+                type="vanex"
+                status={vanexStatus}
+                label={t(`admin.vanex.statuses.${vanexStatus}`)}
+              />
+            )}
+          </div>
         );
       },
     },
@@ -229,6 +245,18 @@ export function OrdersTab({ ordersApi }: OrdersTabProps) {
                     className="cursor-pointer"
                   >
                     <Truck className="w-4 h-4 me-2" /> Send to Vanex
+                  </DropdownMenuItem>
+                )}
+                {order.vanex_package_code && (
+                  <DropdownMenuItem
+                    onClick={() => handleSyncVanex(order)}
+                    className="cursor-pointer"
+                    disabled={syncingVanex === order.id}
+                  >
+                    <RefreshCw
+                      className={`w-4 h-4 me-2 ${syncingVanex === order.id ? "animate-spin" : ""}`}
+                    />
+                    {t("admin.vanex.syncNow")}
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem
@@ -289,6 +317,16 @@ export function OrdersTab({ ordersApi }: OrdersTabProps) {
               ))}
             </SelectContent>
           </Select>
+          <Button
+            onClick={handleBulkSyncVanex}
+            variant="outline"
+            size="sm"
+            disabled={bulkSyncingVanex || syncingVanex !== null}
+            className="h-9 border-[#323D50]/15 dark:border-white/20 cursor-pointer gap-2"
+          >
+            <RefreshCw className={`w-4 h-4 ${bulkSyncingVanex ? "animate-spin" : ""}`} />
+            <span className="hidden md:inline">{t("admin.vanex.syncAll")}</span>
+          </Button>
           <Button
             onClick={loadOrders}
             variant="outline"

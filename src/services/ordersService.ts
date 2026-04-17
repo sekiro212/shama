@@ -1,5 +1,14 @@
 import { supabase } from "@/lib/supabase";
 
+export interface VanexOrderLog {
+  id: number;
+  status: string;
+  status_ar?: string;
+  description?: string;
+  location?: string | null;
+  created_at: string;
+}
+
 export interface Order {
   id: string;
   first_name: string;
@@ -11,6 +20,13 @@ export interface Order {
   vanex_city_id?: number;
   vanex_sub_city_id?: number;
   vanex_package_code?: string;
+  vanex_package_id?: number | null;
+  vanex_status?: string | null;
+  vanex_status_ar?: string | null;
+  vanex_current_location?: string | null;
+  vanex_estimated_delivery?: string | null;
+  vanex_last_synced_at?: string | null;
+  vanex_logs?: VanexOrderLog[] | null;
   delivery_fee?: number;
   payment_method?: "cod" | "bank_transfer";
   transfer_proof_url?: string;
@@ -344,29 +360,83 @@ export const getOrdersAnalytics = async () => {
 };
 
 /**
- * Save the Vanex package code to an order and mark it as shipped.
+ * Save Vanex package code + numeric id to an order and mark it as shipped.
+ * The numeric id is required later for cancel/recall endpoints.
  */
-export const saveVanexPackageCode = async (
+export const saveVanexPackageInfo = async (
   orderId: string,
-  packageCode: string
+  packageCode: string,
+  packageId: number | null,
 ): Promise<boolean> => {
   try {
     const { error } = await supabase
       .from("orders")
       .update({
         vanex_package_code: packageCode,
+        vanex_package_id: packageId,
+        vanex_status: "store_new",
+        vanex_status_ar: "جديد",
+        vanex_last_synced_at: new Date().toISOString(),
         status: "shipped",
         processed_at: new Date().toISOString(),
       })
       .eq("id", orderId);
 
     if (error) {
-      console.error("Error saving Vanex package code:", error);
+      console.error("Error saving Vanex package info:", error);
       return false;
     }
     return true;
   } catch (error) {
-    console.error("Error saving Vanex package code:", error);
+    console.error("Error saving Vanex package info:", error);
     return false;
+  }
+};
+
+/**
+ * Trigger the sync-vanex-packages edge function for a single order.
+ * Updates vanex_status + logs + last_synced_at on that row.
+ */
+export const syncVanexOrder = async (orderId: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase.functions.invoke("sync-vanex-packages", {
+      body: { order_id: orderId },
+    });
+    if (error) {
+      console.error("Error syncing Vanex order:", error);
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.error("Error syncing Vanex order:", error);
+    return false;
+  }
+};
+
+/**
+ * Trigger a bulk sync of all non-terminal Vanex packages.
+ * Returns the counts reported by the edge function.
+ */
+export const bulkSyncVanex = async (): Promise<{
+  synced: number;
+  skipped: number;
+  errors: string[];
+} | null> => {
+  try {
+    const { data, error } = await supabase.functions.invoke("sync-vanex-packages", {
+      body: {},
+    });
+    if (error) {
+      console.error("Error bulk-syncing Vanex:", error);
+      return null;
+    }
+    return {
+      synced: data?.synced ?? 0,
+      skipped: data?.skipped ?? 0,
+      errors: data?.errors ?? [],
+    };
+  } catch (error) {
+    console.error("Error bulk-syncing Vanex:", error);
+    return null;
   }
 };

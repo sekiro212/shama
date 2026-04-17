@@ -6,11 +6,17 @@ import {
   getOrderStats,
   deleteOrder,
   updateOrderStatus,
-  saveVanexPackageCode,
+  saveVanexPackageInfo,
+  syncVanexOrder,
+  bulkSyncVanex,
   Order,
   OrderStats,
 } from "@/services/ordersService";
-import { createVanexPackage } from "@/services/vanexService";
+import {
+  createVanexPackage,
+  cancelVanexPackage,
+  recallVanexPackage,
+} from "@/services/vanexService";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useConfirmDialog } from "./useConfirmDialog";
 
@@ -38,6 +44,10 @@ export function useOrders({ onStockMutated }: UseOrdersOptions = {}) {
   const [returningOrder, setReturningOrder] = useState<string | null>(null);
   const [deletingOrder, setDeletingOrder] = useState<string | null>(null);
   const [sendingToVanex, setSendingToVanex] = useState<string | null>(null);
+  const [syncingVanex, setSyncingVanex] = useState<string | null>(null);
+  const [bulkSyncingVanex, setBulkSyncingVanex] = useState(false);
+  const [cancellingVanex, setCancellingVanex] = useState<string | null>(null);
+  const [recallingVanex, setRecallingVanex] = useState<string | null>(null);
   const [updatingOrderStatus, setUpdatingOrderStatus] = useState<string | null>(
     null
   );
@@ -102,20 +112,22 @@ export function useOrders({ onStockMutated }: UseOrdersOptions = {}) {
 
     try {
       setSendingToVanex(order.id);
-      const packageCode = await createVanexPackage(order);
+      const result = await createVanexPackage(order);
 
-      if (!packageCode) {
+      if (!result) {
         toast.error(t("admin.vanex.sendFailed"));
         return;
       }
 
-      const saved = await saveVanexPackageCode(order.id, packageCode);
+      const { packageCode, packageId } = result;
+      const saved = await saveVanexPackageInfo(order.id, packageCode, packageId);
       if (!saved) {
         toast.error(t("admin.vanex.saveFailed").replace("{code}", packageCode));
         return;
       }
 
       toast.success(t("admin.vanex.sendSuccess").replace("{code}", packageCode));
+      await syncVanexOrder(order.id).catch(() => undefined);
       loadOrders();
       loadOrderStats();
     } catch (error) {
@@ -123,6 +135,107 @@ export function useOrders({ onStockMutated }: UseOrdersOptions = {}) {
       toast.error(t("admin.vanex.sendError"));
     } finally {
       setSendingToVanex(null);
+    }
+  };
+
+  const handleSyncVanex = async (order: Order) => {
+    if (!order.vanex_package_code) return;
+    try {
+      setSyncingVanex(order.id);
+      const ok = await syncVanexOrder(order.id);
+      if (!ok) {
+        toast.error(t("admin.vanex.syncFailed"));
+        return;
+      }
+      toast.success(t("admin.vanex.syncSuccess"));
+      loadOrders();
+    } catch (error) {
+      console.error("Error syncing Vanex:", error);
+      toast.error(t("admin.vanex.syncFailed"));
+    } finally {
+      setSyncingVanex(null);
+    }
+  };
+
+  const handleBulkSyncVanex = async () => {
+    try {
+      setBulkSyncingVanex(true);
+      const result = await bulkSyncVanex();
+      if (!result) {
+        toast.error(t("admin.vanex.syncFailed"));
+        return;
+      }
+      toast.success(
+        t("admin.vanex.bulkSyncSuccess").replace("{count}", String(result.synced)),
+      );
+      loadOrders();
+    } catch (error) {
+      console.error("Error bulk-syncing Vanex:", error);
+      toast.error(t("admin.vanex.syncFailed"));
+    } finally {
+      setBulkSyncingVanex(false);
+    }
+  };
+
+  const handleCancelVanex = async (order: Order) => {
+    if (!order.vanex_package_id) {
+      toast.error(t("admin.vanex.missingPackageId"));
+      return;
+    }
+    const confirmed = await confirm({
+      title: t("admin.vanex.cancelTitle"),
+      description: t("admin.vanex.cancelConfirm"),
+      confirmLabel: t("admin.vanex.cancelAction"),
+      variant: "danger",
+    });
+    if (!confirmed) return;
+
+    try {
+      setCancellingVanex(order.id);
+      const result = await cancelVanexPackage(order.vanex_package_id);
+      if (!result?.cancelled) {
+        toast.error(t("admin.vanex.cancelFailed"));
+        return;
+      }
+      toast.success(t("admin.vanex.cancelSuccess"));
+      await syncVanexOrder(order.id);
+      loadOrders();
+    } catch (error) {
+      console.error("Error cancelling Vanex package:", error);
+      toast.error(t("admin.vanex.cancelFailed"));
+    } finally {
+      setCancellingVanex(null);
+    }
+  };
+
+  const handleRecallVanex = async (order: Order, reason?: string) => {
+    if (!order.vanex_package_id) {
+      toast.error(t("admin.vanex.missingPackageId"));
+      return;
+    }
+    const confirmed = await confirm({
+      title: t("admin.vanex.recallTitle"),
+      description: t("admin.vanex.recallConfirm"),
+      confirmLabel: t("admin.vanex.recallAction"),
+      variant: "warning",
+    });
+    if (!confirmed) return;
+
+    try {
+      setRecallingVanex(order.id);
+      const ok = await recallVanexPackage(order.vanex_package_id, reason);
+      if (!ok) {
+        toast.error(t("admin.vanex.recallFailed"));
+        return;
+      }
+      toast.success(t("admin.vanex.recallSuccess"));
+      await syncVanexOrder(order.id);
+      loadOrders();
+    } catch (error) {
+      console.error("Error recalling Vanex package:", error);
+      toast.error(t("admin.vanex.recallFailed"));
+    } finally {
+      setRecallingVanex(null);
     }
   };
 
@@ -292,12 +405,20 @@ export function useOrders({ onStockMutated }: UseOrdersOptions = {}) {
     returningOrder,
     deletingOrder,
     sendingToVanex,
+    syncingVanex,
+    bulkSyncingVanex,
+    cancellingVanex,
+    recallingVanex,
     updatingOrderStatus,
     confirmDialogProps,
     loadOrders,
     loadOrderStats,
     handleDeleteOrder,
     handleSendToVanex,
+    handleSyncVanex,
+    handleBulkSyncVanex,
+    handleCancelVanex,
+    handleRecallVanex,
     handleAcceptOrder,
     handleBackOrder,
     handleViewOrderDetails,
