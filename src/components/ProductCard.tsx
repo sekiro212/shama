@@ -10,6 +10,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Heart,
+  Gift,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CardContainer, CardBody, CardItem } from "@/components/ui/3d-card";
@@ -101,9 +102,9 @@ const ProductCardComponent = ({ product }: ProductCardProps) => {
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
-        <CardBody className="glass-card group cursor-pointer animate-scale-in relative overflow-hidden w-full h-full flex flex-col">
-          {/* Glow Effect */}
-          <div className="absolute inset-0 bg-gradient-to-r from-[#5B8DD9]/20 to-[#3E6BB5]/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl blur-xl -z-10" />
+        <CardBody className="glass-card group cursor-pointer animate-scale-in relative overflow-hidden w-full h-full flex flex-col focus-within:ring-2 focus-within:ring-warm/60 focus-within:ring-offset-2 focus-within:ring-offset-transparent">
+          {/* Glow Effect — warm candlelight */}
+          <div className="absolute inset-0 bg-gradient-to-br from-warm/10 via-warm/20 to-warm-glow/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl blur-xl -z-10" />
 
           {/* Image Container */}
           <CardItem
@@ -111,14 +112,14 @@ const ProductCardComponent = ({ product }: ProductCardProps) => {
             className="relative overflow-hidden rounded-t-2xl w-full"
           >
             <Link to={`/product/${product.id}`}>
-              <div className="relative">
+              <div className="relative aspect-[4/5] overflow-hidden transform-gpu">
                 {hasImages ? (
                   <>
                     <img
                       src={productImages[currentImageIndex]}
                       alt={productName}
                       loading="lazy"
-                      className={`w-full h-56 sm:h-64 md:h-72 object-cover transition-all duration-700 group-hover:scale-[1.04] ${
+                      className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 group-hover:scale-[1.04] ${
                         imageLoaded ? "opacity-100" : "opacity-0"
                       }`}
                       onLoad={() => setImageLoaded(true)}
@@ -126,13 +127,13 @@ const ProductCardComponent = ({ product }: ProductCardProps) => {
 
                     {/* Image Loading Placeholder */}
                     {!imageLoaded && (
-                      <div className="absolute inset-0 bg-gradient-to-br from-[#5B8DD9]/20 to-[#3E6BB5]/20 animate-pulse flex items-center justify-center">
-                        <Sparkles className="w-8 h-8 text-[#5B8DD9] animate-spin" />
+                      <div className="absolute inset-0 bg-gradient-to-br from-warm/10 to-warm-glow/10 animate-pulse flex items-center justify-center">
+                        <Sparkles className="w-8 h-8 text-warm animate-spin" />
                       </div>
                     )}
                   </>
                 ) : (
-                  <ProductImageFallback className="w-full h-56 sm:h-64 md:h-72 transition-transform duration-700 group-hover:scale-[1.04]" />
+                  <ProductImageFallback className="absolute inset-0 w-full h-full transition-transform duration-700 group-hover:scale-[1.04]" />
                 )}
 
                 {/* Multiple Images Indicator — bottom-end so it doesn't fight the wishlist heart */}
@@ -170,7 +171,7 @@ const ProductCardComponent = ({ product }: ProductCardProps) => {
                           onClick={(e) => goToImage(index, e)}
                           className={`w-2 h-2 rounded-full transition-all duration-300 ${
                             index === currentImageIndex
-                              ? "bg-[#5B8DD9] scale-125"
+                              ? "bg-warm scale-125"
                               : "bg-white/50 hover:bg-white/80"
                           }`}
                         />
@@ -204,7 +205,7 @@ const ProductCardComponent = ({ product }: ProductCardProps) => {
                 >
                   <Heart
                     className={`w-4 h-4 transition-colors duration-200 ${
-                      wishlisted ? "fill-red-500 text-red-500" : "text-white"
+                      wishlisted ? "fill-warm text-warm" : "text-white"
                     }`}
                   />
                 </button>
@@ -220,7 +221,7 @@ const ProductCardComponent = ({ product }: ProductCardProps) => {
                       e.stopPropagation();
                       setQuickViewOpen(true);
                     }}
-                    className="glass bg-white/20 backdrop-blur-md border-white/30 text-white hover:bg-white/30 px-6 py-3 rounded-full font-medium"
+                    className="glass bg-white/20 backdrop-blur-md border-white/30 text-white hover:bg-warm/20 hover:border-warm/60 px-6 py-3 rounded-full font-medium transition-colors"
                   >
                     <Eye className="w-4 h-4 me-2" />
                     {t("product.quickView")}
@@ -231,26 +232,30 @@ const ProductCardComponent = ({ product }: ProductCardProps) => {
 
             {/* Product Type Badge */}
             <div className="absolute top-3 start-3">
-              <div className="flex items-center space-x-1 rtl:space-x-reverse glass bg-black/40 backdrop-blur-md rounded-full px-2.5 sm:px-3 py-1.5 sm:py-2 border border-[#323D50]/15 dark:border-white/20">
-                {product.type === "sample" ? (
-                  <TestTube className="h-4 w-4 text-[#5B8DD9]" />
+              <div className="flex items-center space-x-1 rtl:space-x-reverse glass bg-black/40 backdrop-blur-md rounded-full px-2.5 sm:px-3 py-1.5 sm:py-2 border border-warm/30">
+                {product.type === "gift" ? (
+                  <Gift className="h-4 w-4 text-warm" />
+                ) : product.type === "sample" ? (
+                  <TestTube className="h-4 w-4 text-warm" />
                 ) : (
-                  <Bottle className="h-4 w-4 text-[#5B8DD9]" />
+                  <Bottle className="h-4 w-4 text-warm" />
                 )}
                 <span className="text-white text-sm font-medium">
-                  {product.size}
+                  {product.type === "gift" ? t("giftSets.gridBadge") : product.size}
                 </span>
               </div>
             </div>
 
-            {/* Sold Out Overlay — single full-image overlay; stray pill removed */}
+            {/* Sold Out Overlay — Fraunces italic + amber ring */}
             {isSoldOut && (
-              <div className="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center">
+              <div className="absolute inset-0 bg-black/55 backdrop-blur-sm flex items-center justify-center ring-1 ring-inset ring-warm/40">
                 <div className="text-center">
-                  <div className="text-white text-lg font-bold mb-2">
+                  <div className="font-display italic text-white text-2xl mb-1.5">
                     {t("product.outOfStock")}
                   </div>
-                  <div className="text-white/60 text-sm">{t("product.checkBackLater")}</div>
+                  <div className="text-white/70 text-xs tracking-[0.2em] uppercase">
+                    {t("product.checkBackLater")}
+                  </div>
                 </div>
               </div>
             )}
@@ -261,9 +266,9 @@ const ProductCardComponent = ({ product }: ProductCardProps) => {
             translateZ="30"
             className="p-5 w-full flex flex-col gap-3 flex-1"
           >
-            {/* Product Name — primary */}
+            {/* Product Name — Fraunces editorial */}
             <Link to={`/product/${product.id}`}>
-              <h3 className="text-lg sm:text-xl font-bold dark:text-[#F5F5F5] text-[#323D50] transition-colors duration-300 leading-tight line-clamp-1">
+              <h3 className="font-display text-xl sm:text-[22px] font-semibold tracking-tight text-[#1E2A3D] dark:text-[#F5F5F5] transition-colors duration-300 leading-[1.15] line-clamp-1 group-hover:text-warm">
                 {productName}
               </h3>
             </Link>
@@ -277,17 +282,17 @@ const ProductCardComponent = ({ product }: ProductCardProps) => {
                       key={i}
                       className={`h-3.5 w-3.5 transition-all duration-200 ${
                         i < Math.floor(product.rating)
-                          ? "fill-[#5B8DD9] text-[#5B8DD9]"
+                          ? "fill-warm text-warm"
                           : "text-[#323D50]/20 dark:text-white/20"
                       }`}
                     />
                   ))}
                 </div>
-                <span className="dark:text-white/70 text-[#6B7B8D] text-xs font-medium">
+                <span className="dark:text-white/70 text-[#6B7B8D] text-xs font-medium tabular-nums">
                   {product.rating.toFixed(1)}
                 </span>
                 {product.rating >= 4.5 && !isSoldOut && (
-                  <span className="inline-flex items-center gap-1 rtl:space-x-reverse text-[#5B8DD9] text-[11px] font-semibold uppercase tracking-wider">
+                  <span className="inline-flex items-center gap-1 rtl:space-x-reverse text-warm text-[11px] font-semibold uppercase tracking-wider">
                     <Sparkles className="w-3 h-3" />
                     {t("product.premium")}
                   </span>
@@ -305,7 +310,7 @@ const ProductCardComponent = ({ product }: ProductCardProps) => {
                   product.samples &&
                   product.samples.length > 0 && (
                     <span
-                      className="inline-flex items-center text-[#5B8DD9] text-[11px] font-medium"
+                      className="inline-flex items-center text-warm text-[11px] font-medium"
                       title={t("product.samplesAvailable")}
                     >
                       <TestTube className="w-3 h-3" />
@@ -340,11 +345,13 @@ const ProductCardComponent = ({ product }: ProductCardProps) => {
             <div className="flex items-end justify-between gap-3 pt-2 mt-auto">
               <div className="space-y-0.5">
                 <div
-                  className={`text-2xl sm:text-[26px] font-bold leading-none ${
-                    isSoldOut ? "text-[#6B7B8D] dark:text-white/50" : "gradient-text"
+                  className={`font-display text-2xl sm:text-[26px] font-semibold leading-none tabular-nums tracking-tight ${
+                    isSoldOut
+                      ? "text-[#6B7B8D] dark:text-white/50"
+                      : "text-[#1E2A3D] dark:text-[#F5F5F5] group-hover:text-warm transition-colors duration-300"
                   }`}
                 >
-                  {product.price} LYD
+                  {product.price} <span className="text-xs font-sans tracking-[0.2em] text-[#6B7B8D] dark:text-white/50 align-middle">LYD</span>
                 </div>
                 <div className="dark:text-white/50 text-[#6B7B8D] text-[11px]">
                   {product.type === "sample" ? t("product.sampleSize") : t("product.fullBottle")}
@@ -355,10 +362,10 @@ const ProductCardComponent = ({ product }: ProductCardProps) => {
                 <Button
                   onClick={handleAddToCart}
                   disabled={isSoldOut}
-                  className={`border-0 h-11 px-4 rounded-xl font-semibold transition-all duration-300 hover:shadow-lg hover:shadow-[#5B8DD9]/30 text-sm inline-flex items-center ${
+                  className={`border-0 h-11 px-4 rounded-xl font-semibold transition-all duration-300 text-sm inline-flex items-center ${
                     isSoldOut
                       ? "bg-gray-500/50 text-[#6B7B8D] dark:text-white/60 cursor-not-allowed"
-                      : "bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] hover:from-[#3E6BB5] hover:to-[#5B8DD9] text-white"
+                      : "bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] hover:from-[#3E6BB5] hover:to-[#5B8DD9] text-white glow-warm-hover"
                   }`}
                   style={{ pointerEvents: "auto" }}
                   aria-label={isSoldOut ? t("product.soldOut") : t("product.addToCart")}
@@ -372,9 +379,9 @@ const ProductCardComponent = ({ product }: ProductCardProps) => {
             </div>
           </CardItem>
 
-          {/* Animated Border */}
+          {/* Animated Border — warm candlelight */}
           <div
-            className="absolute inset-0 rounded-2xl bg-gradient-to-r from-[#5B8DD9] via-[#3E6BB5] to-[#5B8DD9] opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10 animate-pulse-glow"
+            className="absolute inset-0 rounded-2xl bg-gradient-to-r from-warm/0 via-warm/60 to-warm/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10"
             style={{ padding: "1px" }}
           >
             <div className="w-full h-full rounded-2xl bg-[#F8F9FB] dark:bg-[#1a2235]" />

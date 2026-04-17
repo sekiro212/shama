@@ -684,6 +684,7 @@
     }
   },
   "collection": {
+    "eyebrow": "The collection",
     "titleOur": "Our",
     "titleHighlight": "Collection",
     "description": "Discover our complete range of luxury fragrances. Choose from full bottles for the complete experience or explore sample sizes on each product page.",
@@ -851,6 +852,7 @@
     "size": "Size"
   },
   "giftSets": {
+    "gridBadge": "Gift Set",
     "title": "Gift Sets",
     "description": "Discover our carefully curated gift sets, perfect for special occasions and thoughtful presents. Each set contains a selection of our finest fragrances.",
     "filterBy": "Filter by:",

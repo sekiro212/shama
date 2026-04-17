@@ -195,9 +195,9 @@ export default function CollectionPage() {
             key={page}
             onClick={() => onPageChange(page)}
             variant={currentPage === page ? "default" : "outline"}
-            className={`w-10 h-10 rounded-xl ${
+            className={`w-10 h-10 rounded-xl font-display tabular-nums ${
               currentPage === page
-                ? "bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] text-white border-0"
+                ? "bg-transparent border-2 border-warm text-warm hover:bg-warm/10"
                 : "glass dark:bg-white/5 bg-white dark:border-white/20 border-[#323D50]/10 dark:border-white/10 dark:text-[#F5F5F5] text-[#323D50] dark:hover:bg-white/10 hover:bg-[#EDF1F7]"
             }`}
           >
@@ -241,12 +241,16 @@ export default function CollectionPage() {
   return (
     <div className="bg-[#F8F9FB] dark:bg-[#1a2235] min-h-screen w-full">
       <div className="container mx-auto px-3 sm:px-4 pt-20 md:pt-24 pb-8 sm:pb-12 max-w-7xl">
-        {/* Hero Section — tightened spacing (U7) */}
-        <div className="text-center mb-6 sm:mb-10">
-          <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold dark:text-[#F5F5F5] text-[#323D50] mb-3 px-2 sm:px-4 leading-tight">
-            {t("collection.titleOur")} <span className="text-[#5B8DD9]">{t("collection.titleHighlight")}</span>
+        {/* Hero Section — editorial eyebrow + Fraunces */}
+        <div className="text-center mb-8 sm:mb-12">
+          <p className="font-display text-xs tracking-[0.3em] uppercase text-warm mb-3">
+            {t("collection.eyebrow")}
+          </p>
+          <h1 className="font-display text-3xl sm:text-5xl md:text-6xl font-semibold tracking-tight dark:text-[#F5F5F5] text-[#1E2A3D] mb-4 leading-[1.05]">
+            {t("collection.titleOur")}{" "}
+            <span className="italic text-warm">{t("collection.titleHighlight")}</span>
           </h1>
-          <p className="text-sm sm:text-lg dark:text-white/75 text-[#6B7B8D] max-w-xs sm:max-w-lg md:max-w-2xl mx-auto px-2 sm:px-0">
+          <p className="text-sm sm:text-base dark:text-white/70 text-[#6B7B8D] max-w-xs sm:max-w-xl md:max-w-2xl mx-auto leading-relaxed">
             {t("collection.description")}
           </p>
         </div>
@@ -269,7 +273,7 @@ export default function CollectionPage() {
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery("")}
-                  className={`absolute ${isRTL ? "left-3" : "right-3"} top-1/2 -translate-y-1/2 text-[#6B7B8D] hover:text-[#5B8DD9] transition-colors`}
+                  className={`absolute ${isRTL ? "left-3" : "right-3"} top-1/2 -translate-y-1/2 text-[#6B7B8D] hover:text-warm transition-colors`}
                   aria-label={t("collection.clearAll")}
                 >
                   <X className="w-4 h-4" />
@@ -314,7 +318,7 @@ export default function CollectionPage() {
             <div className="flex items-center gap-2 lg:ms-auto flex-wrap">
               {hasActiveFilters && (
                 <>
-                  <div className="inline-flex items-center gap-1.5 rtl:space-x-reverse px-3 h-8 rounded-full bg-[#5B8DD9]/15 border border-[#5B8DD9]/40 text-[#3E6BB5] dark:text-[#5B8DD9] text-xs font-semibold">
+                  <div className="inline-flex items-center gap-1.5 rtl:space-x-reverse px-3 h-8 rounded-full bg-warm/15 border border-warm/40 text-warm text-xs font-semibold">
                     <SlidersHorizontal className="w-3 h-3" />
                     {t("collection.filtersActive").replace("{count}", String(activeFilterCount))}
                   </div>
@@ -322,7 +326,7 @@ export default function CollectionPage() {
                     onClick={handleClearAll}
                     variant="ghost"
                     size="sm"
-                    className="h-8 px-3 text-xs text-[#6B7B8D] dark:text-white/60 hover:text-[#5B8DD9] dark:hover:text-[#5B8DD9]"
+                    className="h-8 px-3 text-xs text-[#6B7B8D] dark:text-white/60 hover:text-warm dark:hover:text-warm"
                   >
                     <X className="w-3 h-3 me-1" />
                     {t("collection.clearAll")}
@@ -330,7 +334,7 @@ export default function CollectionPage() {
                 </>
               )}
               {!loading && (
-                <span className="text-xs dark:text-white/55 text-[#6B7B8D] tabular-nums whitespace-nowrap">
+                <span className="font-display text-[11px] tracking-[0.22em] uppercase dark:text-white/55 text-[#6B7B8D] tabular-nums whitespace-nowrap">
                   {t("collection.resultsCount").replace("{count}", String(filteredProducts.length))}
                 </span>
               )}
@@ -354,8 +358,8 @@ export default function CollectionPage() {
                     }
                     className={`flex-shrink-0 text-xs px-3 py-1.5 rounded-full transition-all duration-200 ${
                       active
-                        ? "bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] text-white border border-transparent shadow-sm shadow-[#5B8DD9]/30"
-                        : "dark:bg-white/5 bg-white border dark:border-white/10 border-[#323D50]/10 dark:text-white/70 text-[#6B7B8D] dark:hover:bg-white/10 hover:bg-[#EDF1F7]"
+                        ? "bg-warm/15 border border-warm/50 text-warm font-semibold shadow-sm shadow-warm/15"
+                        : "dark:bg-white/5 bg-white border dark:border-white/10 border-[#323D50]/10 dark:text-white/70 text-[#6B7B8D] dark:hover:bg-white/10 hover:bg-warm/5 hover:border-warm/30 hover:text-warm"
                     }`}
                   >
                     {note}
@@ -376,9 +380,9 @@ export default function CollectionPage() {
                   key={index}
                   className="glass-card rounded-2xl overflow-hidden animate-pulse"
                 >
-                  <div className="h-72 bg-white/10 dark:bg-white/5" />
+                  <div className="aspect-[4/5] bg-white/10 dark:bg-white/5" />
                   <div className="p-5 space-y-3">
-                    <div className="h-5 bg-white/10 dark:bg-white/5 rounded w-3/4" />
+                    <div className="h-6 bg-white/10 dark:bg-white/5 rounded w-3/4" />
                     <div className="flex items-center justify-between">
                       <div className="h-3 bg-white/10 dark:bg-white/5 rounded w-20" />
                       <div className="h-5 bg-white/10 dark:bg-white/5 rounded-full w-16" />
@@ -405,20 +409,20 @@ export default function CollectionPage() {
 
         {!loading && filteredProducts.length === 0 && (
           <div className="text-center py-16 max-w-md mx-auto">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#5B8DD9]/10 mb-4">
-              <Search className="w-7 h-7 text-[#5B8DD9]/60" />
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-warm/15 border border-warm/30 mb-4">
+              <Search className="w-7 h-7 text-warm" />
             </div>
-            <p className="dark:text-white/80 text-[#323D50] font-semibold mb-2">
+            <p className="font-display text-2xl dark:text-[#F5F5F5] text-[#1E2A3D] mb-2">
               {t("collection.noProducts")}
             </p>
-            <p className="dark:text-white/55 text-[#6B7B8D] text-sm mb-4">
+            <p className="dark:text-white/60 text-[#6B7B8D] text-sm mb-6 leading-relaxed">
               {t("collection.noResultsHint")}
             </p>
             {hasActiveFilters && (
               <Button
                 onClick={handleClearAll}
                 variant="outline"
-                className="glass dark:bg-white/5 bg-white dark:border-white/20 border-[#323D50]/10 dark:text-white text-[#323D50] hover:bg-[#5B8DD9]/10"
+                className="glass dark:bg-white/5 bg-white dark:border-warm/40 border-warm/40 dark:text-white text-[#323D50] hover:bg-warm/10 hover:border-warm"
               >
                 <X className="w-4 h-4 me-2" />
                 {t("collection.clearAll")}
@@ -430,7 +434,7 @@ export default function CollectionPage() {
         {!loading && filteredProducts.length > 0 && (
           <div className="flex flex-col items-center mt-12">
             <div className="text-center mb-4">
-              <p className="dark:text-white/60 text-[#6B7B8D] text-sm">
+              <p className="font-display text-xs tracking-[0.22em] uppercase text-warm tabular-nums">
                 {t("collection.showing")} {(currentPage - 1) * itemsPerPage + 1} {t("collection.to")}{" "}
                 {Math.min(currentPage * itemsPerPage, totalProducts)} {t("collection.of")}{" "}
                 {totalProducts} {t("collection.products")}
