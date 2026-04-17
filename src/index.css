@@ -5,16 +5,25 @@
 /* Arabic font support */
 html[lang="ar"],
 html[lang="ar"] #root {
-  font-family: "Cairo", "Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont,
+  font-family: "Tajawal", "Manrope", "SF Pro Display", -apple-system, BlinkMacSystemFont,
     system-ui, sans-serif;
 }
 
 /* Custom CSS Variables for Enhanced Styling */
 :root {
-  font-family: "Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont,
+  font-family: "Manrope", "SF Pro Display", -apple-system, BlinkMacSystemFont,
     system-ui, sans-serif;
   line-height: 1.6;
   font-weight: 400;
+
+  /* Typography — editorial display + refined sans */
+  --font-display: "Fraunces", "Tajawal", Georgia, serif;
+  --font-sans: "Manrope", "Tajawal", system-ui, sans-serif;
+  --font-arabic: "Tajawal", "Manrope", system-ui, sans-serif;
+
+  /* Candlelight accent — used sparingly on glow/accent surfaces */
+  --accent-warm: 212 165 116;
+  --accent-warm-glow: 232 185 138;
 
   /* Color Scheme */
   color-scheme: light dark;
@@ -328,6 +337,57 @@ button:active {
     background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+  }
+
+  /* Editorial display serif — resets the global h1/h2 gradient clip so the glyphs render in solid ink */
+  .font-display {
+    font-family: var(--font-display);
+    font-optical-sizing: auto;
+    letter-spacing: -0.02em;
+    background: none;
+    -webkit-text-fill-color: currentColor;
+    color: inherit;
+  }
+  html[lang="ar"] .font-display {
+    font-family: var(--font-arabic);
+    font-weight: 700;
+  }
+
+  /* Candlelight — sparingly on hero title + primary CTAs */
+  .text-glow-warm {
+    text-shadow: 0 0 32px rgba(232, 185, 138, 0.45);
+  }
+  .dark .text-glow-warm {
+    text-shadow: 0 0 40px rgba(232, 185, 138, 0.55);
+  }
+  .glow-warm {
+    box-shadow: 0 0 40px -8px rgba(232, 185, 138, 0.45);
+  }
+  .glow-warm-hover {
+    transition: box-shadow var(--duration-normal) var(--ease-smooth),
+                transform var(--duration-normal) var(--ease-smooth);
+  }
+  @media (hover: hover) {
+    .glow-warm-hover:hover {
+      box-shadow: 0 0 40px -8px rgba(232, 185, 138, 0.55);
+      transform: translateY(-2px);
+    }
+  }
+
+  /* Paper-grain overlay — attach to root page container */
+  .grain-bg::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/></svg>");
+    opacity: 0.03;
+    mix-blend-mode: multiply;
+  }
+  .dark .grain-bg::after {
+    opacity: 0.05;
+    mix-blend-mode: screen;
   }
 
   .animate-float {
@@ -698,4 +758,21 @@ button[data-variant="ghost"]:hover {
 .memory-marquee:hover,
 .memory-marquee-reverse:hover {
   animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .memory-marquee,
+  .memory-marquee-reverse {
+    animation-play-state: paused;
+  }
+  .animate-float,
+  .animate-pulse-glow {
+    animation: none;
+  }
+  .dark body::before {
+    animation: none;
+  }
+  body {
+    animation: none;
+  }
 }

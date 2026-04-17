@@ -10,7 +10,7 @@
       "coupons": "الكوبونات"
     },
     "shell": {
-      "title": "لوحة شما",
+      "title": "لوحة شمَّة",
       "logout": "تسجيل الخروج",
       "loginTitle": "تسجيل دخول المشرف",
       "usernameLabel": "اسم المستخدم",
@@ -496,9 +496,13 @@
     },
     "stats": {
       "happyCustomers": "عملاء سعداء",
+      "happyCustomersValue": "+150",
       "ourPerfumes": "عطورنا",
+      "ourPerfumesValue": "+100",
       "yearsOfCraft": "سنوات من الإبداع",
-      "averageRating": "متوسط التقييم"
+      "yearsOfCraftValue": "+1",
+      "averageRating": "متوسط التقييم",
+      "averageRatingValue": "4.6★"
     },
     "featured": {
       "badge": "المجموعة المميزة",
@@ -520,8 +524,8 @@
     },
     "marketingVideo": {
       "badge": "قصة العلامة",
-      "title": "اختبر شما",
-      "description": "شاهد كيف تصنع شما عطوراً فاخرة تعبّر عن هويتك المميزة"
+      "title": "اختبر شمَّة",
+      "description": "شاهد كيف تصنع شمَّة عطوراً فاخرة تعبّر عن هويتك المميزة"
     },
     "social": {
       "badge": "معرض التواصل",

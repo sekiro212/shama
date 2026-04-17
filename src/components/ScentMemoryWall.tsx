@@ -26,11 +26,12 @@ import { toast } from "sonner";
 
 function MemoryCard({ memory }: { memory: Memory }) {
   return (
-    <div className="flex-shrink-0 glass-card p-4 rounded-xl w-60 border border-[#5B8DD9]/10 hover:border-[#5B8DD9]/30 transition-colors duration-300">
-      <p className="text-sm text-[#F5F5F5]/90 italic mb-3 leading-relaxed line-clamp-3">
-        "{memory.memory_text}"
+    <div className="flex-shrink-0 glass-card p-4 rounded-xl w-60 border border-[#5B8DD9]/10 hover:border-warm/40 transition-colors duration-300">
+      <span aria-hidden className="block font-display text-3xl text-warm/60 leading-none mb-1">“</span>
+      <p className="font-display text-base text-[#323D50] dark:text-[#F5F5F5]/95 italic mb-3 leading-snug line-clamp-3">
+        {memory.memory_text}
       </p>
-      <p className="text-xs text-[#5B8DD9] font-medium">— {memory.perfume_name}</p>
+      <p className="text-xs text-[#3E6BB5] dark:text-[#8BB4F0] font-medium tracking-wide">— {memory.perfume_name}</p>
     </div>
   );
 }
@@ -92,16 +93,17 @@ export default function ScentMemoryWall() {
         transition={{ duration: 0.6 }}
         className="container mx-auto px-4 mb-10 text-center"
       >
-        <span className="inline-block text-xs font-semibold tracking-[0.2em] text-[#5B8DD9] uppercase mb-3">
+        <span className="inline-flex items-center gap-2 text-[11px] sm:text-xs font-semibold tracking-[0.24em] uppercase text-warm mb-3">
+          <span className="h-px w-6 bg-warm/60" aria-hidden />
           {t("memories.eyebrow")}
         </span>
-        <h2 className="text-3xl md:text-4xl font-bold text-[#323D50] dark:text-[#F5F5F5] mb-3">
+        <h2 className="font-display text-3xl md:text-4xl font-semibold text-[#1E2A3D] dark:text-[#F5F5F5] mb-3 leading-[1.05]">
           {t("memories.title")}
         </h2>
-        <p className="text-[#6B7B8D] mb-6">{t("memories.subtitle")}</p>
+        <p className="text-[#6B7B8D] dark:text-white/70 mb-6 max-w-prose mx-auto">{t("memories.subtitle")}</p>
         <Button
           onClick={() => setOpen(true)}
-          className="bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] text-white rounded-xl hover:opacity-90 transition-opacity"
+          className="bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] text-white rounded-xl glow-warm-hover"
         >
           <Plus className={`w-4 h-4 ${isRTL ? "ms-2" : "me-2"}`} />
           {t("memories.shareButton")}

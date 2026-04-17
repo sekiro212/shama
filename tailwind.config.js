@@ -9,12 +9,21 @@ export default {
   ],
   theme: {
   	extend: {
+  		fontFamily: {
+  			display: ['Fraunces', 'Tajawal', 'Georgia', 'serif'],
+  			sans: ['Manrope', 'Tajawal', 'system-ui', 'sans-serif'],
+  			arabic: ['Tajawal', 'Manrope', 'system-ui', 'sans-serif']
+  		},
   		borderRadius: {
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',
   			sm: 'calc(var(--radius) - 4px)'
   		},
   		colors: {
+  			warm: {
+  				DEFAULT: '#D4A574',
+  				glow: '#E8B98A'
+  			},
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
   			card: {

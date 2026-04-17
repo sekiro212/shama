@@ -34,8 +34,8 @@ export default function Footer() {
           <div className="flex items-center space-x-3 sm:space-x-4 rtl:space-x-reverse">
             <div className="w-10 h-10 sm:w-12 sm:h-12 glass rounded-xl overflow-hidden border border-[#323D50]/10 dark:border-white/10">
               <img
-                src="https://p16-sign-va.tiktokcdn.com/tos-maliva-avt-0068/e159f380a3a42644f03ca7442d2864b0~tplv-tiktokx-cropcenter:1080:1080.jpeg?dr=14579&refresh_token=8be9595c&x-expires=1753538400&x-signature=%2BNcK7CjJZDsNOmd9K1lUKJvPE8M%3D&t=4d5b0474&ps=13740610&shp=a5d48078&shcp=81f88b70&idc=maliva"
-                alt="Shama Logo"
+                src="/shama-logo.jpg"
+                alt="Shama Perfumes logo"
                 className="w-full h-full object-cover"
               />
             </div>

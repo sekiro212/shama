@@ -20,13 +20,14 @@ export default function MarketingVideoSection() {
       <div className="container mx-auto px-4">
         {/* Section header */}
         <div className="text-center mb-12 animate-slide-up">
-          <span className="inline-block text-[#5B8DD9] text-sm font-semibold tracking-wider uppercase mb-4">
+          <span className="inline-flex items-center gap-2 text-[11px] sm:text-xs font-semibold tracking-[0.24em] uppercase text-warm mb-4">
+            <span className="h-px w-6 bg-warm/60" aria-hidden />
             {t("home.marketingVideo.badge")}
           </span>
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold gradient-text mb-4 sm:mb-6">
+          <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-semibold text-[#1E2A3D] dark:text-[#F5F5F5] mb-4 sm:mb-6 leading-[1.05]">
             {t("home.marketingVideo.title")}
           </h2>
-          <p className="dark:text-white/70 text-[#6B7B8D] text-base sm:text-lg max-w-xs sm:max-w-lg md:max-w-2xl mx-auto px-4 sm:px-0">
+          <p className="dark:text-white/70 text-[#6B7B8D] text-base sm:text-lg max-w-xs sm:max-w-lg md:max-w-2xl mx-auto px-4 sm:px-0 leading-relaxed">
             {t("home.marketingVideo.description")}
           </p>
         </div>

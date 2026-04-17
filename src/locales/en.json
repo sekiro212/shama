@@ -496,9 +496,13 @@
     },
     "stats": {
       "happyCustomers": "Happy Customers",
+      "happyCustomersValue": "150+",
       "ourPerfumes": "Our Perfumes",
+      "ourPerfumesValue": "100+",
       "yearsOfCraft": "Years of Craft",
-      "averageRating": "Average Rating"
+      "yearsOfCraftValue": "1+",
+      "averageRating": "Average Rating",
+      "averageRatingValue": "4.6★"
     },
     "featured": {
       "badge": "Featured Collection",

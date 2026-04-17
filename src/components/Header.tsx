@@ -69,8 +69,8 @@ export default function Header({ onCartClick, onSearchClick }: HeaderProps) {
             <div className="relative">
               <div className="w-10 h-10 glass rounded-xl overflow-hidden border border-[#323D50]/10 dark:border-white/10 group-hover:scale-110 transition-transform duration-300">
                 <img
-                  src="https://p16-sign-va.tiktokcdn.com/tos-maliva-avt-0068/e159f380a3a42644f03ca7442d2864b0~tplv-tiktokx-cropcenter:1080:1080.jpeg?dr=14579&refresh_token=8be9595c&x-expires=1753538400&x-signature=%2BNcK7CjJZDsNOmd9K1lUKJvPE8M%3D&t=4d5b0474&ps=13740610&shp=a5d48078&shcp=81f88b70&idc=maliva"
-                  alt="Shama Logo"
+                  src="/shama-logo.jpg"
+                  alt="Shama Perfumes logo"
                   className="w-full h-full object-cover"
                 />
               </div>
@@ -278,8 +278,8 @@ export default function Header({ onCartClick, onSearchClick }: HeaderProps) {
                 <div className="flex items-center space-x-3 rtl:space-x-reverse">
                   <div className="w-8 h-8 glass rounded-lg overflow-hidden border border-[#323D50]/10 dark:border-white/10">
                     <img
-                      src="https://scontent.ftip3-2.fna.fbcdn.net/v/t39.30808-6/490716688_682267014176902_5111076605936005794_n.jpg?_nc_cat=111&ccb=1-7&_nc_sid=6ee11a&_nc_eui2=AeHNnkfa-6nrK5_-XvSX-y74BFSYKJ8kY0MEVJgonyRjQwfpzGcYHVQRwHbG9KVjKfKzAThbJaEX_-Kz19Qqpqma&_nc_ohc=hJ_ziW87-zIQ7kNvwHT95MU&_nc_oc=AdkNK6t6BP7TYCxXonBcpkm3d6F0fElZyHJiOvWkPb2csE8IvHkzMKD7XhRFbNjLdfg&_nc_zt=23&_nc_ht=scontent.ftip3-2.fna&_nc_gid=P6wZI-xXSK258VaLo15OEA&oh=00_AfRliJRtnfiqv_kdgcud0rPdE9HL-l0KoDiiHEQ-BlcSBQ&oe=687F081E"
-                      alt="Shama Logo"
+                      src="/shama-logo.jpg"
+                      alt="Shama Perfumes logo"
                       className="w-full h-full object-cover"
                     />
                   </div>
