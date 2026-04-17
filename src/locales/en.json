@@ -547,6 +547,9 @@
     "chipWinter": "❄️ Winter warmth"
   },
   "product": {
+    "eyebrowBottle": "Signature fragrance",
+    "eyebrowSample": "Discovery sample",
+    "eyebrowGift": "Gift set",
     "backToCollection": "Back to Collection",
     "loading": "Loading...",
     "fetchingDetails": "Fetching product details...",

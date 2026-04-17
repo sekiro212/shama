@@ -37,6 +37,8 @@ import {
 } from "@/services/reviewsService";
 import { evaluateReview } from "@/services/aiService";
 import FragranceTimeline from "@/components/FragranceTimeline";
+import StickyBuyBar from "@/components/StickyBuyBar";
+import { anonymizeEmail, formatReviewDate } from "@/lib/reviewUtils";
 import { trackEvent } from "@/services/trackingService";
 
 export default function ProductPage() {
@@ -455,10 +457,17 @@ export default function ProductPage() {
             {/* Product Header */}
             <div className="space-y-3 sm:space-y-4">
               <div className="space-y-2">
-                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold gradient-text leading-tight">
+                <p className="font-display text-[11px] tracking-[0.3em] uppercase text-warm">
+                  {product.type === "gift"
+                    ? t("product.eyebrowGift")
+                    : product.type === "sample"
+                      ? t("product.eyebrowSample")
+                      : t("product.eyebrowBottle")}
+                </p>
+                <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-semibold text-[#1E2A3D] dark:text-[#F5F5F5] leading-[1.05] tracking-tight">
                   {productName}
                 </h1>
-                <div className="dark:text-white/70 text-[#6B7B8D] text-base sm:text-lg leading-relaxed">
+                <div className="dark:text-white/70 text-[#6B7B8D] text-base sm:text-lg leading-relaxed pt-2">
                   {productDescription}
                 </div>
               </div>
@@ -680,7 +689,7 @@ export default function ProductPage() {
 
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="space-y-2">
-                  <div className="text-2xl sm:text-3xl md:text-4xl font-bold gradient-text">
+                  <div className="font-display text-3xl sm:text-4xl md:text-5xl font-semibold text-[#1E2A3D] dark:text-[#F5F5F5] tabular-nums tracking-tight leading-none">
                     {(() => {
                       const hasSamples =
                         product.has_samples &&
@@ -733,7 +742,7 @@ export default function ProductPage() {
                         return product.price;
                       }
                     })()}{" "}
-                    LYD
+                    <span className="text-sm font-sans tracking-[0.2em] text-[#6B7B8D] dark:text-white/50 align-middle">LYD</span>
                   </div>
                   <div className="dark:text-white/50 text-[#6B7B8D] dark:text-[#D6D6D6] text-sm">
                     {(() => {
@@ -920,19 +929,19 @@ export default function ProductPage() {
                 }}
                 className={`glass border rounded-xl w-14 h-14 flex items-center justify-center transition-all duration-300 hover:scale-105 ${
                   isInWishlist(product.id)
-                    ? "border-red-500/50 bg-red-500/10"
-                    : "dark:border-white/20 border-[#323D50]/10 dark:border-white/10 dark:bg-white/5 bg-white dark:hover:bg-white/10 hover:bg-white/5"
+                    ? "border-warm/50 bg-warm/10"
+                    : "dark:border-white/20 border-[#323D50]/10 dark:border-white/10 dark:bg-white/5 bg-white dark:hover:bg-white/10 hover:bg-white/5 hover:border-warm/40"
                 }`}
               >
                 <Heart
                   className={`w-5 h-5 ${
-                    isInWishlist(product.id) ? "fill-red-500 text-red-500" : "dark:text-white/70 text-[#6B7B8D]"
+                    isInWishlist(product.id) ? "fill-warm text-warm" : "dark:text-white/70 text-[#6B7B8D]"
                   }`}
                 />
               </Button>
               <Button
                 onClick={handleAddToCart}
-                className="flex-1 glass bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] hover:from-[#3E6BB5] hover:to-[#5B8DD9] text-white border-0 py-3 sm:py-4 rounded-xl font-semibold text-base sm:text-lg transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-[#5B8DD9]/25"
+                className="flex-1 glass bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] hover:from-[#3E6BB5] hover:to-[#5B8DD9] text-white border-0 py-3 sm:py-4 rounded-xl font-semibold text-base sm:text-lg transition-all duration-300 hover:scale-105 glow-warm-hover"
                 disabled={
                   // Only disable if a selection is required and not made, but not when Default is selected
                   (activeMode === "sample" &&
@@ -955,20 +964,23 @@ export default function ProductPage() {
 
             {/* Product Tabs */}
             <div className="space-y-6">
-              {/* Tab Navigation */}
-              <div className="flex space-x-1 rtl:space-x-reverse glass dark:bg-white/5 bg-white/60 border dark:border-white/10 border-[#323D50]/10 rounded-xl p-2">
+              {/* Tab Navigation — amber underline editorial */}
+              <div className="flex gap-1 rtl:space-x-reverse border-b border-[#323D50]/10 dark:border-white/10">
                 {tabs.map((tab) => (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`flex items-center space-x-2 rtl:space-x-reverse px-2 sm:px-4 py-2.5 sm:py-3 rounded-lg font-medium transition-all duration-300 flex-1 justify-center ${
+                    className={`relative flex items-center gap-2 rtl:space-x-reverse px-3 sm:px-5 py-3 sm:py-3.5 font-medium transition-colors duration-200 flex-1 justify-center bg-transparent !bg-transparent !border-0 !rounded-none ${
                       activeTab === tab.id
-                        ? "bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] text-white shadow-lg"
-                        : " dark:hover:bg-white dark:bg-white/5 hover:bg-white/5"
+                        ? "text-warm"
+                        : "text-[#6B7B8D] dark:text-white/60 hover:text-[#1E2A3D] dark:hover:text-white"
                     }`}
                   >
                     <tab.icon className="w-4 h-4" />
-                    <span className="hidden sm:inline">{tab.label}</span>
+                    <span className="hidden sm:inline font-display tracking-wide text-sm">{tab.label}</span>
+                    {activeTab === tab.id && (
+                      <span className="absolute -bottom-px left-4 right-4 h-[2px] bg-warm rounded-full" aria-hidden />
+                    )}
                   </button>
                 ))}
               </div>
@@ -1010,13 +1022,29 @@ export default function ProductPage() {
           />
         </div>
       </div>
+
+      {/* Mobile sticky buy bar */}
+      {(() => {
+        const selectedSampleObj = product.samples?.find((s) => s.id === selectedSample);
+        const selectedBottleObj = product.bottle_sizes?.find((b) => b.id === selectedBottleSize);
+        const effectivePrice = selectedSampleObj?.price ?? selectedBottleObj?.price ?? product.price;
+        const effectiveSize = selectedSampleObj?.size ?? selectedBottleObj?.size ?? product.size;
+        const isSoldOut = !product.is_active || product.stock_quantity === 0;
+        return (
+          <StickyBuyBar
+            price={effectivePrice}
+            priceLabel={`${productName} · ${effectiveSize}`}
+            onAddToCart={handleAddToCart}
+            isSoldOut={isSoldOut}
+          />
+        );
+      })()}
     </div>
   );
 }
 
 function maskEmail(email: string): string {
-  const [local, domain] = email.split("@");
-  return `${local[0]}***@${domain}`;
+  return anonymizeEmail(email);
 }
 
 interface ReviewSectionProps {
@@ -1146,7 +1174,7 @@ const ReviewSection = React.memo(
                     key={s}
                     className={`w-6 h-6 ${
                       s <= userReview.rating
-                        ? "text-amber-400 fill-amber-400"
+                        ? "text-warm fill-warm"
                         : "text-white/20"
                     }`}
                   />
@@ -1182,7 +1210,7 @@ const ReviewSection = React.memo(
                       <Star
                         className={`w-8 h-8 transition-colors ${
                           s <= starDisplay
-                            ? "text-amber-400 fill-amber-400"
+                            ? "text-warm fill-warm"
                             : "dark:text-white/30 text-[#6B7B8D]/40"
                         }`}
                       />
@@ -1246,7 +1274,7 @@ const ReviewSection = React.memo(
                             key={s}
                             className={`w-3.5 h-3.5 ${
                               s <= review.rating
-                                ? "text-amber-400 fill-amber-400"
+                                ? "text-warm fill-warm"
                                 : "dark:text-white/20 text-[#6B7B8D]/30"
                             }`}
                           />
@@ -1254,8 +1282,8 @@ const ReviewSection = React.memo(
                       </div>
                     </div>
                   </div>
-                  <span className="text-xs dark:text-white/30 text-[#6B7B8D] flex-shrink-0">
-                    {new Date(review.created_at).toLocaleDateString()}
+                  <span className="text-xs dark:text-white/30 text-[#6B7B8D] flex-shrink-0 tabular-nums">
+                    {formatReviewDate(review.created_at, isRTL ? "ar" : "en")}
                   </span>
                 </div>
                 <p className="dark:text-white/70 text-[#6B7B8D] text-sm leading-relaxed" dir={isRTL ? "rtl" : "ltr"}>

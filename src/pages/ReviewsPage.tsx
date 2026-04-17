@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { Star, ArrowRight, ShieldCheck } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { anonymizeEmail, formatReviewDate } from "@/lib/reviewUtils";
 
 interface AggregateReview {
   id: string;
@@ -14,26 +15,6 @@ interface AggregateReview {
   comment: string;
   user_email: string;
   created_at: string;
-}
-
-function anonymizeEmail(email: string): string {
-  if (!email) return "";
-  const [local] = email.split("@");
-  if (!local) return "";
-  if (local.length <= 2) return local + "·";
-  return `${local.slice(0, 2)}${"·".repeat(Math.min(4, local.length - 2))}`;
-}
-
-function formatDate(iso: string, locale: string) {
-  try {
-    return new Date(iso).toLocaleDateString(locale === "ar" ? "ar-LY" : "en-GB", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  } catch {
-    return "";
-  }
 }
 
 export default function ReviewsPage() {
@@ -159,7 +140,7 @@ export default function ReviewsPage() {
                           <ShieldCheck className="w-3.5 h-3.5 text-warm" aria-hidden />
                           <span className="font-mono">{anonymizeEmail(r.user_email)}</span>
                           <span>·</span>
-                          <span>{formatDate(r.created_at, language)}</span>
+                          <span>{formatReviewDate(r.created_at, language)}</span>
                         </div>
                         <Link
                           to={`/product/${r.perfume_id}`}
