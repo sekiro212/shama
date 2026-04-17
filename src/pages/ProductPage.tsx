@@ -200,14 +200,18 @@ export default function ProductPage() {
   }
 
   const handleAddToCart = () => {
-    const selectedSampleData =
-      activeMode === "sample" && selectedSample
-        ? product.samples?.find((s) => s.id === selectedSample)
-        : null;
-    const selectedBottleSizeData =
-      activeMode === "bottle" && selectedBottleSize
-        ? product.bottle_sizes?.find((b) => b.id === selectedBottleSize)
-        : null;
+    // Resolve the selected variant directly from the stored id regardless of
+    // activeMode — the UI already makes the two selections mutually exclusive
+    // (picking a sample clears the bottle selection and vice versa), so we
+    // trust the currently-set id. Gating this on activeMode caused samples-
+    // only products (which default to activeMode="bottle") to silently fall
+    // back to the full-bottle price.
+    const selectedSampleData = selectedSample
+      ? product.samples?.find((s) => s.id === selectedSample)
+      : null;
+    const selectedBottleSizeData = selectedBottleSize
+      ? product.bottle_sizes?.find((b) => b.id === selectedBottleSize)
+      : null;
 
     // Only block add-to-cart if a selection is required and not made, but not when Default is selected
     if (

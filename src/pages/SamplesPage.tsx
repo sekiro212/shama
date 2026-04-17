@@ -92,8 +92,8 @@ export default function SamplesPage() {
     }
 
     addToCart({
-      id: product.id,
-      name: `${product.name}`,
+      id: sample.id,
+      name: product.name,
       price: sample.price,
       image: product.images?.[0]?.image_url || "",
       size: `${sample.size} Sample`,
