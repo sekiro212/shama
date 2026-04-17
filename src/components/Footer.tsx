@@ -137,9 +137,7 @@ export default function Footer() {
 
   const companyLinks: LinkItem[] = [
     { label: t("footer.columns.companyStory"), href: "/about" },
-    { label: t("footer.columns.companyJournal"), href: "/journal" },
     { label: t("footer.columns.companyReviews"), href: "/reviews" },
-    { label: t("footer.columns.companyPress"), href: "/press" },
   ];
 
   return (

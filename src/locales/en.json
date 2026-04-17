@@ -1133,6 +1133,114 @@
     "loginRequired": "Please log in to manage your email preferences",
     "loading": "Loading preferences..."
   },
+  "faq": {
+    "eyebrow": "Help center",
+    "title": "Frequently asked",
+    "lede": "Answers to the questions we hear most. Can't find what you're looking for? Send us a DM on Instagram.",
+    "sections": {
+      "ordering": {
+        "heading": "Ordering",
+        "q1": "Do I need an account to order?",
+        "a1": "No — guest checkout is supported. An account helps you track orders and save a wishlist, but it's optional.",
+        "q2": "What payment methods do you accept?",
+        "a2": "Cash on Delivery or bank transfer to our Libyan bank account. For bank transfers we ask for a screenshot of your transfer before dispatching your order.",
+        "q3": "Can I cancel or change my order?",
+        "a3": "Yes, before the order is shipped. DM us on Instagram with your order code and we'll help straight away."
+      },
+      "shipping": {
+        "heading": "Shipping",
+        "q1": "Where do you ship?",
+        "a1": "Libya only, via our partner Vanex. Every city and sub-city Vanex serves is available at checkout.",
+        "q2": "How long does delivery take?",
+        "a2": "Most orders arrive within 2 to 5 business days after dispatch. Your exact estimate is shown at checkout based on your address.",
+        "q3": "How much is shipping?",
+        "a3": "Delivery cost depends on your sub-city and is calculated by Vanex in real time during checkout. No hidden fees.",
+        "q4": "How do I track my order?",
+        "a4": "Use the Track Order page with your order code, or sign in and open My Orders for live Vanex tracking."
+      },
+      "products": {
+        "heading": "Products",
+        "q1": "How do I know which perfume suits me?",
+        "a1": "Try the Fragrance Quiz for a guided match, describe what you want to the AI Finder, or pick a 3ml sample first on the Samples page.",
+        "q2": "Do you offer samples?",
+        "a2": "Yes — most perfumes are available in 3ml and 5ml samples so you can try before committing to a full bottle.",
+        "q3": "Are your perfumes original?",
+        "a3": "Yes. We curate niche and designer fragrances from trusted sources — every bottle is authentic."
+      },
+      "support": {
+        "heading": "Support",
+        "q1": "How do I return a product?",
+        "a1": "See the Returns page. Sealed, unopened bottles can be returned within 7 days; you coordinate the Vanex pickup and cover the return delivery fee.",
+        "q2": "How do I contact you?",
+        "a2": "Instagram DM is the fastest way. You can also reach us on Facebook or TikTok. See the Contact page for all channels."
+      }
+    }
+  },
+  "about": {
+    "eyebrow": "Our story",
+    "title": "A whiff of scent, a lasting memory",
+    "lede": "Shama (شمَّة) means a whiff of scent in Arabic — a fleeting note of perfume on the air that stops you mid-step. That's the brand.",
+    "name": {
+      "heading": "The name",
+      "body": "شمَّة isn't a candle and it isn't a cloud. It's the moment a scent catches you — passing in a doorway, sitting beside someone, walking through a souk. We wanted a name that captured that tiny, luminous moment."
+    },
+    "atelier": {
+      "heading": "The atelier",
+      "body": "We curate niche and designer fragrances with intention. Every perfume in the collection earns its place — through composition, story, or the way it lingers on skin. Curation over quantity, always."
+    },
+    "promise": {
+      "heading": "The promise",
+      "body": "Authentic perfumes. Transparent prices in Libyan Dinar. Honest delivery times through Vanex. And a real person on the other end of every Instagram DM — because luxury without hospitality is just packaging."
+    },
+    "pullquote": "Each bottle tells a story. Each scent creates a memory.",
+    "signature": "— Shama, 2024"
+  },
+  "contact": {
+    "eyebrow": "Contact",
+    "title": "Let's talk",
+    "lede": "We live on DMs. The fastest way to reach us is Instagram — expect a reply within 24 hours.",
+    "channels": {
+      "heading": "Direct channels"
+    },
+    "instagram": {
+      "label": "Instagram",
+      "handle": "@shama._200",
+      "description": "Fastest replies. DMs open."
+    },
+    "facebook": {
+      "label": "Facebook",
+      "handle": "Shama Perfumes",
+      "description": "Updates, launches, reels."
+    },
+    "tiktok": {
+      "label": "TikTok",
+      "handle": "@shama_625",
+      "description": "Short clips of arrivals and moments."
+    },
+    "bank": {
+      "heading": "Bank transfer",
+      "sub": "For pre-paid orders. Transfer the product price; pay delivery on arrival.",
+      "holder": "Account holder",
+      "holderValue": "فاروق محمد الهويجي",
+      "account": "Account number",
+      "iban": "IBAN",
+      "copy": "Copy",
+      "copied": "Copied"
+    },
+    "response": "We reply within 24 hours — usually much sooner."
+  },
+  "reviewsPage": {
+    "eyebrow": "Reviews",
+    "title": "What our customers say",
+    "lede": "Every review here is from a verified customer, published after our team reviews it. Real words, real bottles.",
+    "loading": "Loading reviews…",
+    "empty": "No reviews yet. Be the first.",
+    "emptyCta": "Explore the Collection",
+    "verified": "Verified customer",
+    "onProduct": "on",
+    "viewProduct": "View product",
+    "showingCount": "Showing {count} reviews"
+  },
   "cookieBanner": {
     "body": "We use a few small storage items so your cart, language, theme and preferences stay with you. We do not use analytics or tracking cookies.",
     "accept": "Accept",

@@ -22,6 +22,10 @@ import TermsPage from "@/pages/TermsPage";
 import CookiesPage from "@/pages/CookiesPage";
 import ShippingPage from "@/pages/ShippingPage";
 import ReturnsPage from "@/pages/ReturnsPage";
+import FAQPage from "@/pages/FAQPage";
+import AboutPage from "@/pages/AboutPage";
+import ContactPage from "@/pages/ContactPage";
+import ReviewsPage from "@/pages/ReviewsPage";
 import CartSidebar from "@/components/CartSidebar";
 import SearchDialog from "@/components/SearchDialog";
 import CookieBanner from "@/components/CookieBanner";
@@ -81,6 +85,10 @@ function AnimatedRoutes({ isCartOpen, setIsCartOpen }: { isCartOpen: boolean; se
             <Route path="/privacy" element={<PageTransition><PrivacyPage /></PageTransition>} />
             <Route path="/terms" element={<PageTransition><TermsPage /></PageTransition>} />
             <Route path="/cookies" element={<PageTransition><CookiesPage /></PageTransition>} />
+            <Route path="/faq" element={<PageTransition><FAQPage /></PageTransition>} />
+            <Route path="/about" element={<PageTransition><AboutPage /></PageTransition>} />
+            <Route path="/contact" element={<PageTransition><ContactPage /></PageTransition>} />
+            <Route path="/reviews" element={<PageTransition><ReviewsPage /></PageTransition>} />
           </Routes>
         </AnimatePresence>
       </main>
