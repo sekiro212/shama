@@ -472,7 +472,7 @@
     "aiFinder": "AI Finder"
   },
   "header": {
-    "luxuryScents": "LUXURY SCENTS",
+    "luxuryScents": "Luxury Scents",
     "search": "Search",
     "menu": "Menu",
     "cart": "Cart",
@@ -481,9 +481,10 @@
     "signOut": "Sign Out",
     "signedOutSuccess": "Signed out successfully",
     "account": "Account",
-    "whisperMode": "Whisper Mode",
-    "exitWhisperMode": "Exit Whisper Mode",
-    "myOrders": "My Orders"
+    "myOrders": "My Orders",
+    "toggleTheme": "Theme",
+    "toggleLanguage": "Language",
+    "announcement": ""
   },
   "home": {
     "hero": {
@@ -907,8 +908,36 @@
     "title": "You Might Also Like"
   },
   "footer": {
-    "tagline": "Luxury fragrances for the discerning individual",
-    "copyright": "2024 Shama. All rights reserved."
+    "tagline": "Luxury fragrances for the discerning individual. Each bottle tells a story — each scent creates a memory.",
+    "copyright": "2024 Shama. All rights reserved.",
+    "newsletterHeading": "Stay in the scent",
+    "newsletterSub": "Early releases, limited drops, and stories from the atelier. No spam.",
+    "newsletterPlaceholder": "you@example.com",
+    "newsletterSubmit": "Subscribe",
+    "newsletterConsent": "By subscribing you agree to our Privacy Policy.",
+    "newsletterSuccess": "You're on the list.",
+    "columns": {
+      "shop": "Shop",
+      "shopCollection": "Collection",
+      "shopGiftSets": "Gift Sets",
+      "shopSamples": "Samples",
+      "shopAiFinder": "AI Finder",
+      "service": "Customer Care",
+      "serviceContact": "Contact",
+      "serviceShipping": "Shipping & Delivery",
+      "serviceReturns": "Returns",
+      "serviceFaq": "FAQ",
+      "company": "Company",
+      "companyStory": "Our Story",
+      "companyJournal": "Journal",
+      "companyReviews": "Reviews",
+      "companyPress": "Press"
+    },
+    "legal": {
+      "privacy": "Privacy",
+      "terms": "Terms",
+      "cookies": "Cookies"
+    }
   },
   "auth": {
     "welcomeBack": "Welcome Back",

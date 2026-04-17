@@ -481,9 +481,10 @@
     "signOut": "تسجيل الخروج",
     "signedOutSuccess": "تم تسجيل الخروج بنجاح",
     "account": "الحساب",
-    "whisperMode": "وضع الهمس",
-    "exitWhisperMode": "خروج من وضع الهمس",
-    "myOrders": "طلباتي"
+    "myOrders": "طلباتي",
+    "toggleTheme": "المظهر",
+    "toggleLanguage": "اللغة",
+    "announcement": ""
   },
   "home": {
     "hero": {
@@ -907,8 +908,36 @@
     "title": "قد يعجبك أيضاً"
   },
   "footer": {
-    "tagline": "عطور فاخرة للذواقين",
-    "copyright": "2024 Shama. جميع الحقوق محفوظة."
+    "tagline": "عطور فاخرة للذواقين. كل زجاجة تروي قصة، وكل عطر يصنع ذكرى.",
+    "copyright": "2024 Shama. جميع الحقوق محفوظة.",
+    "newsletterHeading": "ابقَ على مسار العطر",
+    "newsletterSub": "إصدارات مبكرة، إطلاقات محدودة، وقصص من المعمل. بدون إزعاج.",
+    "newsletterPlaceholder": "بريدك@مثال.com",
+    "newsletterSubmit": "اشترك",
+    "newsletterConsent": "بالاشتراك فأنت توافق على سياسة الخصوصية.",
+    "newsletterSuccess": "أنت على القائمة.",
+    "columns": {
+      "shop": "التسوّق",
+      "shopCollection": "المجموعة",
+      "shopGiftSets": "أطقم الهدايا",
+      "shopSamples": "العيّنات",
+      "shopAiFinder": "البحث الذكي",
+      "service": "خدمة العملاء",
+      "serviceContact": "تواصل معنا",
+      "serviceShipping": "الشحن والتوصيل",
+      "serviceReturns": "الإرجاع",
+      "serviceFaq": "الأسئلة الشائعة",
+      "company": "الشركة",
+      "companyStory": "قصّتنا",
+      "companyJournal": "اليوميّات",
+      "companyReviews": "المراجعات",
+      "companyPress": "الصحافة"
+    },
+    "legal": {
+      "privacy": "الخصوصية",
+      "terms": "الشروط",
+      "cookies": "ملفات تعريف الارتباط"
+    }
   },
   "auth": {
     "welcomeBack": "مرحباً بعودتك",

@@ -94,7 +94,7 @@ const ProductCardComponent = ({ product }: ProductCardProps) => {
   };
 
   return (
-    <div className="whisper-card h-full">
+    <div className="h-full">
       <CardContainer
         className="w-full h-full"
         containerClassName="py-0 h-full w-full"
