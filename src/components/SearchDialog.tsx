@@ -1,6 +1,7 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, ComponentType } from "react";
 import { useNavigate } from "react-router-dom";
-import { Sparkles, Search, X, ArrowRight, TrendingUp } from "lucide-react";
+import { Sparkles, Search, X, ArrowRight, Moon, Trees, Gift, Sun, Tag } from "lucide-react";
+type Icon = ComponentType<{ className?: string }>;
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useSearch } from "@/hooks/useSearch";
@@ -13,12 +14,12 @@ interface SearchDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const QUICK_SEARCHES = [
-  { label: "Night out", query: "seductive perfume for night" },
-  { label: "Woody & warm", query: "woody warm perfume" },
-  { label: "Gift for her", query: "gift perfume for women" },
-  { label: "Summer fresh", query: "light fresh summer perfume" },
-  { label: "Under 300 LYD", query: "perfume under 300 lyd" },
+const QUICK_SEARCHES: { label: string; query: string; Icon: Icon }[] = [
+  { label: "Night out", query: "seductive perfume for night", Icon: Moon },
+  { label: "Woody & warm", query: "woody warm perfume", Icon: Trees },
+  { label: "Gift for her", query: "gift perfume for women", Icon: Gift },
+  { label: "Summer fresh", query: "light fresh summer perfume", Icon: Sun },
+  { label: "Under 300 LYD", query: "perfume under 300 lyd", Icon: Tag },
 ];
 
 export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
@@ -101,30 +102,42 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
         <div className="overflow-y-auto max-h-[60vh] sm:max-h-[62vh]">
           <AnimatePresence mode="wait" initial={false}>
 
-            {/* Empty state: quick searches */}
+            {/* Empty state: editorial anchor + quick searches */}
             {!query && (
               <motion.div
                 key="empty"
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 transition={{ duration: 0.18 }}
-                className="px-5 py-6"
+                className="px-5 py-7 sm:py-9"
               >
-                <div className={`flex items-center gap-2 mb-4 ${isRTL ? "flex-row-reverse" : ""}`}>
-                  <TrendingUp className="w-3.5 h-3.5 text-warm" />
-                  <span className="font-display text-[11px] tracking-[0.22em] uppercase text-warm">
-                    Popular Searches
-                  </span>
+                {/* Editorial anchor */}
+                <div className="text-center mb-7 sm:mb-8">
+                  <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-warm/15 border border-warm/40 mb-4">
+                    <Sparkles className={`w-5 h-5 text-warm ${reduce ? "" : "animate-pulse"}`} />
+                  </div>
+                  <p className="font-display text-[11px] tracking-[0.32em] uppercase text-warm mb-2">
+                    Discover
+                  </p>
+                  <p className="font-display italic text-lg sm:text-xl text-[#1a1a2e] dark:text-[#F5F5F5]/90 leading-snug max-w-xs mx-auto">
+                    A scent lives in a word.
+                  </p>
                 </div>
-                <div className={`flex flex-wrap gap-2 ${isRTL ? "flex-row-reverse" : ""}`}>
-                  {QUICK_SEARCHES.map((s) => (
-                    <button
-                      key={s.query}
-                      onClick={() => handleQuickSearch(s.query)}
-                      className="px-3.5 py-1.5 text-sm rounded-full border border-black/8 dark:border-white/10 text-[#4b5563] dark:text-white/60 hover:border-warm/50 hover:text-warm hover:bg-warm/5 transition-all duration-200 cursor-pointer"
-                    >
-                      {s.label}
-                    </button>
-                  ))}
+
+                {/* Quick searches with icons */}
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {QUICK_SEARCHES.map((s) => {
+                    const Icon = s.Icon;
+                    return (
+                      <button
+                        key={s.query}
+                        onClick={() => handleQuickSearch(s.query)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-full bg-white/60 dark:bg-white/5 border border-warm/25 text-[#4b5563] dark:text-white/75 hover:border-warm/60 hover:text-warm hover:bg-warm/10 transition-all duration-200 cursor-pointer"
+                      >
+                        <Icon className="w-3.5 h-3.5" aria-hidden />
+                        {s.label}
+                      </button>
+                    );
+                  })}
                 </div>
               </motion.div>
             )}

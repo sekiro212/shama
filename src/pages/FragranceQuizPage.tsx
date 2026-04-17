@@ -1,6 +1,31 @@
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, ArrowRight, ArrowLeft, RotateCcw } from "lucide-react";
+import { useState, ComponentType } from "react";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import {
+  Sparkles,
+  ArrowRight,
+  ArrowLeft,
+  RotateCcw,
+  Sun,
+  Moon,
+  Briefcase,
+  PartyPopper,
+  TestTube,
+  PillBottle,
+  Layers,
+  Droplet,
+  Flower,
+  Trees,
+  Flame,
+  Feather,
+  Waves,
+  Zap,
+  User,
+  Users,
+  Crown,
+  Gem,
+  Coins,
+  Trophy,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import QuizStep from "@/components/quiz/QuizStep";
 import QuizResults from "@/components/quiz/QuizResults";
@@ -8,24 +33,17 @@ import { getQuizRecommendations, getScentDNACard, ScentDNACard } from "@/service
 import { useLanguage } from "@/contexts/LanguageContext";
 import { trackEvent } from "@/services/trackingService";
 
-// Animation variants for slide transitions
+type Icon = ComponentType<{ className?: string }>;
+
 const slideVariants = {
-  enter: (direction: number) => ({
-    x: direction > 0 ? 300 : -300,
-    opacity: 0,
-  }),
-  center: {
-    x: 0,
-    opacity: 1,
-  },
-  exit: (direction: number) => ({
-    x: direction > 0 ? -300 : 300,
-    opacity: 0,
-  }),
+  enter: (direction: number) => ({ x: direction > 0 ? 200 : -200, opacity: 0 }),
+  center: { x: 0, opacity: 1 },
+  exit: (direction: number) => ({ x: direction > 0 ? -200 : 200, opacity: 0 }),
 };
 
 export default function FragranceQuizPage() {
   const { t } = useLanguage();
+  const reduce = useReducedMotion();
 
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -37,26 +55,26 @@ export default function FragranceQuizPage() {
   >([]);
   const [dnaCard, setDnaCard] = useState<ScentDNACard | null>(null);
 
-  // Quiz configuration (inside component so t() and answers are available)
-  const budgetOptions = (() => {
+  // Budget options depend on the chosen format
+  const budgetOptions: { label: string; Icon: Icon; value: string }[] = (() => {
     const fmt = answers.format;
     if (fmt === "sample") return [
-      { label: t("quiz.budget.sample_under50"),   icon: "💧", value: "sample_under_50" },
-      { label: t("quiz.budget.sample_50_150"),    icon: "🧪", value: "sample_50_150" },
-      { label: t("quiz.budget.sample_150_350"),   icon: "💎", value: "sample_150_350" },
-      { label: t("quiz.budget.sample_350plus"),   icon: "👑", value: "sample_350plus" },
+      { label: t("quiz.budget.sample_under50"),   Icon: Droplet, value: "sample_under_50" },
+      { label: t("quiz.budget.sample_50_150"),    Icon: Coins,   value: "sample_50_150" },
+      { label: t("quiz.budget.sample_150_350"),   Icon: Gem,     value: "sample_150_350" },
+      { label: t("quiz.budget.sample_350plus"),   Icon: Crown,   value: "sample_350plus" },
     ];
     if (fmt === "full_bottle") return [
-      { label: t("quiz.budget.bottle_370_700"),   icon: "💰", value: "bottle_370_700" },
-      { label: t("quiz.budget.bottle_700_1100"),  icon: "💎", value: "bottle_700_1100" },
-      { label: t("quiz.budget.bottle_1100_2000"), icon: "🏆", value: "bottle_1100_2000" },
-      { label: t("quiz.budget.bottle_2000plus"),  icon: "👑", value: "bottle_2000plus" },
+      { label: t("quiz.budget.bottle_370_700"),   Icon: Coins,   value: "bottle_370_700" },
+      { label: t("quiz.budget.bottle_700_1100"),  Icon: Gem,     value: "bottle_700_1100" },
+      { label: t("quiz.budget.bottle_1100_2000"), Icon: Trophy,  value: "bottle_1100_2000" },
+      { label: t("quiz.budget.bottle_2000plus"),  Icon: Crown,   value: "bottle_2000plus" },
     ];
     return [
-      { label: t("quiz.budget.both_under200"),    icon: "💧", value: "both_under_200" },
-      { label: t("quiz.budget.both_200_700"),     icon: "💰", value: "both_200_700" },
-      { label: t("quiz.budget.both_700_1500"),    icon: "💎", value: "both_700_1500" },
-      { label: t("quiz.budget.both_1500plus"),    icon: "👑", value: "both_1500plus" },
+      { label: t("quiz.budget.both_under200"),    Icon: Droplet, value: "both_under_200" },
+      { label: t("quiz.budget.both_200_700"),     Icon: Coins,   value: "both_200_700" },
+      { label: t("quiz.budget.both_700_1500"),    Icon: Gem,     value: "both_700_1500" },
+      { label: t("quiz.budget.both_1500plus"),    Icon: Crown,   value: "both_1500plus" },
     ];
   })();
 
@@ -66,10 +84,10 @@ export default function FragranceQuizPage() {
       question: t("quiz.occasion.question"),
       subtitle: t("quiz.occasion.subtitle"),
       options: [
-        { label: t("quiz.occasion.dailyWear"),    icon: "☀️",  value: "daily" },
-        { label: t("quiz.occasion.dateNight"),    icon: "🌙",  value: "date_night" },
-        { label: t("quiz.occasion.office"),       icon: "💼",  value: "office" },
-        { label: t("quiz.occasion.specialEvent"), icon: "🎉",  value: "special_event" },
+        { label: t("quiz.occasion.dailyWear"),    Icon: Sun as Icon,          value: "daily" },
+        { label: t("quiz.occasion.dateNight"),    Icon: Moon as Icon,         value: "date_night" },
+        { label: t("quiz.occasion.office"),       Icon: Briefcase as Icon,    value: "office" },
+        { label: t("quiz.occasion.specialEvent"), Icon: PartyPopper as Icon,  value: "special_event" },
       ],
     },
     {
@@ -77,9 +95,9 @@ export default function FragranceQuizPage() {
       question: t("quiz.format.question"),
       subtitle: t("quiz.format.subtitle"),
       options: [
-        { label: t("quiz.format.sample"),     icon: "🧪", value: "sample" },
-        { label: t("quiz.format.fullBottle"), icon: "🍾", value: "full_bottle" },
-        { label: t("quiz.format.both"),       icon: "✨", value: "both" },
+        { label: t("quiz.format.sample"),     Icon: TestTube as Icon,   value: "sample" },
+        { label: t("quiz.format.fullBottle"), Icon: PillBottle as Icon, value: "full_bottle" },
+        { label: t("quiz.format.both"),       Icon: Layers as Icon,     value: "both" },
       ],
     },
     {
@@ -87,10 +105,10 @@ export default function FragranceQuizPage() {
       question: t("quiz.scentFamily.question"),
       subtitle: t("quiz.scentFamily.subtitle"),
       options: [
-        { label: t("quiz.scentFamily.freshClean"),    icon: "💧", value: "fresh" },
-        { label: t("quiz.scentFamily.floral"),        icon: "🌹", value: "floral" },
-        { label: t("quiz.scentFamily.woody"),         icon: "🌲", value: "woody" },
-        { label: t("quiz.scentFamily.orientalSweet"), icon: "🍯", value: "oriental" },
+        { label: t("quiz.scentFamily.freshClean"),    Icon: Droplet as Icon, value: "fresh" },
+        { label: t("quiz.scentFamily.floral"),        Icon: Flower as Icon,  value: "floral" },
+        { label: t("quiz.scentFamily.woody"),         Icon: Trees as Icon,   value: "woody" },
+        { label: t("quiz.scentFamily.orientalSweet"), Icon: Flame as Icon,   value: "oriental" },
       ],
     },
     {
@@ -98,9 +116,9 @@ export default function FragranceQuizPage() {
       question: t("quiz.intensity.question"),
       subtitle: t("quiz.intensity.subtitle"),
       options: [
-        { label: t("quiz.intensity.lightSubtle"),  icon: "🌬️", value: "light" },
-        { label: t("quiz.intensity.moderate"),     icon: "💨",  value: "moderate" },
-        { label: t("quiz.intensity.boldPowerful"), icon: "🔥",  value: "bold" },
+        { label: t("quiz.intensity.lightSubtle"),  Icon: Feather as Icon, value: "light" },
+        { label: t("quiz.intensity.moderate"),     Icon: Waves as Icon,   value: "moderate" },
+        { label: t("quiz.intensity.boldPowerful"), Icon: Zap as Icon,     value: "bold" },
       ],
     },
     {
@@ -108,9 +126,9 @@ export default function FragranceQuizPage() {
       question: t("quiz.gender.question"),
       subtitle: t("quiz.gender.subtitle"),
       options: [
-        { label: t("quiz.gender.forMen"),   icon: "👨", value: "men" },
-        { label: t("quiz.gender.forWomen"), icon: "👩", value: "women" },
-        { label: t("quiz.gender.unisex"),   icon: "✨", value: "unisex" },
+        { label: t("quiz.gender.forMen"),   Icon: User as Icon,     value: "men" },
+        { label: t("quiz.gender.forWomen"), Icon: User as Icon,     value: "women" },
+        { label: t("quiz.gender.unisex"),   Icon: Users as Icon,    value: "unisex" },
       ],
     },
     {
@@ -129,13 +147,11 @@ export default function FragranceQuizPage() {
     const newAnswers = { ...answers, [stepId]: value };
     setAnswers(newAnswers);
 
-    // Auto-advance after a brief delay for visual feedback
     setTimeout(async () => {
       if (currentStep < totalSteps - 1) {
         setDirection(1);
         setCurrentStep((prev) => prev + 1);
       } else {
-        // Final step - fetch AI recommendations
         setShowResults(true);
         setIsLoading(true);
         try {
@@ -197,30 +213,33 @@ export default function FragranceQuizPage() {
   };
 
   return (
-    <div className="min-h-screen pt-20 md:pt-24 pb-16 px-3 sm:px-4 relative">
-      {/* Background decorations */}
+    <div className="min-h-screen pt-24 md:pt-28 pb-16 px-3 sm:px-4 relative">
+      {/* Candlelit background orbs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 -left-32 w-64 h-64 bg-[#5B8DD9]/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 -right-32 w-64 h-64 bg-[#3E6BB5]/10 rounded-full blur-3xl" />
+        <div className="absolute top-1/4 -left-32 w-64 h-64 bg-warm/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 -right-32 w-64 h-64 bg-[#5B8DD9]/10 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-warm-glow/5 rounded-full blur-3xl" />
       </div>
 
       <div className="max-w-4xl mx-auto relative z-10">
-        {/* Page Header — hidden when showing results (QuizResults has its own header) */}
+        {/* Page Header — hidden on results (QuizResults has its own) */}
         {!showResults && (
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={reduce ? { opacity: 0 } : { opacity: 0, y: -14 }}
+            animate={reduce ? { opacity: 1 } : { opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="text-center mb-6 sm:mb-10"
+            className="text-center mb-10 sm:mb-12"
           >
-            <div className="flex items-center justify-center gap-2 mb-3">
-              <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-[#5B8DD9] flex-shrink-0" />
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold gradient-text leading-tight">
-                {t("quiz.title")}
-              </h1>
-              <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-[#5B8DD9] flex-shrink-0" />
+            <div className="inline-flex items-center justify-center gap-2 glass bg-warm/10 border border-warm/40 rounded-full px-4 py-2 mb-4">
+              <Sparkles className="w-4 h-4 text-warm" />
+              <span className="font-display text-[11px] tracking-[0.28em] uppercase text-warm">
+                {t("quiz.eyebrow")}
+              </span>
             </div>
-            <p className="text-[#6B7B8D] dark:text-white/50 text-xs sm:text-sm md:text-base max-w-md mx-auto px-2">
+            <h1 className="font-display text-3xl sm:text-5xl md:text-6xl font-semibold tracking-tight text-[#1E2A3D] dark:text-[#F5F5F5] leading-[1.05] mb-3">
+              {t("quiz.title")}
+            </h1>
+            <p className="text-[#6B7B8D] dark:text-white/65 text-sm sm:text-base md:text-lg max-w-xl mx-auto leading-relaxed">
               {t("quiz.description")}
             </p>
           </motion.div>
@@ -231,25 +250,22 @@ export default function FragranceQuizPage() {
           <>
             {/* Progress Section */}
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.2 }}
-              className="mb-8"
+              initial={reduce ? { opacity: 0 } : { opacity: 0, y: 8 }}
+              animate={reduce ? { opacity: 1 } : { opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.18 }}
+              className="mb-8 sm:mb-10"
             >
-              {/* Step indicator */}
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-[#6B7B8D] dark:text-white/50 text-sm font-medium">
+              <div className="flex items-center justify-between mb-2.5">
+                <span className="font-display text-[11px] tracking-[0.22em] uppercase text-warm tabular-nums">
                   {t("quiz.stepOf").replace("{current}", String(currentStep + 1)).replace("{total}", String(totalSteps))}
                 </span>
-                <span className="text-[#6B7B8D] dark:text-white/50 text-sm font-medium">
+                <span className="font-display text-[11px] tracking-[0.22em] uppercase text-warm/70 tabular-nums">
                   {Math.round(progress)}%
                 </span>
               </div>
-
-              {/* Progress bar */}
-              <div className="w-full h-2 rounded-full bg-[#323D50]/10 dark:bg-white/10 overflow-hidden backdrop-blur-sm">
+              <div className="w-full h-1.5 rounded-full bg-[#323D50]/10 dark:bg-white/10 overflow-hidden">
                 <motion.div
-                  className="h-full rounded-full bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5]"
+                  className="h-full rounded-full bg-gradient-to-r from-warm to-warm-glow shadow-[0_0_12px_rgba(212,165,116,0.4)]"
                   initial={{ width: 0 }}
                   animate={{ width: `${progress}%` }}
                   transition={{ duration: 0.5, ease: "easeOut" }}
@@ -257,20 +273,19 @@ export default function FragranceQuizPage() {
               </div>
             </motion.div>
 
-            {/* Quiz Steps with Animations */}
-            <div className="relative overflow-hidden min-h-[320px] sm:min-h-[400px]">
+            {/* Quiz Steps */}
+            <div className="relative overflow-hidden min-h-[360px] sm:min-h-[440px]">
               <AnimatePresence mode="wait" custom={direction}>
                 <motion.div
                   key={currentStep}
                   custom={direction}
-                  variants={slideVariants}
-                  initial="enter"
-                  animate="center"
-                  exit="exit"
-                  transition={{
-                    x: { type: "spring", stiffness: 300, damping: 30 },
-                    opacity: { duration: 0.2 },
-                  }}
+                  variants={reduce ? undefined : slideVariants}
+                  initial={reduce ? { opacity: 0 } : "enter"}
+                  animate={reduce ? { opacity: 1 } : "center"}
+                  exit={reduce ? { opacity: 0 } : "exit"}
+                  transition={reduce
+                    ? { duration: 0.25 }
+                    : { x: { type: "spring", stiffness: 260, damping: 28 }, opacity: { duration: 0.2 } }}
                 >
                   <QuizStep
                     question={quizSteps[currentStep].question}
@@ -285,20 +300,17 @@ export default function FragranceQuizPage() {
 
             {/* Navigation */}
             <motion.div
-              initial={{ opacity: 0 }}
+              initial={reduce ? { opacity: 0 } : { opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.4 }}
-              className="flex items-center justify-between gap-2 mt-6 sm:mt-8"
+              transition={{ delay: 0.35 }}
+              className="flex items-center justify-between gap-2 mt-8 sm:mt-10"
             >
-              {/* Back Button */}
               <Button
                 onClick={handleBack}
                 disabled={currentStep === 0}
                 variant="ghost"
-                className={`glass border border-[#323D50]/10 dark:border-white/10 text-[#6B7B8D] dark:text-white/70 hover:text-[#323D50] dark:hover:text-white hover:bg-[#5B8DD9]/10 dark:hover:bg-white/10 rounded-xl px-4 sm:px-5 py-3 min-h-[48px] font-medium transition-all duration-300 ${
-                  currentStep === 0
-                    ? "opacity-0 pointer-events-none"
-                    : "opacity-100"
+                className={`glass border border-warm/20 text-[#6B7B8D] dark:text-white/70 hover:text-warm dark:hover:text-warm hover:bg-warm/10 hover:border-warm/40 rounded-xl px-4 sm:px-5 py-3 min-h-[44px] font-medium transition-all duration-300 ${
+                  currentStep === 0 ? "invisible pointer-events-none" : ""
                 }`}
               >
                 <ArrowLeft className="w-4 h-4 me-1 sm:me-2" />
@@ -312,19 +324,18 @@ export default function FragranceQuizPage() {
                     key={index}
                     className={`h-2 rounded-full transition-all duration-300 ${
                       index === currentStep
-                        ? "w-5 sm:w-6 bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5]"
+                        ? "w-7 bg-gradient-to-r from-warm to-warm-glow"
                         : index < currentStep
-                        ? "w-2 bg-[#5B8DD9]/60"
-                        : "w-2 bg-[#323D50]/20 dark:bg-white/20"
+                          ? "w-2 bg-warm/50"
+                          : "w-2 bg-[#323D50]/20 dark:bg-white/20"
                     }`}
                   />
                 ))}
               </div>
 
-              {/* Next indicator - hidden on mobile (no horizontal room) */}
               <div
-                className={`hidden sm:flex items-center gap-2 text-[#6B7B8D] dark:text-white/40 text-sm ${
-                  currentStep === totalSteps - 1 ? "opacity-0" : "opacity-100"
+                className={`hidden sm:flex items-center gap-2 text-warm/70 font-display text-xs tracking-[0.22em] uppercase ${
+                  currentStep === totalSteps - 1 ? "invisible" : ""
                 }`}
               >
                 {t("quiz.selectToContinue")}
@@ -337,8 +348,8 @@ export default function FragranceQuizPage() {
         {/* Results Section */}
         {showResults && (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={reduce ? { opacity: 0 } : { opacity: 0, y: 16 }}
+            animate={reduce ? { opacity: 1 } : { opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
             <QuizResults
@@ -348,17 +359,16 @@ export default function FragranceQuizPage() {
               quizAnswers={answers}
             />
 
-            {/* Action buttons below results */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.8 }}
-              className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-10"
+              className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-12"
             >
               <Button
                 onClick={handleBack}
                 variant="ghost"
-                className="glass border border-[#323D50]/10 dark:border-white/10 text-[#6B7B8D] dark:text-white/70 hover:text-[#323D50] dark:hover:text-white hover:bg-[#5B8DD9]/10 dark:hover:bg-white/10 rounded-xl px-6 py-3 font-medium transition-all duration-300"
+                className="glass border border-warm/20 text-[#6B7B8D] dark:text-white/70 hover:text-warm hover:bg-warm/10 hover:border-warm/40 rounded-xl px-6 py-3 min-h-[44px] font-medium transition-all duration-300"
               >
                 <ArrowLeft className="w-4 h-4 me-2" />
                 {t("quiz.changeLastAnswer")}
@@ -366,7 +376,7 @@ export default function FragranceQuizPage() {
 
               <Button
                 onClick={handleRestart}
-                className="bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] hover:from-[#3E6BB5] hover:to-[#5B8DD9] text-white rounded-xl px-6 py-3 font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-[#5B8DD9]/25"
+                className="bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] hover:from-[#3E6BB5] hover:to-[#5B8DD9] text-white rounded-xl px-6 py-3 min-h-[44px] font-semibold transition-all duration-300 glow-warm-hover"
               >
                 <RotateCcw className="w-4 h-4 me-2" />
                 {t("quiz.startOver")}

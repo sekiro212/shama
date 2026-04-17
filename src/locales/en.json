@@ -716,6 +716,7 @@
     "products": "products"
   },
   "quiz": {
+    "eyebrow": "Find your scent",
     "title": "Fragrance Quiz",
     "description": "Answer a few questions and let our AI find your perfect scent",
     "stepOf": "Step {current} of {total}",

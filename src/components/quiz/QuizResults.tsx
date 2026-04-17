@@ -159,52 +159,34 @@ export default function QuizResults({
   if (isLoading || loadingProducts) {
     return (
       <div className="flex flex-col items-center justify-center py-20 space-y-6">
-        {/* Animated sparkles */}
         <motion.div
-          animate={{
-            rotate: [0, 360],
-            scale: [1, 1.2, 1],
-          }}
+          animate={{ rotate: [0, 360], scale: [1, 1.15, 1] }}
           transition={{
-            rotate: { duration: 3, repeat: Infinity, ease: "linear" },
-            scale: { duration: 1.5, repeat: Infinity, ease: "easeInOut" },
+            rotate: { duration: 3.2, repeat: Infinity, ease: "linear" },
+            scale: { duration: 1.8, repeat: Infinity, ease: "easeInOut" },
           }}
           className="relative"
         >
-          <Sparkles className="w-16 h-16 text-[#5B8DD9]" />
-          <motion.div
-            animate={{ opacity: [0.3, 1, 0.3] }}
-            transition={{ duration: 2, repeat: Infinity }}
-            className="absolute inset-0 bg-[#5B8DD9]/20 rounded-full blur-2xl"
-          />
+          <Sparkles className="w-14 h-14 text-warm" />
+          <div className="absolute inset-0 bg-warm/25 rounded-full blur-2xl" />
         </motion.div>
 
-        {/* Loading text */}
         <div className="text-center space-y-2">
-          <motion.h3
-            animate={{ opacity: [0.5, 1, 0.5] }}
-            transition={{ duration: 2, repeat: Infinity }}
-            className="text-xl font-bold gradient-text"
-          >
+          <p className="font-display text-[11px] tracking-[0.3em] uppercase text-warm">
             {t("quiz.results.analyzing")}
-          </motion.h3>
-          <p className="text-[#6B7B8D] dark:text-white/50 text-sm">
-            {t("quiz.results.findingPerfect")}
           </p>
+          <h3 className="font-display text-2xl text-[#1E2A3D] dark:text-[#F5F5F5]">
+            {t("quiz.results.findingPerfect")}
+          </h3>
         </div>
 
-        {/* Animated progress dots */}
         <div className="flex space-x-2 rtl:space-x-reverse">
           {[0, 1, 2].map((i) => (
             <motion.div
               key={i}
-              animate={{ y: [0, -10, 0], opacity: [0.3, 1, 0.3] }}
-              transition={{
-                duration: 1,
-                repeat: Infinity,
-                delay: i * 0.2,
-              }}
-              className="w-3 h-3 rounded-full bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5]"
+              animate={{ y: [0, -8, 0], opacity: [0.35, 1, 0.35] }}
+              transition={{ duration: 1, repeat: Infinity, delay: i * 0.18 }}
+              className="w-2.5 h-2.5 rounded-full bg-warm"
             />
           ))}
         </div>
@@ -231,17 +213,13 @@ export default function QuizResults({
   return (
     <div className="w-full max-w-4xl mx-auto">
       {/* Header */}
-      <div className="text-center mb-6 sm:mb-10 px-2">
-        <div className="flex items-center justify-center gap-2 mb-3">
-          <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-[#5B8DD9] flex-shrink-0" />
-          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold gradient-text leading-tight">
-            {t("quiz.results.title")}
-          </h2>
-          <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-[#5B8DD9] flex-shrink-0" />
-        </div>
-        <p className="text-[#6B7B8D] dark:text-white/50 text-xs sm:text-sm">
-          {t("quiz.results.description")}
+      <div className="text-center mb-8 sm:mb-12 px-2">
+        <p className="font-display text-[11px] tracking-[0.3em] uppercase text-warm mb-3">
+          {t("quiz.results.title")}
         </p>
+        <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-semibold text-[#1E2A3D] dark:text-[#F5F5F5] leading-[1.05] tracking-tight mb-3">
+          {t("quiz.results.description")}
+        </h2>
       </div>
 
       {/* Results Cards */}
@@ -266,9 +244,9 @@ export default function QuizResults({
             >
               {/* Rank badge */}
               <div className="absolute top-3 start-3 sm:top-4 sm:start-4 z-10">
-                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] flex items-center justify-center shadow-lg shadow-[#5B8DD9]/30">
-                  <span className="text-white font-bold text-xs sm:text-sm">
-                    #{index + 1}
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-warm to-warm-glow flex items-center justify-center shadow-[0_4px_14px_rgba(212,165,116,0.45)] ring-2 ring-white/20">
+                  <span className="font-display text-white font-semibold text-sm tabular-nums">
+                    {String(index + 1).padStart(2, "0")}
                   </span>
                 </div>
               </div>
@@ -291,19 +269,19 @@ export default function QuizResults({
                     {/* Name & Match Score */}
                     <div className="flex flex-row items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-[#323D50] dark:text-white group-hover:gradient-text transition-all duration-300 leading-tight">
+                        <h3 className="font-display text-xl sm:text-2xl md:text-[28px] font-semibold text-[#1E2A3D] dark:text-white group-hover:text-warm transition-colors duration-300 leading-[1.15] tracking-tight">
                           {rec.name}
                         </h3>
                         {product && showBottle && (
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="text-xs text-[#6B7B8D] dark:text-white/40 uppercase tracking-wide me-1">
-                              {t("quiz.results.fullBottlePrice")}:
+                          <div className="flex items-center gap-2 mt-2">
+                            <span className="font-display text-[10px] text-warm/80 uppercase tracking-[0.22em] me-1">
+                              {t("quiz.results.fullBottlePrice")}
                             </span>
-                            <span className="text-lg font-bold gradient-text">
-                              {product.price} LYD
+                            <span className="font-display text-xl font-semibold tabular-nums text-[#1E2A3D] dark:text-[#F5F5F5]">
+                              {product.price} <span className="text-[10px] font-sans tracking-[0.2em] text-[#6B7B8D] dark:text-white/50 align-middle">LYD</span>
                             </span>
                             <span className="text-[#6B7B8D] dark:text-white/40 text-sm">
-                              {product.size}
+                              · {product.size}
                             </span>
                           </div>
                         )}
@@ -340,14 +318,14 @@ export default function QuizResults({
                                 x2="100%"
                                 y2="0%"
                               >
-                                <stop offset="0%" stopColor="#5B8DD9" />
-                                <stop offset="100%" stopColor="#3E6BB5" />
+                                <stop offset="0%" stopColor="#D4A574" />
+                                <stop offset="100%" stopColor="#E8B98A" />
                               </linearGradient>
                             </defs>
                           </svg>
                           {/* Score text */}
                           <div className="absolute inset-0 flex items-center justify-center">
-                            <span className="text-[11px] sm:text-sm font-bold text-[#323D50] dark:text-white">
+                            <span className="font-display text-[11px] sm:text-sm font-semibold text-warm tabular-nums">
                               {rec.matchScore}%
                             </span>
                           </div>
@@ -380,7 +358,7 @@ export default function QuizResults({
                                   className={`text-xs px-3 py-1.5 rounded-full border transition-all duration-200 ${
                                     outOfStock
                                       ? "opacity-40 cursor-not-allowed border-[#323D50]/10 dark:border-white/10 text-[#6B7B8D]"
-                                      : "border-[#5B8DD9]/40 text-[#5B8DD9] hover:bg-[#5B8DD9]/10 hover:border-[#5B8DD9] cursor-pointer"
+                                      : "border-warm/40 text-warm hover:bg-warm/10 hover:border-warm cursor-pointer"
                                   }`}
                                 >
                                   {sample.size} · {sample.price} LYD
@@ -399,7 +377,7 @@ export default function QuizResults({
                       <>
                         <Button
                           asChild
-                          className="glass bg-[#323D50]/10 dark:bg-white/10 border border-[#323D50]/15 dark:border-white/20 text-[#323D50] dark:text-white hover:bg-[#323D50]/20 dark:hover:bg-white/20 rounded-xl px-5 sm:px-6 py-3 min-h-[48px] w-full sm:w-auto font-semibold transition-all duration-300"
+                          className="glass bg-[#323D50]/5 dark:bg-white/5 border border-warm/30 text-[#323D50] dark:text-white hover:bg-warm/10 hover:border-warm/60 hover:text-warm rounded-xl px-5 sm:px-6 py-3 min-h-[48px] w-full sm:w-auto font-semibold transition-all duration-300"
                         >
                           <Link to={`/product/${product.id}`}>
                             <Eye className="w-4 h-4 me-2" />
@@ -411,10 +389,10 @@ export default function QuizResults({
                           <Button
                             onClick={() => handleAddToCart(product)}
                             disabled={!!isSoldOut}
-                            className={`rounded-xl px-5 sm:px-6 py-3 min-h-[48px] w-full sm:w-auto font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-[#5B8DD9]/25 ${
+                            className={`rounded-xl px-5 sm:px-6 py-3 min-h-[48px] w-full sm:w-auto font-semibold transition-all duration-300 ${
                               isSoldOut
                                 ? "bg-gray-500/50 text-[#6B7B8D] dark:text-white/60 cursor-not-allowed"
-                                : "bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] hover:from-[#3E6BB5] hover:to-[#5B8DD9] text-white"
+                                : "bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] hover:from-[#3E6BB5] hover:to-[#5B8DD9] text-white glow-warm-hover"
                             }`}
                           >
                             <ShoppingBag className="w-4 h-4 me-2" />
@@ -450,32 +428,34 @@ export default function QuizResults({
         >
           <div
             id="scent-dna-card"
-            className="max-w-sm mx-auto glass-card p-5 sm:p-8 rounded-2xl border border-[#5B8DD9]/30 bg-gradient-to-br from-[#0d1525] to-[#1a2235]"
+            className="max-w-sm mx-auto p-6 sm:p-8 rounded-3xl border border-warm/40 bg-gradient-to-br from-[#1E2A3D] via-[#1a2235] to-[#0d1525] shadow-[0_30px_60px_-20px_rgba(212,165,116,0.25)]"
           >
             {/* Header */}
-            <div className="text-center mb-6">
-              <div className="text-xs tracking-[0.2em] text-[#5B8DD9] uppercase font-semibold mb-3">
-                ✦ {t("quiz.dna.title")}
+            <div className="text-center mb-7">
+              <div className="font-display text-[10px] tracking-[0.32em] text-warm uppercase font-semibold mb-4">
+                ✦ {t("quiz.dna.title")} ✦
               </div>
-              <p className="text-[#6B7B8D] text-sm mb-1">{t("quiz.dna.youAre")}</p>
-              <h3 className="text-xl font-bold text-[#F5F5F5]">
-                "{isRTL ? dnaCard.archetypeAr : dnaCard.archetype}"
+              <p className="text-white/55 text-xs uppercase tracking-[0.2em] mb-3">
+                {t("quiz.dna.youAre")}
+              </p>
+              <h3 className="font-display italic text-2xl sm:text-[26px] font-semibold text-[#F5F5F5] leading-tight">
+                &ldquo;{isRTL ? dnaCard.archetypeAr : dnaCard.archetype}&rdquo;
               </h3>
             </div>
 
             {/* Scent family bars */}
-            <div className="space-y-3 mb-6">
+            <div className="space-y-3 mb-7">
               {dnaCard.families.map((fam) => (
                 <div key={fam.name}>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="text-[#F5F5F5]/80">
+                  <div className="flex justify-between text-xs mb-1.5">
+                    <span className="font-display text-[#F5F5F5]/85 tracking-wide">
                       {isRTL ? fam.nameAr : fam.name}
                     </span>
-                    <span className="text-[#5B8DD9]">{fam.percent}%</span>
+                    <span className="font-display text-warm tabular-nums">{fam.percent}%</span>
                   </div>
                   <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
                     <motion.div
-                      className="h-full bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] rounded-full"
+                      className="h-full bg-gradient-to-r from-warm to-warm-glow rounded-full shadow-[0_0_10px_rgba(212,165,116,0.5)]"
                       initial={{ width: 0 }}
                       animate={{ width: `${fam.percent}%` }}
                       transition={{ duration: 0.9, ease: "easeOut", delay: 0.2 }}
@@ -486,11 +466,11 @@ export default function QuizResults({
             </div>
 
             {/* Signature notes */}
-            <div className="flex flex-wrap gap-2 justify-center mb-4">
+            <div className="flex flex-wrap gap-2 justify-center mb-5">
               {dnaCard.signatureNotes.map((note, i) => (
                 <span
                   key={`${note}-${i}`}
-                  className="text-xs bg-[#5B8DD9]/20 text-[#F5F5F5] px-3 py-1 rounded-full border border-[#5B8DD9]/20"
+                  className="text-xs bg-warm/20 text-warm px-3 py-1 rounded-full border border-warm/40"
                 >
                   {note}
                 </span>
@@ -498,20 +478,21 @@ export default function QuizResults({
             </div>
 
             {/* Best worn */}
-            <p className="text-center text-xs text-[#6B7B8D] mb-6">
-              {t("quiz.dna.bestWorn")}:{" "}
-              {isRTL ? dnaCard.bestTimeAr : dnaCard.bestTime} ·{" "}
-              {isRTL ? dnaCard.bestSeasonAr : dnaCard.bestSeason}
+            <p className="text-center font-display text-[11px] tracking-[0.2em] uppercase text-white/50 mb-2">
+              {t("quiz.dna.bestWorn")}
+            </p>
+            <p className="text-center text-sm text-[#F5F5F5]/75 italic">
+              {isRTL ? dnaCard.bestTimeAr : dnaCard.bestTime} · {isRTL ? dnaCard.bestSeasonAr : dnaCard.bestSeason}
             </p>
           </div>
 
           {/* Buttons outside the card (not included in PNG) */}
-          <div className="flex gap-3 justify-center mt-4">
+          <div className="flex gap-3 justify-center mt-5">
             <Button
               onClick={handleDownloadCard}
               variant="outline"
               size="sm"
-              className="border-[#5B8DD9]/30 text-[#5B8DD9] hover:bg-[#5B8DD9]/10"
+              className="glass border-warm/40 text-warm hover:bg-warm/10 hover:border-warm rounded-xl"
             >
               <Download className={`w-3 h-3 ${isRTL ? "ms-1" : "me-1"}`} />
               {t("quiz.dna.download")}
@@ -520,7 +501,7 @@ export default function QuizResults({
               onClick={handleShareCard}
               variant="outline"
               size="sm"
-              className="border-[#5B8DD9]/30 text-[#5B8DD9] hover:bg-[#5B8DD9]/10"
+              className="glass border-warm/40 text-warm hover:bg-warm/10 hover:border-warm rounded-xl"
             >
               <Share2 className={`w-3 h-3 ${isRTL ? "ms-1" : "me-1"}`} />
               {t("quiz.dna.share")}
