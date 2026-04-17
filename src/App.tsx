@@ -26,6 +26,8 @@ import FAQPage from "@/pages/FAQPage";
 import AboutPage from "@/pages/AboutPage";
 import ContactPage from "@/pages/ContactPage";
 import ReviewsPage from "@/pages/ReviewsPage";
+import CheckoutPage from "@/pages/CheckoutPage";
+import OrderSuccessPage from "@/pages/OrderSuccessPage";
 import CartSidebar from "@/components/CartSidebar";
 import SearchDialog from "@/components/SearchDialog";
 import CookieBanner from "@/components/CookieBanner";
@@ -89,6 +91,8 @@ function AnimatedRoutes({ isCartOpen, setIsCartOpen }: { isCartOpen: boolean; se
             <Route path="/about" element={<PageTransition><AboutPage /></PageTransition>} />
             <Route path="/contact" element={<PageTransition><ContactPage /></PageTransition>} />
             <Route path="/reviews" element={<PageTransition><ReviewsPage /></PageTransition>} />
+            <Route path="/checkout" element={<PageTransition><CheckoutPage /></PageTransition>} />
+            <Route path="/order-success/:orderId" element={<PageTransition><OrderSuccessPage /></PageTransition>} />
           </Routes>
         </AnimatePresence>
       </main>

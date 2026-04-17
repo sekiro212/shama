@@ -3,61 +3,30 @@ import {
   Minus,
   ShoppingBag,
   CreditCard,
-  MapPin,
-  Phone,
-  Mail,
-  User,
   AlertCircle,
   Trash2,
   Eye,
   Tag,
   X,
   Truck,
-  Banknote,
-  Copy,
-  Check,
 } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/ui/loading-button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   validatePromoCode,
-  incrementPromoCodeUsage,
-  type PromoValidationResult,
   type PromoValidationError,
 } from "@/services/promoCodesService";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { useState, useEffect, useRef } from "react";
-import { supabase } from "@/lib/supabase";
-import { BANK_DETAILS } from "@/lib/orderUtils";
+import { useState } from "react";
 import { toast } from "sonner";
-import {
-  fetchVanexCities,
-  getSubCitiesFromCity,
-  VanexCity,
-  VanexSubCity,
-} from "@/services/vanexService";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -82,174 +51,25 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
     removeFromCart,
     updateQuantity,
     getTotalPrice,
-    clearCart,
     canAddToCart,
     getItemCount,
+    appliedPromo,
+    applyPromo,
+    clearPromo,
   } = useCart();
   const { t, isRTL } = useLanguage();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-  const [checkoutLoading, setCheckoutLoading] = useState(false);
-  const [lastOrderId, setLastOrderId] = useState<string | null>(null);
-  const [appliedPromo, setAppliedPromo] = useState<PromoValidationResult | null>(
-    null
-  );
+
   const [promoInput, setPromoInput] = useState("");
   const [promoLoading, setPromoLoading] = useState(false);
   const [promoError, setPromoError] = useState<string | null>(null);
-  const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
-    city: "",
-    placeName: "",
-    vanexCityId: null as number | null,
-    vanexSubCityId: null as number | null,
-  });
 
-  // Vanex city/sub-city state
-  const [vanexCities, setVanexCities] = useState<VanexCity[]>([]);
-  const [vanexSubCities, setVanexSubCities] = useState<VanexSubCity[]>([]);
-  const [citiesLoading, setCitiesLoading] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<"cod" | "bank_transfer">("cod");
-  const [copiedField, setCopiedField] = useState<string | null>(null);
-  const [transferProofUrl, setTransferProofUrl] = useState<string | null>(null);
-  const [proofUploading, setProofUploading] = useState(false);
-  const copyTimerRef = useRef<ReturnType<typeof setTimeout>>();
-  const proofInputRef = useRef<HTMLInputElement>(null);
-
-  // Derive delivery fee from selected sub-city
-  const selectedSubCity = vanexSubCities.find((s) => s.sub_city_id === formData.vanexSubCityId);
-  const deliveryFee = selectedSubCity?.price ?? 0;
-
-  // Load Vanex cities once when checkout opens
-  useEffect(() => {
-    if (!isCheckoutOpen || vanexCities.length > 0) return;
-    setCitiesLoading(true);
-    fetchVanexCities()
-      .then(setVanexCities)
-      .finally(() => setCitiesLoading(false));
-  }, [isCheckoutOpen, vanexCities.length]);
-
-  const handleCitySelect = (cityId: string) => {
-    const id = Number(cityId);
-    const city = vanexCities.find((c) => c.id === id);
-    setFormData((prev) => ({
-      ...prev,
-      vanexCityId: id,
-      city: city?.name || cityId,
-      vanexSubCityId: null,
-      placeName: "",
-    }));
-    // Extract sub-cities from the city's locations (already fetched with /city/all)
-    const subs = city ? getSubCitiesFromCity(city) : [];
-    setVanexSubCities(subs);
-  };
-
-  const handleSubCitySelect = (subCityId: string) => {
-    const id = Number(subCityId);
-    const sub = vanexSubCities.find((s) => s.sub_city_id === id);
-    setFormData((prev) => ({
-      ...prev,
-      vanexSubCityId: id,
-      placeName: sub?.sub_city_name || subCityId,
-    }));
-  };
-
-  const handleCopyBankDetail = (text: string, field: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedField(field);
-    toast.success(t("cart.copied"));
-    clearTimeout(copyTimerRef.current);
-    copyTimerRef.current = setTimeout(() => setCopiedField(null), 2000);
-  };
-
-  const handleProofUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
-    if (!allowedTypes.includes(file.type)) {
-      toast.error("Only JPEG, PNG, and WebP images are allowed");
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Image must be less than 5MB");
-      return;
-    }
-
-    setProofUploading(true);
-    try {
-      const ext = file.name.split(".").pop();
-      const fileName = `proof_${Date.now()}.${ext}`;
-      const { error: uploadError } = await supabase.storage
-        .from("transfer-proofs")
-        .upload(fileName, file, { upsert: false, cacheControl: "3600" });
-
-      if (uploadError) {
-        console.error("Upload error:", uploadError);
-        toast.error("Failed to upload image");
-        return;
-      }
-
-      const { data: { publicUrl } } = supabase.storage
-        .from("transfer-proofs")
-        .getPublicUrl(fileName);
-
-      setTransferProofUrl(publicUrl);
-      toast.success(t("cart.proofUploaded"));
-    } catch (err) {
-      console.error("Upload error:", err);
-      toast.error("Failed to upload image");
-    } finally {
-      setProofUploading(false);
-      if (proofInputRef.current) proofInputRef.current.value = "";
-    }
-  };
-
-  const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-
-  const handleQuantityChange = (
-    itemId: string,
-    size: string,
-    newQuantity: number,
-    stockQuantity?: number
-  ) => {
-    // Check if the new quantity exceeds stock
-    if (stockQuantity && newQuantity > stockQuantity) {
-      toast.error(t("cart.onlyXAvailable").replace("{count}", String(stockQuantity)));
-      return;
-    }
-
-    updateQuantity(itemId, size, newQuantity);
-  };
-
-  const isStockAvailable = () => {
-    return items.every(
-      (item) => !item.stock_quantity || item.quantity <= item.stock_quantity
-    );
-  };
-
-  const getStockErrorItems = () => {
-    return items.filter(
-      (item) => item.stock_quantity && item.quantity > item.stock_quantity
-    );
-  };
-
-  // Promo state lives here (not in CartContext) so it doesn't survive
-  // across sessions — a persisted promo could become stale against the
-  // cart or hit per-user-limit checks unexpectedly on the next visit.
   const cartSubtotal = getTotalPrice();
-  const cartDiscount = appliedPromo?.discount ?? 0;
-  const cartFinalTotal = appliedPromo?.finalTotal ?? cartSubtotal;
-  const cartGrandTotal = cartFinalTotal + deliveryFee;
+  const cartDiscount = appliedPromo?.valid ? appliedPromo.discount : 0;
+  const cartFinalTotal = appliedPromo?.valid
+    ? appliedPromo.finalTotal
+    : cartSubtotal;
 
   const translatePromoError = (
     error: PromoValidationError | undefined,
@@ -271,16 +91,16 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
     try {
       const result = await validatePromoCode(code, items, user?.email ?? "");
       if (!result.valid) {
-        setAppliedPromo(null);
+        clearPromo();
         setPromoError(translatePromoError(result.error, result.errorContext));
         return;
       }
-      setAppliedPromo(result);
+      applyPromo(result);
       setPromoError(null);
       toast.success(t("cart.promoCode.applied"));
     } catch (err) {
       console.error("Error validating promo code:", err);
-      setAppliedPromo(null);
+      clearPromo();
       setPromoError(t("cart.promoCode.errors.invalidCode"));
     } finally {
       setPromoLoading(false);
@@ -288,158 +108,40 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
   };
 
   const handleRemovePromo = () => {
-    setAppliedPromo(null);
+    clearPromo();
     setPromoInput("");
     setPromoError(null);
   };
 
-  const handleCheckout = async () => {
-    // Validate form
-    if (
-      !formData.firstName ||
-      !formData.lastName ||
-      !formData.email ||
-      !formData.phone ||
-      !formData.vanexCityId ||
-      !formData.vanexSubCityId
-    ) {
-      toast.error(t("cart.fillAllFields"));
-      return;
-    }
-
-    if (paymentMethod === "bank_transfer" && !transferProofUrl) {
-      toast.error(t("cart.proofRequired"));
-      return;
-    }
-
-    // Validate stock availability before checkout
-    const stockErrors = [];
-    for (const item of items) {
-      if (
-        item.stock_quantity !== undefined &&
-        item.quantity > item.stock_quantity
-      ) {
-        stockErrors.push(
-          `${item.name} (${item.size}) - Only ${item.stock_quantity} available, but ${item.quantity} requested`
-        );
-      }
-    }
-
-    if (stockErrors.length > 0) {
-      toast.error(t("cart.stockInsufItems"));
-      stockErrors.forEach((error) => toast.error(error));
-      return;
-    }
-
-    // Additional validation for sold out items
-    const soldOutItems = items.filter((item) => item.stock_quantity === 0);
-    if (soldOutItems.length > 0) {
-      toast.error(t("cart.soldOutItems"));
-      soldOutItems.forEach((item) =>
-        toast.error(`${item.name} (${item.size}) - Sold Out`)
+  const handleQuantityChange = (
+    itemId: string,
+    size: string,
+    newQuantity: number,
+    stockQuantity?: number
+  ) => {
+    if (stockQuantity && newQuantity > stockQuantity) {
+      toast.error(
+        t("cart.onlyXAvailable").replace("{count}", String(stockQuantity))
       );
       return;
     }
+    updateQuantity(itemId, size, newQuantity);
+  };
 
-    try {
-      setCheckoutLoading(true);
+  const isStockAvailable = () =>
+    items.every(
+      (item) => !item.stock_quantity || item.quantity <= item.stock_quantity
+    );
 
-      // Re-validate against the current cart — quantities, email, and
-      // per-user count may have shifted since the user clicked Apply.
-      let confirmedPromo: PromoValidationResult | null = null;
-      if (appliedPromo?.promo) {
-        const revalidated = await validatePromoCode(
-          appliedPromo.promo.code,
-          items,
-          formData.email
-        );
-        if (!revalidated.valid) {
-          setAppliedPromo(null);
-          const msg = translatePromoError(
-            revalidated.error,
-            revalidated.errorContext
-          );
-          setPromoError(msg);
-          toast.error(msg);
-          return;
-        }
-        confirmedPromo = revalidated;
-        setAppliedPromo(revalidated);
-      }
+  const getStockErrorItems = () =>
+    items.filter(
+      (item) => item.stock_quantity && item.quantity > item.stock_quantity
+    );
 
-      const orderData = {
-        first_name: formData.firstName,
-        last_name: formData.lastName,
-        email: formData.email,
-        phone: formData.phone,
-        city: formData.city,
-        place_name: formData.placeName,
-        vanex_city_id: formData.vanexCityId,
-        vanex_sub_city_id: formData.vanexSubCityId,
-        subtotal: confirmedPromo?.subtotal ?? cartSubtotal,
-        discount_amount: confirmedPromo?.discount ?? 0,
-        delivery_fee: deliveryFee,
-        payment_method: paymentMethod,
-        transfer_proof_url: paymentMethod === "bank_transfer" ? transferProofUrl : null,
-        total: (confirmedPromo?.finalTotal ?? cartSubtotal) + deliveryFee,
-        promo_code_id: confirmedPromo?.promo?.id ?? null,
-        promo_code_snapshot: confirmedPromo?.promo?.code ?? null,
-        order_date: new Date().toISOString(),
-        items: items,
-      };
-
-      // Insert order into Supabase
-      const { data: insertedData, error } = await supabase
-        .from("orders")
-        .insert([orderData])
-        .select();
-
-      if (error) {
-        console.error("Error inserting order:", error);
-        toast.error(t("cart.orderFailed"));
-        return;
-      }
-
-      const orderId = insertedData?.[0]?.id;
-      if (orderId) {
-        setLastOrderId(orderId);
-      }
-
-      // Fire-and-forget: never block checkout success on the counter.
-      if (confirmedPromo?.promo) {
-        incrementPromoCodeUsage(confirmedPromo.promo.id).catch((err) =>
-          console.error("Failed to increment promo usage:", err)
-        );
-      }
-
-      toast.success(t("cart.orderSuccess"));
-
-      clearCart();
-      setIsCheckoutOpen(false);
-      onClose();
-
-      setFormData({
-        firstName: "",
-        lastName: "",
-        email: "",
-        phone: "",
-        city: "",
-        placeName: "",
-        vanexCityId: null,
-        vanexSubCityId: null,
-      });
-      setVanexSubCities([]);
-      setPaymentMethod("cod");
-      setTransferProofUrl(null);
-      setAppliedPromo(null);
-      setPromoInput("");
-      setPromoError(null);
-    } catch (error) {
-      console.error("Error placing order:", error);
-      toast.error(t("cart.orderFailed"));
-    } finally {
-      setCheckoutLoading(false);
-    }
+  const handleProceedToCheckout = () => {
+    if (!isStockAvailable()) return;
+    onClose();
+    navigate("/checkout");
   };
 
   return (
@@ -451,86 +153,46 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
         <SheetHeader className="pb-4 sm:pb-6 relative">
           <div className="flex items-center justify-between pr-2">
             <div className="flex items-center space-x-3 rtl:space-x-reverse">
-              <SheetTitle className="dark:text-[#F5F5F5] text-[#323D50] text-xl sm:text-2xl font-bold gradient-text">
+              <SheetTitle className="dark:text-[#F5F5F5] text-[#323D50] text-xl sm:text-2xl font-display">
                 {t("cart.title")}
               </SheetTitle>
               {items.length > 0 && (
                 <div className="flex items-center space-x-2 rtl:space-x-reverse">
                   <span className="dark:text-white/70 text-[#6B7B8D] text-sm font-medium">
-                    {getItemCount()} {getItemCount() === 1 ? t("cart.item") : t("cart.items")}
+                    {getItemCount()}{" "}
+                    {getItemCount() === 1 ? t("cart.item") : t("cart.items")}
                   </span>
-                  <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] rounded-full flex items-center justify-center shadow-lg">
-                    <span className="text-white text-xs sm:text-sm font-bold">
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 bg-warm rounded-full flex items-center justify-center glow-warm">
+                    <span className="text-white text-xs sm:text-sm font-display tabular-nums">
                       {getItemCount()}
                     </span>
                   </div>
                 </div>
               )}
             </div>
-            {/* Close button */}
           </div>
         </SheetHeader>
 
         <div className="flex flex-col h-full">
           {items.length === 0 ? (
             <div className="flex-1 flex items-center justify-center flex-col text-center px-4 sm:px-8">
-              <div className="glass-card dark:bg-white/5 bg-white border dark:border-white/10 border-[#323D50]/10 rounded-3xl p-6 sm:p-12 max-w-sm w-full">
-                {lastOrderId ? (
-                  <>
-                    <div className="relative mb-6">
-                      <div className="w-16 h-16 mx-auto bg-green-500/20 rounded-full flex items-center justify-center">
-                        <ShoppingBag className="h-8 w-8 text-green-400" />
-                      </div>
-                    </div>
-                    <h3 className="dark:text-[#F5F5F5] text-[#323D50] font-semibold text-lg sm:text-xl mb-2">
-                      {t("cart.orderPlaced")}
-                    </h3>
-                    <p className="dark:text-white/60 text-[#6B7B8D] text-sm mb-2">
-                      {t("cart.yourOrderId")}
-                    </p>
-                    <p className="text-[#5B8DD9] font-mono text-xs mb-4 bg-white dark:bg-white/5 rounded-lg px-3 py-2 break-all">
-                      {lastOrderId}
-                    </p>
-                    <Link
-                      to="/track-order"
-                      onClick={onClose}
-                      className="block w-full glass bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] hover:from-[#3E6BB5] hover:to-[#5B8DD9] text-white border-0 rounded-xl px-6 py-3 font-semibold transition-all duration-300 hover:scale-105 text-center mb-3"
-                    >
-                      {t("cart.trackOrder")}
-                    </Link>
-                    <Button
-                      onClick={() => { setLastOrderId(null); onClose(); }}
-                      variant="ghost"
-                      className="w-full text-[#6B7B8D] dark:text-white/60 hover:text-[#323D50] dark:hover:text-white"
-                    >
-                      {t("cart.continueShopping")}
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <div className="relative mb-6">
-                      <ShoppingBag className="h-12 w-12 sm:h-16 sm:w-16 text-[#323D50]/40 dark:text-white/40 mx-auto" />
-                      <div className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 w-6 h-6 sm:w-8 sm:h-8 bg-[#5B8DD9] rounded-full flex items-center justify-center">
-                        <span className="text-white text-xs sm:text-sm font-bold">
-                          0
-                        </span>
-                      </div>
-                    </div>
-                    <h3 className="dark:text-[#F5F5F5] text-[#323D50] font-semibold text-lg sm:text-xl mb-2">
-                      {t("cart.empty")}
-                    </h3>
-                    <p className="dark:text-white/60 text-[#6B7B8D] text-sm mb-6">
-                      {t("cart.emptyDesc")}
-                    </p>
-                    <Button
-                      onClick={onClose}
-                      className="w-full glass bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] hover:from-[#3E6BB5] hover:to-[#5B8DD9] text-white border-0 rounded-xl px-6 py-3 font-semibold transition-all duration-300 hover:scale-105"
-                    >
-                      <ShoppingBag className="w-4 h-4 me-2" />
-                      {t("cart.startShopping")}
-                    </Button>
-                  </>
-                )}
+              <div className="glass-card rounded-3xl p-6 sm:p-12 max-w-sm w-full">
+                <div className="relative mb-6 mx-auto w-16 h-16 rounded-full bg-warm/10 flex items-center justify-center">
+                  <ShoppingBag className="h-8 w-8 text-warm" />
+                </div>
+                <h3 className="dark:text-[#F5F5F5] text-[#323D50] font-display text-lg sm:text-xl mb-2">
+                  {t("cart.empty")}
+                </h3>
+                <p className="dark:text-white/60 text-[#6B7B8D] text-sm mb-6">
+                  {t("cart.emptyDesc")}
+                </p>
+                <Button
+                  onClick={onClose}
+                  className="w-full bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] hover:from-[#3E6BB5] hover:to-[#5B8DD9] text-white rounded-2xl h-12 font-display glow-warm-hover"
+                >
+                  <ShoppingBag className="w-4 h-4 me-2" />
+                  {t("cart.startShopping")}
+                </Button>
               </div>
             </div>
           ) : (
@@ -540,10 +202,9 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                 {items.map((item) => (
                   <div
                     key={`${item.id}-${item.size}`}
-                    className="glass-card dark:bg-white/5 bg-white border dark:border-white/10 border-[#323D50]/10 rounded-2xl p-3 sm:p-4 dark:hover:bg-white/10 hover:bg-[#EDF1F7] transition-all duration-300 hover:scale-[1.01] hover:shadow-lg hover:shadow-[#5B8DD9]/20 focus-within:ring-2 focus-within:ring-[#5B8DD9]/50 focus-within:border-[#5B8DD9]/50"
+                    className="glass-card rounded-2xl p-3 sm:p-4 hover:shadow-lg transition-all duration-300 focus-within:ring-2 focus-within:ring-warm/40"
                   >
                     <div className="flex items-start space-x-3 sm:space-x-4 rtl:space-x-reverse">
-                      {/* Product Image */}
                       <div className="relative flex-shrink-0">
                         <img
                           src={item.image}
@@ -557,36 +218,37 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                         )}
                       </div>
 
-                      {/* Product Details */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex-1">
-                            <h4 className="dark:text-[#F5F5F5] text-[#323D50] font-semibold text-base sm:text-lg leading-tight mb-1">
+                            <h4 className="dark:text-[#F5F5F5] text-[#323D50] font-display text-base sm:text-lg leading-tight mb-1">
                               {item.name}
                             </h4>
-                            <p className="dark:text-white/60 text-[#6B7B8D] text-sm mb-2">
+                            <span className="inline-block text-[10px] font-medium tracking-wider uppercase text-warm bg-warm/10 rounded-full px-2 py-0.5 mb-2">
                               {item.size}
-                            </p>
+                            </span>
                             <div className="flex items-center gap-2 flex-wrap">
-                              <p className="text-[#e879f9] font-bold text-lg sm:text-xl drop-shadow-sm">
-                                {item.price} LYD
+                              <p className="font-display tabular-nums text-lg sm:text-xl text-[#323D50] dark:text-[#F5F5F5]">
+                                {item.price}{" "}
+                                <span className="text-[10px] tracking-widest uppercase text-warm">
+                                  LYD
+                                </span>
                               </p>
                               {item.stock_quantity &&
                                 item.stock_quantity < 10 && (
-                                  <span className="text-orange-300 text-xs bg-orange-500/30 px-2 py-1 rounded-full border border-orange-500/50">
+                                  <span className="text-orange-300 text-xs bg-orange-500/20 px-2 py-1 rounded-full border border-orange-500/40">
                                     {t("cart.lowStock")}
                                   </span>
                                 )}
                             </div>
                           </div>
 
-                          {/* Action Buttons */}
                           <div className="flex items-center space-x-1.5 sm:space-x-2 rtl:space-x-reverse">
                             <Button
                               asChild
-                              variant="default"
+                              variant="ghost"
                               size="sm"
-                              className="bg-[#5B8DD9] hover:bg-[#3E6BB5] text-white border-0 rounded-xl px-2 sm:px-3 py-2 h-8 sm:h-10 transition-all duration-200 hover:scale-105"
+                              className="rounded-xl px-2 sm:px-3 h-10 w-10 p-0 text-[#6B7B8D] dark:text-white/60 hover:bg-warm/10 hover:text-warm"
                               title={t("cart.viewProduct")}
                             >
                               <Link
@@ -594,29 +256,28 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                                   item.id
                                 }?size=${encodeURIComponent(item.size)}`}
                               >
-                                <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
+                                <Eye className="h-4 w-4" />
                               </Link>
                             </Button>
                             <Button
-                              variant="default"
+                              variant="ghost"
                               size="sm"
-                              className="bg-red-500 hover:bg-red-600 text-white border-0 rounded-xl px-2 sm:px-3 py-2 h-8 sm:h-10 transition-all duration-200 hover:scale-105"
+                              className="rounded-xl h-10 w-10 p-0 text-[#6B7B8D] dark:text-white/60 hover:bg-red-500/10 hover:text-red-500"
                               onClick={() => removeFromCart(item.id, item.size)}
                               title={t("cart.removeFromCart")}
                             >
-                              <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
                         </div>
 
-                        {/* Quantity Controls */}
                         <div className="flex items-center justify-between mt-3 flex-wrap gap-2">
-                          <div className="flex items-center space-x-1.5 rtl:space-x-reverse dark:bg-white/5 bg-white/10 rounded-xl p-1">
+                          <div className="flex items-center space-x-1.5 rtl:space-x-reverse rounded-xl bg-[#323D50]/5 dark:bg-white/5 p-1">
                             <Button
-                              variant="default"
+                              variant="ghost"
                               size="sm"
                               aria-label={t("cart.decreaseQuantity")}
-                              className="dark:bg-white/10 bg-[#EDF1F7] dark:hover:bg-white/20 hover:bg-[#EDF1F7] dark:text-[#F5F5F5] text-[#323D50] border-0 rounded-lg h-10 w-10 sm:h-8 sm:w-8 p-0 transition-all duration-200 hover:scale-105"
+                              className="bg-white dark:bg-white/10 hover:bg-warm/10 dark:hover:bg-warm/20 text-[#323D50] dark:text-[#F5F5F5] rounded-lg h-9 w-9 p-0"
                               onClick={() =>
                                 handleQuantityChange(
                                   item.id,
@@ -626,16 +287,16 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                                 )
                               }
                             >
-                              <Minus className="h-4 w-4 sm:h-3 sm:w-3" />
+                              <Minus className="h-3.5 w-3.5" />
                             </Button>
-                            <span className="dark:text-[#F5F5F5] text-[#323D50] font-bold text-base sm:text-base w-10 sm:w-10 text-center dark:bg-white/10 bg-[#EDF1F7] rounded-lg py-1">
+                            <span className="dark:text-[#F5F5F5] text-[#323D50] font-display tabular-nums text-base w-10 text-center bg-white dark:bg-white/10 rounded-lg py-1">
                               {item.quantity}
                             </span>
                             <Button
-                              variant="default"
+                              variant="ghost"
                               size="sm"
                               aria-label={t("cart.increaseQuantity")}
-                              className="dark:bg-white/10 bg-[#EDF1F7] dark:hover:bg-white/20 hover:bg-[#EDF1F7] dark:text-[#F5F5F5] text-[#323D50] border-0 rounded-lg h-10 w-10 sm:h-8 sm:w-8 p-0 transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="bg-white dark:bg-white/10 hover:bg-warm/10 dark:hover:bg-warm/20 text-[#323D50] dark:text-[#F5F5F5] rounded-lg h-9 w-9 p-0 disabled:opacity-50"
                               onClick={() =>
                                 handleQuantityChange(
                                   item.id,
@@ -646,33 +307,37 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                               }
                               disabled={!canAddToCart(item)}
                             >
-                              <Plus className="h-4 w-4 sm:h-3 sm:w-3" />
+                              <Plus className="h-3.5 w-3.5" />
                             </Button>
                           </div>
 
-                          {/* Item Total */}
                           <div className="text-right">
-                            <p className="dark:text-white/70 text-[#6B7B8D] text-sm font-medium">
+                            <p className="text-[10px] tracking-widest uppercase text-[#6B7B8D] dark:text-white/60">
                               {t("cart.totalLabel")}
                             </p>
-                            <p className="text-[#e879f9] font-bold text-lg drop-shadow-sm">
-                              {(item.price * item.quantity).toFixed(2)} LYD
+                            <p className="font-display tabular-nums text-lg text-[#323D50] dark:text-[#F5F5F5]">
+                              {(item.price * item.quantity).toFixed(2)}{" "}
+                              <span className="text-[10px] tracking-widest uppercase text-warm">
+                                LYD
+                              </span>
                             </p>
                           </div>
                         </div>
 
-                        {/* Stock Warning */}
                         {item.stock_quantity &&
                           item.quantity > item.stock_quantity && (
-                            <div className="mt-3 bg-red-500/20 border border-red-500/30 rounded-xl p-3">
-                              <div className="flex items-center justify-between">
-                                <p className="text-red-300 text-xs sm:text-sm font-medium">
-                                  {`⚠️ ${t("cart.onlyAvailable").replace("{count}", String(item.stock_quantity))}`}
+                            <div className="mt-3 bg-red-500/15 border border-red-500/30 rounded-xl p-3">
+                              <div className="flex items-center justify-between gap-2">
+                                <p className="text-red-500 text-xs sm:text-sm font-medium">
+                                  {t("cart.onlyAvailable").replace(
+                                    "{count}",
+                                    String(item.stock_quantity)
+                                  )}
                                 </p>
                                 <Button
                                   size="sm"
                                   variant="default"
-                                  className="bg-red-500/80 hover:bg-red-500 text-white border-0 rounded-lg px-3 py-1 text-xs font-medium transition-all duration-200 hover:scale-105"
+                                  className="bg-red-500 hover:bg-red-600 text-white rounded-lg px-3 py-1 text-xs"
                                   onClick={() =>
                                     handleQuantityChange(
                                       item.id,
@@ -693,29 +358,24 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                 ))}
               </div>
 
-              {/* Sticky Checkout Section */}
+              {/* Sticky Summary + Checkout CTA */}
               <div className="sticky bottom-0 bg-[#F8F9FB] dark:bg-[#1a2235] border-t dark:border-white/10 border-[#323D50]/10 pt-4 pb-4 px-4 sm:px-6 -mx-4 sm:-mx-6 z-10">
-                {/* Order Summary */}
-                <div className="glass-card dark:bg-white/5 bg-white border dark:border-white/10 border-[#323D50]/10 rounded-2xl p-4 sm:p-6 mb-4">
-                  <h3 className="dark:text-[#F5F5F5] text-[#323D50] font-semibold text-lg mb-4">
+                <div className="glass-card rounded-2xl p-4 sm:p-6 mb-4">
+                  <p className="font-display text-[10px] tracking-[0.32em] text-warm uppercase mb-4">
                     {t("cart.orderSummary")}
-                  </h3>
+                  </p>
 
                   <div className="space-y-3">
-                    <div className="flex justify-between dark:text-white/80 text-[#6B7B8D] font-medium">
-                      <span>{`${t("cart.items")} (${getItemCount()})`}</span>
-                      <span>{cartSubtotal.toFixed(2)} LYD</span>
-                    </div>
-
-                    {appliedPromo?.promo ? (
-                      <div className="flex items-center justify-between gap-2 rounded-xl bg-green-500/10 border border-green-500/30 px-3 py-2">
+                    {/* Promo */}
+                    {appliedPromo?.valid && appliedPromo.promo ? (
+                      <div className="flex items-center justify-between gap-2 rounded-xl bg-warm/10 border border-warm/30 px-3 py-2">
                         <div className="flex items-center gap-2 min-w-0">
-                          <Tag className="w-4 h-4 text-green-600 dark:text-green-400 shrink-0" />
+                          <Tag className="w-4 h-4 text-warm shrink-0" />
                           <div className="min-w-0">
-                            <div className="text-xs text-green-700 dark:text-green-400 font-medium truncate">
+                            <div className="text-[10px] tracking-widest uppercase text-warm font-medium truncate">
                               {t("cart.promoCode.applied")}
                             </div>
-                            <div className="text-sm font-bold text-[#323D50] dark:text-white font-mono truncate">
+                            <div className="text-sm font-bold font-mono text-[#323D50] dark:text-white truncate">
                               {appliedPromo.promo.code}
                             </div>
                           </div>
@@ -752,7 +412,7 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                                 }
                               }}
                               placeholder={t("cart.promoCode.placeholder")}
-                              className={`glass dark:bg-white/10 bg-white/80 dark:border-white/30 border-[#323D50]/15 dark:text-[#F5F5F5] text-[#323D50] dark:placeholder:text-white/60 placeholder:text-[#6B7B8D] focus:border-[#5B8DD9] focus:ring-[#5B8DD9] rounded-xl h-10 ${
+                              className={`glass dark:bg-white/5 bg-white/80 border-[#323D50]/15 dark:border-white/15 focus:border-warm focus:ring-warm/30 rounded-xl h-10 ${
                                 isRTL ? "pr-9" : "pl-9"
                               }`}
                               disabled={promoLoading || items.length === 0}
@@ -767,63 +427,64 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                               items.length === 0 ||
                               !promoInput.trim()
                             }
-                            className="h-10 px-4 bg-[#5B8DD9] hover:bg-[#3E6BB5] text-white rounded-xl text-sm font-medium"
+                            className="h-10 px-4 bg-warm hover:bg-warm-glow text-white rounded-xl text-sm font-medium"
                           >
                             {t("cart.promoCode.apply")}
                           </LoadingButton>
                         </div>
                         {promoError && (
-                          <p className="text-xs text-red-500 dark:text-red-400 px-1">
+                          <p
+                            role="alert"
+                            aria-live="polite"
+                            className="text-xs text-red-500 dark:text-red-400 px-1"
+                          >
                             {promoError}
                           </p>
                         )}
                       </div>
                     )}
 
-                    {appliedPromo?.promo && (
-                      <div className="flex justify-between text-sm dark:text-white/80 text-[#6B7B8D]">
-                        <span>{t("cart.subtotal")}</span>
-                        <span>{cartSubtotal.toFixed(2)} LYD</span>
-                      </div>
-                    )}
-                    {appliedPromo?.promo && cartDiscount > 0 && (
-                      <div className="flex justify-between text-sm text-green-600 dark:text-green-400 font-medium">
+                    <div className="flex justify-between text-sm dark:text-white/80 text-[#6B7B8D]">
+                      <span>{t("cart.subtotal")}</span>
+                      <span className="tabular-nums">
+                        {cartSubtotal.toFixed(2)} LYD
+                      </span>
+                    </div>
+
+                    {cartDiscount > 0 && (
+                      <div className="flex justify-between text-sm text-warm font-medium">
                         <span>{t("cart.discount")}</span>
-                        <span>-{cartDiscount.toFixed(2)} LYD</span>
+                        <span className="tabular-nums">
+                          -{cartDiscount.toFixed(2)} LYD
+                        </span>
                       </div>
                     )}
 
-                    {deliveryFee > 0 && (
-                      <div className="flex justify-between text-sm dark:text-white/80 text-[#6B7B8D]">
-                        <span className="flex items-center gap-1.5">
-                          <Truck className="w-3.5 h-3.5" />
-                          {t("cart.deliveryFee")}
+                    <div className="border-t dark:border-white/10 border-[#323D50]/10 pt-3 flex items-baseline justify-between">
+                      <span className="font-display text-base text-[#323D50] dark:text-[#F5F5F5]">
+                        {t("cart.total")}
+                      </span>
+                      <span className="font-display tabular-nums text-2xl text-[#323D50] dark:text-[#F5F5F5]">
+                        {cartFinalTotal.toFixed(2)}{" "}
+                        <span className="text-xs tracking-widest uppercase text-warm">
+                          LYD
                         </span>
-                        <span>{deliveryFee.toFixed(2)} LYD</span>
-                      </div>
-                    )}
-
-                    <div className="border-t dark:border-white/10 border-[#323D50]/10 pt-3 pb-3 ">
-                      <div className="flex justify-between text-lg sm:text-xl font-bold">
-                        <span className="dark:text-[#F5F5F5] text-[#323D50]">{t("cart.total")}</span>
-                        <span className="text-[#e879f9] drop-shadow-sm">
-                          {cartGrandTotal.toFixed(2)} LYD
-                        </span>
-                      </div>
+                      </span>
                     </div>
                   </div>
 
-                  <div className="space-y-3">
+                  <div className="space-y-3 mt-4">
                     {!isStockAvailable() && (
-                      <div className="bg-red-500/20 border border-red-500/30 rounded-xl p-3">
-                        <p className="text-red-300 text-sm font-medium mb-2">
-                          {`⚠️ ${t("cart.stockExceed")}`}
+                      <div className="bg-red-500/15 border border-red-500/30 rounded-xl p-3">
+                        <p className="text-red-500 text-sm font-medium mb-2">
+                          {t("cart.stockExceed")}
                         </p>
-                        <ul className="text-red-300 text-xs space-y-1">
+                        <ul className="text-red-500/90 text-xs space-y-1">
                           {getStockErrorItems().map((item, index) => (
                             <li key={index}>
                               • {item.name} ({item.size}): {item.quantity}{" "}
-                              {t("cart.requested")}, {item.stock_quantity} {t("cart.available")}
+                              {t("cart.requested")}, {item.stock_quantity}{" "}
+                              {t("cart.available")}
                             </li>
                           ))}
                         </ul>
@@ -831,16 +492,8 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                     )}
                     <Button
                       disabled={!isStockAvailable()}
-                      onClick={() => {
-                        if (!user) {
-                          toast.info(t("auth.signInToCheckout"));
-                          onClose();
-                          navigate("/login", { state: { from: "/" } });
-                          return;
-                        }
-                        setIsCheckoutOpen(true);
-                      }}
-                      className="w-full flex items-center justify-center gap-2 glass bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] hover:from-[#3E6BB5] hover:to-[#5B8DD9] text-white border-0 rounded-2xl py-4 font-semibold text-lg transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-[#5B8DD9]/25 focus:ring-2 focus:ring-[#5B8DD9]/50 focus:ring-offset-2 focus:ring-offset-[#1a2235] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                      onClick={handleProceedToCheckout}
+                      className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] hover:from-[#3E6BB5] hover:to-[#5B8DD9] text-white rounded-2xl h-14 font-display text-lg tracking-wide glow-warm-hover disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <CreditCard className="w-5 h-5" />
                       <span>
@@ -849,388 +502,11 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                           : t("cart.stockInsufficient")}
                       </span>
                     </Button>
+                    <p className="flex items-center justify-center gap-1.5 text-[10px] tracking-widest uppercase text-[#6B7B8D] dark:text-white/50">
+                      <Truck className="w-3 h-3 text-warm" />
+                      {t("checkout.trust.fast")}
+                    </p>
                   </div>
-
-                  <Dialog
-                    open={isCheckoutOpen}
-                    onOpenChange={setIsCheckoutOpen}
-                  >
-                    <DialogContent className="glass-card bg-[#F8F9FB] dark:bg-[#1a2235] dark:border-white/10 border-[#323D50]/10 dark:text-[#F5F5F5] text-[#323D50] max-w-md mx-4 sm:mx-auto max-h-[90vh] !flex !flex-col !gap-0 p-0">
-                      <DialogHeader className="p-6 pb-2 shrink-0">
-                        <DialogTitle className="dark:text-[#F5F5F5] text-[#323D50] gradient-text text-xl sm:text-2xl">
-                          {t("cart.completeOrder")}
-                        </DialogTitle>
-                      </DialogHeader>
-
-                      <div className="space-y-4 sm:space-y-6 overflow-y-auto overscroll-contain px-6 pb-6 flex-1 min-h-0">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label
-                              htmlFor="firstName"
-                              className="dark:text-white/90 text-[#6B7B8D] dark:text-[#D6D6D6] font-medium"
-                            >
-                              <User className="w-4 h-4 inline me-2" />
-                              {t("cart.firstName")}
-                            </Label>
-                            <Input
-                              id="firstName"
-                              value={formData.firstName}
-                              onChange={(e) =>
-                                handleInputChange("firstName", e.target.value)
-                              }
-                              className="glass dark:bg-white/10 bg-white/80 dark:border-white/30 border-[#323D50]/15 dark:text-[#F5F5F5] text-[#323D50] dark:placeholder:text-white/60 placeholder:text-[#6B7B8D] dark:text-[#D6D6D6] focus:border-[#5B8DD9] focus:ring-[#5B8DD9] rounded-xl h-11"
-                              placeholder={t("cart.enterFirstName")}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label
-                              htmlFor="lastName"
-                              className="dark:text-white/90 text-[#6B7B8D] dark:text-[#D6D6D6] font-medium"
-                            >
-                              {t("cart.lastName")}
-                            </Label>
-                            <Input
-                              id="lastName"
-                              value={formData.lastName}
-                              onChange={(e) =>
-                                handleInputChange("lastName", e.target.value)
-                              }
-                              className="glass dark:bg-white/10 bg-white/80 dark:border-white/30 border-[#323D50]/15 dark:text-[#F5F5F5] text-[#323D50] dark:placeholder:text-white/60 placeholder:text-[#6B7B8D] dark:text-[#D6D6D6] focus:border-[#5B8DD9] focus:ring-[#5B8DD9] rounded-xl h-11"
-                              placeholder={t("cart.enterLastName")}
-                            />
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label
-                            htmlFor="email"
-                            className="dark:text-white/90 text-[#6B7B8D] dark:text-[#D6D6D6] font-medium"
-                          >
-                            <Mail className="w-4 h-4 inline me-2" />
-                            {t("cart.email")}
-                          </Label>
-                          <Input
-                            id="email"
-                            type="email"
-                            value={formData.email}
-                            onChange={(e) =>
-                              handleInputChange("email", e.target.value)
-                            }
-                            className="glass dark:bg-white/10 bg-white/80 dark:border-white/30 border-[#323D50]/15 dark:text-[#F5F5F5] text-[#323D50] dark:placeholder:text-white/60 placeholder:text-[#6B7B8D] dark:text-[#D6D6D6] focus:border-[#5B8DD9] focus:ring-[#5B8DD9] rounded-xl h-11"
-                            placeholder={t("cart.enterEmail")}
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label
-                            htmlFor="phone"
-                            className="dark:text-white/90 text-[#6B7B8D] dark:text-[#D6D6D6] font-medium"
-                          >
-                            <Phone className="w-4 h-4 inline me-2" />
-                            {t("cart.phone")}
-                          </Label>
-                          <Input
-                            id="phone"
-                            type="tel"
-                            value={formData.phone}
-                            onChange={(e) =>
-                              handleInputChange("phone", e.target.value)
-                            }
-                            className="glass dark:bg-white/10 bg-white/80 dark:border-white/30 border-[#323D50]/15 dark:text-[#F5F5F5] text-[#323D50] dark:placeholder:text-white/60 placeholder:text-[#6B7B8D] dark:text-[#D6D6D6] focus:border-[#5B8DD9] focus:ring-[#5B8DD9] rounded-xl h-11"
-                            placeholder={t("cart.enterPhone")}
-                          />
-                        </div>
-
-                        {/* Vanex City Select */}
-                        <div className="space-y-2">
-                          <Label
-                            htmlFor="city"
-                            className="dark:text-white/90 text-[#6B7B8D] dark:text-[#D6D6D6] font-medium"
-                          >
-                            <MapPin className="w-4 h-4 inline me-2" />
-                            {t("cart.city")}
-                          </Label>
-                          <Select
-                            value={formData.vanexCityId ? String(formData.vanexCityId) : ""}
-                            onValueChange={handleCitySelect}
-                            disabled={citiesLoading}
-                          >
-                            <SelectTrigger className="glass dark:bg-white/10 bg-white/80 dark:border-white/30 border-[#323D50]/15 dark:text-[#F5F5F5] text-[#323D50] focus:border-[#5B8DD9] focus:ring-[#5B8DD9] rounded-xl h-11">
-                              <SelectValue
-                                placeholder={
-                                  citiesLoading
-                                    ? "Loading cities..."
-                                    : t("cart.selectCity")
-                                }
-                              />
-                            </SelectTrigger>
-                            <SelectContent className="glass bg-[#F8F9FB] dark:bg-[#1a2235] dark:border-white/30 border-[#323D50]/15 max-h-48 rounded-xl">
-                              {vanexCities.map((city) => (
-                                <SelectItem
-                                  key={city.id}
-                                  value={String(city.id)}
-                                  className="dark:text-[#F5F5F5] text-[#323D50] dark:hover:bg-white/10 hover:bg-[#EDF1F7] dark:focus:bg-white/10 focus:bg-white/10"
-                                >
-                                  {city.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        {/* Vanex Sub-city (area) Select — shown after city chosen */}
-                        {formData.vanexCityId && (
-                          <div className="space-y-2">
-                            <Label
-                              htmlFor="subCity"
-                              className="dark:text-white/90 text-[#6B7B8D] dark:text-[#D6D6D6] font-medium"
-                            >
-                              <MapPin className="w-4 h-4 inline me-2" />
-                              {t("cart.placeName")}
-                            </Label>
-                            {vanexSubCities.length > 0 ? (
-                              <Select
-                                value={
-                                  formData.vanexSubCityId
-                                    ? String(formData.vanexSubCityId)
-                                    : ""
-                                }
-                                onValueChange={handleSubCitySelect}
-                              >
-                                <SelectTrigger className="glass dark:bg-white/10 bg-white/80 dark:border-white/30 border-[#323D50]/15 dark:text-[#F5F5F5] text-[#323D50] focus:border-[#5B8DD9] focus:ring-[#5B8DD9] rounded-xl h-11">
-                                  <SelectValue placeholder={t("cart.enterPlaceName")} />
-                                </SelectTrigger>
-                                <SelectContent className="glass bg-[#F8F9FB] dark:bg-[#1a2235] dark:border-white/30 border-[#323D50]/15 max-h-48 rounded-xl">
-                                  {vanexSubCities.map((sub) => (
-                                    <SelectItem
-                                      key={sub.sub_city_id}
-                                      value={String(sub.sub_city_id)}
-                                      className="dark:text-[#F5F5F5] text-[#323D50] dark:hover:bg-white/10 hover:bg-[#EDF1F7] dark:focus:bg-white/10 focus:bg-white/10"
-                                    >
-                                      {sub.sub_city_name}{sub.price != null && sub.price > 0 ? ` (${sub.price} LYD)` : ""}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            ) : (
-                              /* No sub-cities for this city — free text fallback */
-                              <Input
-                                id="placeName"
-                                value={formData.placeName}
-                                onChange={(e) =>
-                                  setFormData((prev) => ({
-                                    ...prev,
-                                    placeName: e.target.value,
-                                    vanexSubCityId: -1,
-                                  }))
-                                }
-                                className="glass dark:bg-white/10 bg-white/80 dark:border-white/30 border-[#323D50]/15 dark:text-[#F5F5F5] text-[#323D50] dark:placeholder:text-white/60 placeholder:text-[#6B7B8D] focus:border-[#5B8DD9] focus:ring-[#5B8DD9] rounded-xl h-11"
-                                placeholder={t("cart.enterPlaceName")}
-                              />
-                            )}
-                          </div>
-                        )}
-
-                        {/* Delivery fee indicator */}
-                        {deliveryFee > 0 && formData.vanexSubCityId && (
-                          <div className="flex items-center gap-2 p-3 rounded-xl bg-[#5B8DD9]/10 border border-[#5B8DD9]/20">
-                            <Truck className="w-4 h-4 text-[#5B8DD9] shrink-0" />
-                            <span className="text-sm text-[#323D50] dark:text-white">
-                              {t("cart.deliveryFeeLabel")}: <strong>{deliveryFee.toFixed(2)} LYD</strong>
-                            </span>
-                          </div>
-                        )}
-
-                        {/* Payment method selector */}
-                        <div className="space-y-3">
-                          <Label className="dark:text-white/90 text-[#6B7B8D] dark:text-[#D6D6D6] font-medium">
-                            <CreditCard className="w-4 h-4 inline me-2" />
-                            {t("cart.paymentMethod")}
-                          </Label>
-                          <div className="grid grid-cols-2 gap-3">
-                            <button
-                              type="button"
-                              onClick={() => setPaymentMethod("cod")}
-                              className={`p-3 rounded-xl border-2 text-start transition-all duration-200 ${
-                                paymentMethod === "cod"
-                                  ? "border-[#5B8DD9] bg-[#5B8DD9]/10 dark:bg-[#5B8DD9]/20"
-                                  : "border-[#323D50]/15 dark:border-white/15 hover:border-[#5B8DD9]/50"
-                              }`}
-                            >
-                              <Banknote className={`w-5 h-5 mb-1.5 ${paymentMethod === "cod" ? "text-[#5B8DD9]" : "text-[#6B7B8D] dark:text-white/60"}`} />
-                              <p className={`text-sm font-semibold ${paymentMethod === "cod" ? "text-[#5B8DD9]" : "dark:text-[#F5F5F5] text-[#323D50]"}`}>
-                                {t("cart.cod")}
-                              </p>
-                              <p className="text-xs text-[#6B7B8D] dark:text-white/50 mt-0.5 line-clamp-2">
-                                {t("cart.codDesc")}
-                              </p>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setPaymentMethod("bank_transfer")}
-                              className={`p-3 rounded-xl border-2 text-start transition-all duration-200 ${
-                                paymentMethod === "bank_transfer"
-                                  ? "border-[#5B8DD9] bg-[#5B8DD9]/10 dark:bg-[#5B8DD9]/20"
-                                  : "border-[#323D50]/15 dark:border-white/15 hover:border-[#5B8DD9]/50"
-                              }`}
-                            >
-                              <CreditCard className={`w-5 h-5 mb-1.5 ${paymentMethod === "bank_transfer" ? "text-[#5B8DD9]" : "text-[#6B7B8D] dark:text-white/60"}`} />
-                              <p className={`text-sm font-semibold ${paymentMethod === "bank_transfer" ? "text-[#5B8DD9]" : "dark:text-[#F5F5F5] text-[#323D50]"}`}>
-                                {t("cart.bankTransfer")}
-                              </p>
-                              <p className="text-xs text-[#6B7B8D] dark:text-white/50 mt-0.5 line-clamp-2">
-                                {t("cart.bankTransferDesc")}
-                              </p>
-                            </button>
-                          </div>
-
-                          {/* Bank details card */}
-                          {paymentMethod === "bank_transfer" && (<>
-                            <div className="glass-card dark:bg-white/5 bg-white border dark:border-white/10 border-[#323D50]/10 rounded-xl p-4 space-y-3">
-                              <h4 className="text-sm font-semibold dark:text-[#F5F5F5] text-[#323D50] flex items-center gap-2">
-                                <CreditCard className="w-4 h-4 text-[#5B8DD9]" />
-                                {t("cart.bankDetails")}
-                              </h4>
-                              <div className="space-y-2.5">
-                                <div>
-                                  <p className="text-xs text-[#6B7B8D] dark:text-white/50">{t("cart.accountHolder")}</p>
-                                  <p className="text-sm font-medium dark:text-[#F5F5F5] text-[#323D50]">{BANK_DETAILS.accountHolder}</p>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                  <div>
-                                    <p className="text-xs text-[#6B7B8D] dark:text-white/50">{t("cart.accountNumber")}</p>
-                                    <p className="text-sm font-mono font-medium dark:text-[#F5F5F5] text-[#323D50]">{BANK_DETAILS.accountNumber}</p>
-                                  </div>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleCopyBankDetail(BANK_DETAILS.accountNumber, "account")}
-                                    className="h-8 w-8 p-0 hover:bg-[#5B8DD9]/10"
-                                  >
-                                    {copiedField === "account" ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5 text-[#6B7B8D]" />}
-                                  </Button>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                  <div>
-                                    <p className="text-xs text-[#6B7B8D] dark:text-white/50">{t("cart.iban")}</p>
-                                    <p className="text-xs font-mono font-medium dark:text-[#F5F5F5] text-[#323D50]">{BANK_DETAILS.iban}</p>
-                                  </div>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleCopyBankDetail(BANK_DETAILS.iban, "iban")}
-                                    className="h-8 w-8 p-0 hover:bg-[#5B8DD9]/10"
-                                  >
-                                    {copiedField === "iban" ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5 text-[#6B7B8D]" />}
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Transfer proof upload */}
-                            <div className="glass-card dark:bg-white/5 bg-white border dark:border-white/10 border-[#323D50]/10 rounded-xl p-4 space-y-3">
-                              <h4 className="text-sm font-semibold dark:text-[#F5F5F5] text-[#323D50]">
-                                {t("cart.transferProof")} <span className="text-red-500">*</span>
-                              </h4>
-                              <p className="text-xs text-[#6B7B8D] dark:text-white/50">
-                                {t("cart.uploadProofDesc")}
-                              </p>
-                              <input
-                                ref={proofInputRef}
-                                type="file"
-                                accept="image/jpeg,image/png,image/webp"
-                                onChange={handleProofUpload}
-                                className="hidden"
-                              />
-                              {transferProofUrl ? (
-                                <div className="space-y-2">
-                                  <img
-                                    src={transferProofUrl}
-                                    alt="Transfer proof"
-                                    className="w-full max-h-48 object-contain rounded-lg border dark:border-white/10 border-[#323D50]/10"
-                                  />
-                                  <div className="flex items-center justify-between">
-                                    <span className="text-xs text-green-600 dark:text-green-400 font-medium flex items-center gap-1">
-                                      <Check className="w-3.5 h-3.5" />
-                                      {t("cart.proofUploaded")}
-                                    </span>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => proofInputRef.current?.click()}
-                                      className="text-xs text-[#5B8DD9] hover:bg-[#5B8DD9]/10 h-7 px-2"
-                                    >
-                                      {t("cart.changeProof")}
-                                    </Button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={() => proofInputRef.current?.click()}
-                                  disabled={proofUploading}
-                                  className="w-full border-2 border-dashed dark:border-white/20 border-[#323D50]/20 rounded-xl p-6 text-center hover:border-[#5B8DD9]/50 transition-colors disabled:opacity-50"
-                                >
-                                  {proofUploading ? (
-                                    <div className="flex flex-col items-center gap-2">
-                                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#5B8DD9]" />
-                                      <span className="text-xs text-[#6B7B8D] dark:text-white/50">{t("cart.uploadingProof")}</span>
-                                    </div>
-                                  ) : (
-                                    <div className="flex flex-col items-center gap-2">
-                                      <CreditCard className="w-6 h-6 text-[#6B7B8D] dark:text-white/40" />
-                                      <span className="text-sm font-medium dark:text-[#F5F5F5] text-[#323D50]">{t("cart.uploadProof")}</span>
-                                      <span className="text-xs text-[#6B7B8D] dark:text-white/50">JPEG, PNG, WebP (max 5MB)</span>
-                                    </div>
-                                  )}
-                                </button>
-                              )}
-                            </div>
-                          </>)}
-                        </div>
-
-                        <div className="border-t dark:border-white/10 border-[#323D50]/10 pt-4 sm:pt-6">
-                          {appliedPromo?.promo && (
-                            <>
-                              <div className="flex justify-between text-sm dark:text-white/80 text-[#6B7B8D] mb-1">
-                                <span>{t("cart.subtotal")}</span>
-                                <span>{cartSubtotal.toFixed(2)} LYD</span>
-                              </div>
-                              {cartDiscount > 0 && (
-                                <div className="flex justify-between text-sm text-green-600 dark:text-green-400 font-medium mb-1">
-                                  <span>
-                                    {t("cart.discount")} ({appliedPromo.promo.code})
-                                  </span>
-                                  <span>-{cartDiscount.toFixed(2)} LYD</span>
-                                </div>
-                              )}
-                            </>
-                          )}
-                          {deliveryFee > 0 && (
-                            <div className="flex justify-between text-sm dark:text-white/80 text-[#6B7B8D] mb-1">
-                              <span>{t("cart.deliveryFee")}</span>
-                              <span>{deliveryFee.toFixed(2)} LYD</span>
-                            </div>
-                          )}
-                          <div className="flex justify-between text-lg sm:text-xl font-bold mb-4 sm:mb-6">
-                            <span className="dark:text-[#F5F5F5] text-[#323D50]">{t("cart.total")}</span>
-                            <span className="text-[#e879f9] drop-shadow-sm">
-                              {cartGrandTotal.toFixed(2)} LYD
-                            </span>
-                          </div>
-                          <LoadingButton
-                            onClick={handleCheckout}
-                            loading={checkoutLoading}
-                            loadingText={t("cart.placingOrder")}
-                            className="w-full bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] hover:from-[#3E6BB5] hover:to-[#5B8DD9] text-white border-0 rounded-xl py-3 sm:py-4 font-semibold text-base sm:text-lg transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-[#5B8DD9]/25"
-                          >
-                            <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 me-2" />
-                            {t("cart.placeOrder")}
-                          </LoadingButton>
-                        </div>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
                 </div>
               </div>
             </>

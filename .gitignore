@@ -29,3 +29,11 @@ dist-ssr
 .netlify
 .aidesigner/*
 !.aidesigner/.gitkeep
+
+# Local tooling
+.claude/
+.superpowers/
+playwright-report/
+
+# Build archives (re-generated for cPanel upload)
+shama-*.zip

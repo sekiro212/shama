@@ -1,88 +1,87 @@
-import { useState } from "react";
-import { Package, Search, MapPin, Clock, AlertCircle, Truck, Copy } from "lucide-react";
+import { useEffect, useState } from "react";
+import {
+  Package,
+  Search,
+  AlertCircle,
+  ChevronRight,
+  ArrowLeft,
+} from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
+import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { supabase } from "@/lib/supabase";
-import OrderTimeline from "@/components/OrderTimeline";
+import OrderDetailView from "@/components/OrderDetailView";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { trackVanexPackage, VanexTracking } from "@/services/vanexService";
-import { toast } from "sonner";
+import type { Order } from "@/services/ordersService";
 
-interface OrderItem {
-  name: string;
-  price: number;
-  quantity: number;
-  size: string;
-  image: string;
-}
-
-interface Order {
-  id: string;
-  first_name: string;
-  last_name: string;
-  email: string;
-  status: string;
-  total: number;
-  items: OrderItem[];
-  created_at: string;
-  order_date: string;
-  place_name?: string;
-  city: string;
-  phone: string;
-  vanex_package_code?: string;
-}
+const STATUS_PILL: Record<string, string> = {
+  pending: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
+  confirmed: "bg-sky-500/15 text-sky-600 dark:text-sky-400",
+  processing: "bg-yellow-500/15 text-yellow-600 dark:text-yellow-400",
+  accepted: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
+  shipped: "bg-warm/15 text-warm",
+  delivered: "bg-green-500/15 text-green-600 dark:text-green-400",
+  returned: "bg-rose-500/15 text-rose-600 dark:text-rose-400",
+};
 
 const OrderTrackingPage = () => {
-  const { t, language } = useLanguage();
-  const [query, setQuery] = useState("");
-  const [order, setOrder] = useState<Order | null>(null);
+  const { t, language, isRTL } = useLanguage();
+  const [searchParams] = useSearchParams();
+  const shouldReduceMotion = useReducedMotion();
+
+  const [query, setQuery] = useState(searchParams.get("id") ?? "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searched, setSearched] = useState(false);
-  const [vanexTracking, setVanexTracking] = useState<VanexTracking | null>(null);
-  const [vanexLoading, setVanexLoading] = useState(false);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!query.trim()) return;
+  // Auto-search if URL has ?id=…
+  useEffect(() => {
+    const urlId = searchParams.get("id");
+    if (urlId && !searched) {
+      setQuery(urlId);
+      doSearch(urlId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const doSearch = async (input?: string) => {
+    const value = (input ?? query).trim();
+    if (!value) return;
 
     setLoading(true);
     setError(null);
-    setOrder(null);
+    setOrders([]);
+    setSelectedId(null);
     setSearched(true);
 
     try {
-      const isEmail = query.includes("@");
-
-      let result;
+      const isEmail = value.includes("@");
       if (isEmail) {
-        result = await supabase
+        const { data, error: err } = await supabase
           .from("orders")
           .select("*")
-          .eq("email", query.trim().toLowerCase())
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .single();
-      } else {
-        result = await supabase
-          .from("orders")
-          .select("*")
-          .eq("id", query.trim())
-          .single();
-      }
-
-      if (result.error) {
-        setError(t("tracking.noOrder"));
-      } else {
-        const fetchedOrder = result.data as Order;
-        setOrder(fetchedOrder);
-        // If this order has a Vanex package code, fetch live tracking
-        if (fetchedOrder.vanex_package_code) {
-          setVanexLoading(true);
-          trackVanexPackage(fetchedOrder.vanex_package_code)
-            .then(setVanexTracking)
-            .finally(() => setVanexLoading(false));
+          .eq("email", value.toLowerCase())
+          .order("created_at", { ascending: false });
+        if (err || !data || data.length === 0) {
+          setError(t("tracking.noOrder"));
         } else {
-          setVanexTracking(null);
+          setOrders(data as Order[]);
+          setSelectedId((data[0] as Order).id);
+        }
+      } else {
+        const { data, error: err } = await supabase
+          .from("orders")
+          .select("*")
+          .eq("id", value)
+          .maybeSingle();
+        if (err || !data) {
+          setError(t("tracking.noOrder"));
+        } else {
+          setOrders([data as Order]);
+          setSelectedId((data as Order).id);
         }
       }
     } catch {
@@ -92,297 +91,192 @@ const OrderTrackingPage = () => {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString(language === "ar" ? "ar-LY" : "en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    doSearch();
   };
 
+  const selected = orders.find((o) => o.id === selectedId) ?? null;
+  const showList = orders.length > 1 && !selectedId;
+
+  const formatDate = (value: string) =>
+    new Date(value).toLocaleDateString(
+      language === "ar" ? "ar-LY" : "en-US",
+      { year: "numeric", month: "short", day: "numeric" }
+    );
+
+  const initial = shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 12 };
+  const animate = shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 };
+
   return (
-    <div className="min-h-screen bg-[#F8F9FB] dark:bg-[#1a2235] pt-20 md:pt-24 pb-12 sm:pb-16">
-      <div className="container mx-auto px-3 sm:px-4 max-w-3xl">
-        {/* Header */}
-        <div className="text-center mb-6 sm:mb-10">
-          <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] flex items-center justify-center mx-auto mb-4 sm:mb-5 shadow-lg shadow-[#5B8DD9]/20">
-            <Package className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
-          </div>
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold gradient-text mb-2 sm:mb-3 leading-tight">
+    <div className="grain-bg relative min-h-screen bg-[#F8F9FB] dark:bg-[#1a2235] pt-20 sm:pt-24 pb-16 overflow-hidden">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
+      >
+        <div className="absolute top-1/4 -left-24 w-[28rem] h-[28rem] rounded-full bg-warm/15 blur-3xl" />
+        <div className="absolute -bottom-20 right-0 w-80 h-80 rounded-full bg-[#5B8DD9]/10 blur-3xl" />
+      </div>
+
+      <div className="relative mx-auto max-w-5xl px-4 sm:px-6">
+        {/* Hero */}
+        <motion.header
+          initial={initial}
+          animate={animate}
+          transition={{ duration: 0.35 }}
+          className="mb-8 sm:mb-10 text-center"
+        >
+          <p className="font-display text-[11px] sm:text-xs tracking-[0.4em] text-warm uppercase">
+            {t("tracking.eyebrow")}
+          </p>
+          <h1 className="font-display text-3xl sm:text-5xl text-[#1E2A3D] dark:text-[#F5F5F5] mt-2 text-glow-warm">
             {t("tracking.title")}
           </h1>
-          <p className="dark:text-white/50 text-[#6B7B8D] dark:text-[#D6D6D6] max-w-md mx-auto text-sm sm:text-base px-2">
+          <p className="mt-3 font-display italic text-[#6B7B8D] dark:text-white/60 max-w-xl mx-auto">
             {t("tracking.description")}
           </p>
-        </div>
+        </motion.header>
 
-        {/* Search Form */}
-        <form
-          onSubmit={handleSearch}
-          className="glass-card rounded-2xl p-4 sm:p-6 mb-6 sm:mb-8"
+        {/* Search form */}
+        <motion.form
+          initial={initial}
+          animate={animate}
+          transition={{ duration: 0.35, delay: shouldReduceMotion ? 0 : 0.05 }}
+          onSubmit={handleSubmit}
+          className="glass-card rounded-3xl p-4 sm:p-5 mb-8"
         >
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
-              <Search className="absolute start-4 top-1/2 -translate-y-1/2 w-5 h-5 dark:text-white/30 text-[#6B7B8D] dark:text-[#D6D6D6]" />
-              <input
+              <Search
+                className={`w-4 h-4 absolute top-1/2 -translate-y-1/2 ${
+                  isRTL ? "right-4" : "left-4"
+                } text-warm pointer-events-none`}
+              />
+              <Input
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={t("tracking.placeholder")}
-                className="w-full ps-12 pe-4 py-3.5 min-h-[48px] text-base rounded-xl dark:bg-white/5 bg-white border dark:border-white/10 border-[#323D50]/10 dark:text-[#F5F5F5] text-[#323D50] dark:placeholder:text-white/30 placeholder:text-[#6B7B8D] dark:text-[#D6D6D6] focus:outline-none focus:border-[#5B8DD9] focus:ring-1 focus:ring-[#5B8DD9] transition-all duration-300"
+                aria-label={t("tracking.placeholder")}
+                className={`h-12 rounded-2xl glass dark:bg-white/5 bg-white/80 border-[#323D50]/15 dark:border-white/15 focus:border-warm focus:ring-warm/30 ${
+                  isRTL ? "pr-11" : "pl-11"
+                }`}
               />
             </div>
             <Button
               type="submit"
               disabled={loading || !query.trim()}
-              className="bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] hover:opacity-90 text-white px-6 sm:px-8 py-3.5 min-h-[48px] rounded-xl transition-all duration-300 disabled:opacity-50"
+              className="h-12 bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] hover:from-[#3E6BB5] hover:to-[#5B8DD9] text-white rounded-2xl px-6 font-display glow-warm-hover disabled:opacity-50"
             >
               {loading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <>
                   <Search className="w-4 h-4 me-2" />
-                  {t("tracking.track")}
+                  <span className="tracking-widest uppercase text-xs">
+                    {t("tracking.track")}
+                  </span>
                 </>
               )}
             </Button>
           </div>
-        </form>
+        </motion.form>
 
-        {/* Error State */}
+        {/* Error */}
         {error && (
-          <div className="glass-card rounded-2xl p-6 mb-8 border border-red-500/20">
-            <div className="flex items-center gap-3 text-red-400">
-              <AlertCircle className="w-5 h-5 flex-shrink-0" />
-              <p className="text-sm">{error}</p>
-            </div>
+          <div className="glass-card rounded-2xl p-5 mb-6 border border-red-500/20 flex items-center gap-3 text-red-500">
+            <AlertCircle className="w-5 h-5 shrink-0" />
+            <p className="text-sm">{error}</p>
           </div>
         )}
 
-        {/* No Results */}
-        {searched && !order && !error && !loading && (
-          <div className="text-center py-12">
-            <Package className="w-12 h-12 text-[#323D50]/20 dark:text-white/20 mx-auto mb-4" />
-            <p className="text-[#6B7B8D] dark:text-white/50">
+        {/* No-results */}
+        {searched && !loading && orders.length === 0 && !error && (
+          <div className="glass-card rounded-3xl p-10 text-center">
+            <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-warm/15 flex items-center justify-center">
+              <Package className="w-7 h-7 text-warm" />
+            </div>
+            <p className="font-display text-lg text-[#323D50] dark:text-[#F5F5F5]">
               {t("tracking.noOrderFound")}
             </p>
           </div>
         )}
 
-        {/* Order Details */}
-        {order && (
-          <div className="space-y-6">
-            {/* Order Summary Card */}
-            <div className="glass-card rounded-2xl p-6">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-                <div>
-                  <p className="text-[#6B7B8D] dark:text-white/50 text-sm mb-1">{t("tracking.orderId")}</p>
-                  <p className="text-[#323D50] dark:text-white font-mono text-sm">
-                    {order.id}
-                  </p>
-                </div>
-                <div
-                  className={`px-4 py-1.5 rounded-full text-sm font-medium capitalize ${
-                    order.status === "delivered"
-                      ? "bg-green-500/20 text-green-400"
-                      : order.status === "shipped"
-                      ? "bg-blue-500/20 text-blue-400"
-                      : order.status === "processing"
-                      ? "bg-yellow-500/20 text-yellow-400"
-                      : order.status === "confirmed"
-                      ? "bg-white/50/20 text-[#5B8DD9]"
-                      : "bg-white/10 text-[#6B7B8D] dark:text-white/60"
-                  }`}
-                >
-                  {order.status}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-white dark:bg-white/5 flex items-center justify-center">
-                    <Clock className="w-5 h-5 text-[#6B7B8D] dark:text-white/40" />
-                  </div>
-                  <div>
-                    <p className="text-[#6B7B8D] dark:text-white/40 text-xs">{t("tracking.orderDate")}</p>
-                    <p className="text-[#323D50] dark:text-white text-sm">
-                      {formatDate(order.created_at)}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-white dark:bg-white/5 flex items-center justify-center">
-                    <MapPin className="w-5 h-5 text-[#6B7B8D] dark:text-white/40" />
-                  </div>
-                  <div>
-                    <p className="text-[#6B7B8D] dark:text-white/40 text-xs">{t("tracking.shippingTo")}</p>
-                    <p className="text-[#323D50] dark:text-white text-sm truncate">
-                      {order.city || t("tracking.na")}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-white dark:bg-white/5 flex items-center justify-center">
-                    <Package className="w-5 h-5 text-[#6B7B8D] dark:text-white/40" />
-                  </div>
-                  <div>
-                    <p className="text-[#6B7B8D] dark:text-white/40 text-xs">{t("tracking.total")}</p>
-                    <p className="text-[#323D50] dark:text-white text-sm font-semibold">
-                      {order.total} LYD
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Timeline */}
-              <div className="border-t border-[#323D50]/10 dark:border-white/5 pt-6">
-                <h3 className="text-[#323D50] dark:text-white font-semibold mb-6">{t("tracking.orderStatus")}</h3>
-                <OrderTimeline currentStatus={order.status} />
-              </div>
-            </div>
-
-            {/* Order Items */}
-            <div className="glass-card rounded-2xl p-6">
-              <h3 className="text-[#323D50] dark:text-white font-semibold mb-4">
-                {t("tracking.items")} ({order.items?.length || 0})
-              </h3>
-              <div className="space-y-4">
-                {order.items?.map((item, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center gap-4 p-3 rounded-xl bg-white dark:bg-white/5 hover:bg-white/[0.07] transition-colors duration-300"
-                  >
-                    <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 bg-white/5">
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[#323D50] dark:text-white font-medium text-sm truncate">
-                        {item.name}
-                      </p>
-                      <p className="text-[#6B7B8D] dark:text-white/40 text-xs">
-                        {t("tracking.size")}: {item.size} &middot; {t("tracking.qty")}: {item.quantity}
-                      </p>
-                    </div>
-                    <p className="text-[#323D50] dark:text-white font-semibold text-sm whitespace-nowrap">
-                      {item.price * item.quantity} LYD
-                    </p>
-                  </div>
-                ))}
-              </div>
-
-              {/* Total */}
-              <div className="flex items-center justify-between mt-6 pt-4 border-t border-[#323D50]/10 dark:border-white/5">
-                <span className="text-[#6B7B8D] dark:text-white/60">{t("tracking.total")}</span>
-                <span className="text-xl font-bold gradient-text">
-                  {order.total} LYD
-                </span>
-              </div>
-            </div>
-
-            {/* Vanex Live Tracking */}
-            {order.vanex_package_code && (
-              <div className="glass-card rounded-2xl p-6 border border-blue-500/20">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
-                    <Truck className="w-5 h-5 text-blue-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-[#323D50] dark:text-white font-semibold">
-                      Vanex Live Tracking
-                    </h3>
+        {/* Multi-order list (email lookup with >1 result and none selected) */}
+        {showList && (
+          <motion.div
+            initial={initial}
+            animate={animate}
+            transition={{ duration: 0.35 }}
+            className="glass-card rounded-3xl p-4 sm:p-5"
+          >
+            <p className="font-display text-[11px] tracking-[0.32em] text-warm uppercase px-2 pb-3">
+              {orders.length} {t("myOrders.items")}
+            </p>
+            <ul className="space-y-2">
+              {orders.map((order) => {
+                const statusColor =
+                  STATUS_PILL[order.status] ?? STATUS_PILL.pending;
+                return (
+                  <li key={order.id}>
                     <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(order.vanex_package_code!);
-                        toast.success("Package code copied!");
-                      }}
-                      className="flex items-center gap-1.5 text-xs font-mono text-blue-400 hover:text-blue-300 mt-0.5"
+                      type="button"
+                      onClick={() => setSelectedId(order.id)}
+                      className="w-full text-start rounded-2xl p-4 border border-transparent hover:bg-warm/5 hover:border-warm/30 transition-all"
                     >
-                      {order.vanex_package_code}
-                      <Copy className="w-3 h-3" />
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <span className="font-display text-sm text-[#323D50] dark:text-[#F5F5F5] tabular-nums">
+                            #{order.id.slice(0, 8)}
+                          </span>
+                          <p className="text-xs text-[#6B7B8D] dark:text-white/60 mt-0.5">
+                            {formatDate(order.order_date || order.created_at)}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span
+                            className={`text-[10px] tracking-widest uppercase px-2 py-0.5 rounded-full font-display ${statusColor}`}
+                          >
+                            {t(`timeline.${order.status}`) || order.status}
+                          </span>
+                          <span className="font-display tabular-nums text-sm text-[#323D50] dark:text-[#F5F5F5]">
+                            {order.total?.toFixed(2)}{" "}
+                            <span className="text-[10px] text-warm">LYD</span>
+                          </span>
+                          <ChevronRight
+                            className={`w-4 h-4 text-warm/60 ${
+                              isRTL ? "rotate-180" : ""
+                            }`}
+                          />
+                        </div>
+                      </div>
                     </button>
-                  </div>
-                </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </motion.div>
+        )}
 
-                {vanexLoading ? (
-                  <div className="flex items-center gap-2 text-sm text-[#6B7B8D] dark:text-white/50">
-                    <div className="w-4 h-4 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin" />
-                    Loading live tracking...
-                  </div>
-                ) : vanexTracking ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="bg-white dark:bg-white/5 rounded-xl p-3">
-                      <p className="text-[#6B7B8D] dark:text-white/40 text-xs mb-1">Status</p>
-                      <p className="text-[#323D50] dark:text-white font-medium text-sm">
-                        {vanexTracking.status}
-                      </p>
-                    </div>
-                    <div className="bg-white dark:bg-white/5 rounded-xl p-3">
-                      <p className="text-[#6B7B8D] dark:text-white/40 text-xs mb-1">Current Location</p>
-                      <p className="text-[#323D50] dark:text-white font-medium text-sm">
-                        {vanexTracking.current_location || "—"}
-                      </p>
-                    </div>
-                    <div className="bg-white dark:bg-white/5 rounded-xl p-3">
-                      <p className="text-[#6B7B8D] dark:text-white/40 text-xs mb-1">Estimated Delivery</p>
-                      <p className="text-[#323D50] dark:text-white font-medium text-sm">
-                        {vanexTracking.estimated_delivery || "—"}
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-sm text-[#6B7B8D] dark:text-white/50">
-                    Could not load live tracking data. Your package code is{" "}
-                    <span className="font-mono text-blue-400">{order.vanex_package_code}</span>.
-                  </p>
-                )}
-              </div>
+        {/* Single order detail */}
+        {selected && (
+          <>
+            {orders.length > 1 && (
+              <Button
+                variant="ghost"
+                onClick={() => setSelectedId(null)}
+                className="mb-4 -ml-2 h-9 px-2 text-[#6B7B8D] dark:text-white/60 hover:bg-warm/10 hover:text-warm"
+              >
+                <ArrowLeft
+                  className={`w-4 h-4 me-2 ${isRTL ? "rotate-180" : ""}`}
+                />
+                <span className="text-xs tracking-widest uppercase">
+                  {t("myOrders.items")}
+                </span>
+              </Button>
             )}
-
-            {/* Not yet sent to Vanex */}
-            {!order.vanex_package_code && order.status !== "delivered" && (
-              <div className="glass-card rounded-2xl p-5 border border-[#323D50]/10 dark:border-white/10">
-                <div className="flex items-center gap-3 text-[#6B7B8D] dark:text-white/50">
-                  <Truck className="w-5 h-5 flex-shrink-0" />
-                  <p className="text-sm">
-                    Your order is being prepared. A Vanex tracking code will appear here once the order is dispatched.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Customer Info */}
-            <div className="glass-card rounded-2xl p-6">
-              <h3 className="text-[#323D50] dark:text-white font-semibold mb-4">
-                {t("tracking.shippingDetails")}
-              </h3>
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-[#6B7B8D] dark:text-white/40">{t("tracking.name")}</span>
-                  <span className="text-[#323D50] dark:text-white">{order.first_name} {order.last_name}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-[#6B7B8D] dark:text-white/40">{t("tracking.email")}</span>
-                  <span className="text-[#323D50] dark:text-white">{order.email}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-[#6B7B8D] dark:text-white/40">{t("tracking.phone")}</span>
-                  <span className="text-[#323D50] dark:text-white">{order.phone || t("tracking.na")}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-[#6B7B8D] dark:text-white/40">{t("tracking.address")}</span>
-                  <span className="text-[#323D50] dark:text-white text-right max-w-[60%]">
-                    {order.place_name || t("tracking.na")}, {order.city || ""}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
+            <OrderDetailView order={selected} variant="tracking" />
+          </>
         )}
       </div>
     </div>

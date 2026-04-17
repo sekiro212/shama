@@ -686,6 +686,65 @@
       }
     }
   },
+  "checkout": {
+    "eyebrow": "Checkout",
+    "title": "Complete your order",
+    "steps": {
+      "address": "Address",
+      "payment": "Payment",
+      "review": "Review"
+    },
+    "shipTo": {
+      "heading": "Ship to your last address",
+      "edit": "Edit address",
+      "save": "Save address",
+      "cancel": "Cancel"
+    },
+    "form": {
+      "firstName": "First name",
+      "lastName": "Last name",
+      "email": "Email",
+      "phone": "Phone",
+      "city": "City",
+      "subCity": "Area",
+      "placeName": "Building / landmark",
+      "placeNamePlaceholder": "Apartment 4B, near Al-Saraya"
+    },
+    "payment": {
+      "heading": "Payment method",
+      "cod": "Cash on delivery",
+      "codSub": "Pay the courier when your order arrives",
+      "transfer": "Bank transfer",
+      "transferSub": "Transfer to our bank account and upload the receipt",
+      "uploadHeading": "Upload your transfer receipt",
+      "uploadHint": "JPEG, PNG or WebP — up to 5 MB",
+      "uploadChange": "Change file"
+    },
+    "summary": {
+      "heading": "Your order",
+      "itemCount_one": "{{count}} item",
+      "itemCount_other": "{{count}} items",
+      "subtotal": "Subtotal",
+      "discount": "Discount",
+      "delivery": "Delivery",
+      "deliveryPending": "Calculating…",
+      "total": "Total"
+    },
+    "trust": {
+      "secure": "Secure checkout",
+      "fast": "Fast Vanex delivery",
+      "returns": "7-day returns"
+    },
+    "submit": "Place order",
+    "submitting": "Placing order…",
+    "emptyCart": "Your cart is empty",
+    "success": {
+      "title": "Thank you for your order",
+      "subtitle": "We'll be in touch shortly. Your order number is below — keep it to track your delivery.",
+      "viewDetails": "View order details",
+      "continueShopping": "Continue shopping"
+    }
+  },
   "collection": {
     "eyebrow": "The collection",
     "titleOur": "Our",
@@ -805,7 +864,8 @@
     }
   },
   "tracking": {
-    "title": "Track Your Order",
+    "eyebrow": "Track your order",
+    "title": "Where is your order?",
     "description": "Enter your order ID or email address to check the status of your order.",
     "placeholder": "Order ID or email address...",
     "track": "Track",
@@ -1451,6 +1511,7 @@
     }
   },
   "myOrders": {
+    "eyebrow": "Your orders",
     "title": "My Orders",
     "description": "View and track all your orders",
     "empty": "You haven't placed any orders yet",
@@ -1483,5 +1544,26 @@
     "currentStatus": "Current Status",
     "estimatedDelivery": "Estimated Delivery",
     "currentLocation": "Current Location"
+  },
+  "orderDetails": {
+    "eyebrow": "Order",
+    "placedOn": "Placed on",
+    "status": "Status",
+    "items": "Items",
+    "tracking": "Live tracking",
+    "shipping": "Shipping",
+    "payment": "Payment",
+    "totals": "Totals",
+    "receipt": "Transfer receipt",
+    "viewReceipt": "View receipt",
+    "openFull": "Open full size",
+    "copy": "Copy",
+    "copyOrderId": "Copy order number",
+    "currentStatus": "Current status",
+    "currentLocation": "Current location",
+    "estimatedDelivery": "Estimated delivery",
+    "loadingTracking": "Loading live tracking…",
+    "trackingUnavailable": "Live tracking is temporarily unavailable. Your package code is still valid.",
+    "awaitingDispatch": "Your order is being prepared. A tracking code will appear once dispatched."
   }
 }

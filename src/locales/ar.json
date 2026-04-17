@@ -686,6 +686,65 @@
       }
     }
   },
+  "checkout": {
+    "eyebrow": "إتمام الطلب",
+    "title": "أكمل طلبك",
+    "steps": {
+      "address": "العنوان",
+      "payment": "الدفع",
+      "review": "المراجعة"
+    },
+    "shipTo": {
+      "heading": "الشحن إلى عنوانك الأخير",
+      "edit": "تعديل العنوان",
+      "save": "حفظ العنوان",
+      "cancel": "إلغاء"
+    },
+    "form": {
+      "firstName": "الاسم الأول",
+      "lastName": "اسم العائلة",
+      "email": "البريد الإلكتروني",
+      "phone": "رقم الهاتف",
+      "city": "المدينة",
+      "subCity": "المنطقة",
+      "placeName": "المبنى / العلامة المميزة",
+      "placeNamePlaceholder": "شقة 4ب، قرب السرايا"
+    },
+    "payment": {
+      "heading": "طريقة الدفع",
+      "cod": "الدفع عند الاستلام",
+      "codSub": "ادفع لمندوب التوصيل عند وصول طلبك",
+      "transfer": "تحويل بنكي",
+      "transferSub": "حوّل إلى حسابنا البنكي ثم ارفع إيصال التحويل",
+      "uploadHeading": "ارفع إيصال التحويل",
+      "uploadHint": "JPEG أو PNG أو WebP — حتى 5 ميغابايت",
+      "uploadChange": "تغيير الملف"
+    },
+    "summary": {
+      "heading": "طلبك",
+      "itemCount_one": "{{count}} منتج",
+      "itemCount_other": "{{count}} منتجات",
+      "subtotal": "المجموع الفرعي",
+      "discount": "الخصم",
+      "delivery": "التوصيل",
+      "deliveryPending": "يتم الحساب…",
+      "total": "الإجمالي"
+    },
+    "trust": {
+      "secure": "دفع آمن",
+      "fast": "توصيل سريع عبر فانكس",
+      "returns": "إرجاع خلال 7 أيام"
+    },
+    "submit": "إتمام الطلب",
+    "submitting": "جارٍ إرسال الطلب…",
+    "emptyCart": "سلتك فارغة",
+    "success": {
+      "title": "شكرًا لطلبك",
+      "subtitle": "سنتواصل معك قريبًا. رقم طلبك أدناه — احتفظ به لتتبع شحنتك.",
+      "viewDetails": "عرض تفاصيل الطلب",
+      "continueShopping": "متابعة التسوّق"
+    }
+  },
   "collection": {
     "eyebrow": "المجموعة",
     "titleOur": "مجموعتنا",
@@ -805,7 +864,8 @@
     }
   },
   "tracking": {
-    "title": "تتبع طلبك",
+    "eyebrow": "تتبع طلبك",
+    "title": "أين طلبك؟",
     "description": "أدخل رقم الطلب أو البريد الإلكتروني للتحقق من حالة طلبك.",
     "placeholder": "رقم الطلب أو البريد الإلكتروني...",
     "track": "تتبع",
@@ -1451,6 +1511,7 @@
     }
   },
   "myOrders": {
+    "eyebrow": "طلباتك",
     "title": "طلباتي",
     "description": "عرض وتتبع جميع طلباتك",
     "empty": "لم تقم بتقديم أي طلبات بعد",
@@ -1483,5 +1544,26 @@
     "currentStatus": "الحالة الحالية",
     "estimatedDelivery": "التوصيل المتوقع",
     "currentLocation": "الموقع الحالي"
+  },
+  "orderDetails": {
+    "eyebrow": "طلب",
+    "placedOn": "تم الطلب في",
+    "status": "الحالة",
+    "items": "المنتجات",
+    "tracking": "التتبع المباشر",
+    "shipping": "الشحن",
+    "payment": "الدفع",
+    "totals": "الإجماليات",
+    "receipt": "إيصال التحويل",
+    "viewReceipt": "عرض الإيصال",
+    "openFull": "فتح بالحجم الكامل",
+    "copy": "نسخ",
+    "copyOrderId": "نسخ رقم الطلب",
+    "currentStatus": "الحالة الحالية",
+    "currentLocation": "الموقع الحالي",
+    "estimatedDelivery": "التوصيل المتوقع",
+    "loadingTracking": "جاري تحميل التتبع المباشر…",
+    "trackingUnavailable": "التتبع المباشر غير متوفر مؤقتًا. رمز الطرد لا يزال صالحًا.",
+    "awaitingDispatch": "يتم تجهيز طلبك. سيظهر رمز التتبع عند الإرسال."
   }
 }

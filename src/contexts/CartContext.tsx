@@ -6,6 +6,7 @@ import {
   useEffect,
 } from "react";
 import { trackEvent } from "@/services/trackingService";
+import type { PromoValidationResult } from "@/services/promoCodesService";
 
 export interface CartItem {
   id: string;
@@ -31,6 +32,9 @@ interface CartContextType {
   canAddToCart: (item: Omit<CartItem, "quantity">) => boolean;
   moveToSavedForLater?: (id: string, size: string) => void;
   savedForLater?: CartItem[];
+  appliedPromo: PromoValidationResult | null;
+  applyPromo: (promo: PromoValidationResult | null) => void;
+  clearPromo: () => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -44,12 +48,30 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return [];
   });
 
+  const [appliedPromo, setAppliedPromo] =
+    useState<PromoValidationResult | null>(() => {
+      if (typeof window !== "undefined") {
+        const saved = localStorage.getItem("cart.promo");
+        return saved ? JSON.parse(saved) : null;
+      }
+      return null;
+    });
+
   // Save cart to localStorage whenever items change
   useEffect(() => {
     if (typeof window !== "undefined") {
       localStorage.setItem("cart", JSON.stringify(items));
     }
   }, [items]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (appliedPromo) {
+      localStorage.setItem("cart.promo", JSON.stringify(appliedPromo));
+    } else {
+      localStorage.removeItem("cart.promo");
+    }
+  }, [appliedPromo]);
 
   const addToCart = (item: Omit<CartItem, "quantity">) => {
     if (item.stock_quantity !== undefined && item.stock_quantity < 1) return;
@@ -127,6 +149,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const clearCart = () => {
     setItems([]);
+    setAppliedPromo(null);
+  };
+
+  const applyPromo = (promo: PromoValidationResult | null) => {
+    setAppliedPromo(promo);
+  };
+
+  const clearPromo = () => {
+    setAppliedPromo(null);
   };
 
   const isItemInCart = (id: string, size: string) => {
@@ -158,6 +189,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
         isItemInCart,
         getItemQuantity,
         canAddToCart,
+        appliedPromo,
+        applyPromo,
+        clearPromo,
       }}
     >
       {children}
