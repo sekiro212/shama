@@ -14,7 +14,7 @@ export function useMemories() {
   const { t } = useLanguage();
   const { confirm, confirmDialogProps } = useConfirmDialog();
   const [memories, setMemories] = useState<Memory[]>([]);
-  const [memoriesLoading, setMemoriesLoading] = useState(false);
+  const [memoriesLoading, setMemoriesLoading] = useState(true);
   const [pendingMemoryCount, setPendingMemoryCount] = useState(0);
   const [approvingMemory, setApprovingMemory] = useState<string | null>(null);
   const [deletingMemory, setDeletingMemory] = useState<string | null>(null);

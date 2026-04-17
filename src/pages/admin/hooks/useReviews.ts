@@ -14,7 +14,7 @@ export function useReviews() {
   const { t } = useLanguage();
   const { confirm, confirmDialogProps } = useConfirmDialog();
   const [reviews, setReviews] = useState<(Review & { perfume_name: string })[]>([]);
-  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [reviewsLoading, setReviewsLoading] = useState(true);
   const [pendingReviewCount, setPendingReviewCount] = useState(0);
   const [approvingReview, setApprovingReview] = useState<string | null>(null);
   const [deletingReview, setDeletingReview] = useState<string | null>(null);

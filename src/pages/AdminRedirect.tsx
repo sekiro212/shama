@@ -1,20 +1,18 @@
 import { useEffect } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
-import AdminPage from "@/pages/admin/AdminPage";
 
 export default function AdminRedirect() {
   const { t } = useLanguage();
-  const isDev = import.meta.env.DEV;
 
   useEffect(() => {
-    if (!isDev) {
+    if (import.meta.env.DEV) {
+      window.location.assign(
+        `http://admin.localhost:${window.location.port}/`
+      );
+    } else {
       window.location.assign("https://admin.shama.ly");
     }
-  }, [isDev]);
-
-  if (isDev) {
-    return <AdminPage />;
-  }
+  }, []);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#F8F9FB] dark:bg-[#1a2235] text-[#323D50] dark:text-[#F5F5F5]">

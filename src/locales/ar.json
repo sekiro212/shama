@@ -1,5 +1,14 @@
 {
   "admin": {
+    "nav": {
+      "overview": "نظرة عامة",
+      "orders": "الطلبات",
+      "products": "المنتجات",
+      "reviews": "التقييمات",
+      "giftOrders": "طلبات الهدايا",
+      "memories": "الذكريات",
+      "coupons": "الكوبونات"
+    },
     "shell": {
       "title": "لوحة شما",
       "logout": "تسجيل الخروج",
@@ -36,6 +45,13 @@
       "totalRevenue": "إجمالي الإيرادات",
       "avgOrderValue": "متوسط قيمة الطلب",
       "totalPerfumes": "إجمالي العطور",
+      "totalProducts": "إجمالي المنتجات",
+      "pendingMemories": "الذكريات المعلقة",
+      "revenueLast30Days": "الإيرادات (آخر 30 يوم)",
+      "orderStatusDistribution": "توزيع حالة الطلبات",
+      "topProducts": "أفضل المنتجات",
+      "topCities": "أفضل المدن",
+      "noData": "لا توجد بيانات",
       "active": "نشط",
       "inactive": "غير نشط",
       "lowStock": "مخزون منخفض"

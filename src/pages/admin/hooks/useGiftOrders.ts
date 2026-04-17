@@ -5,7 +5,7 @@ import type { CustomGiftOrder } from "../types";
 
 export function useGiftOrders() {
   const [giftOrders, setGiftOrders] = useState<CustomGiftOrder[]>([]);
-  const [giftOrdersLoading, setGiftOrdersLoading] = useState(false);
+  const [giftOrdersLoading, setGiftOrdersLoading] = useState(true);
 
   const fetchGiftOrders = async () => {
     setGiftOrdersLoading(true);

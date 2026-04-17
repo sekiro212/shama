@@ -1073,17 +1073,18 @@ const ReviewSection = React.memo(
 
       setSubmitting(true);
       try {
-        const status = await evaluateReview(rating, comment.trim(), productName);
+        const evaluation = await evaluateReview(rating, comment.trim(), productName);
         const submitted = await submitReview({
           perfume_id: productId,
           user_id: user.id,
           user_email: user.email || "",
           rating,
           comment: comment.trim(),
-          status,
+          status: evaluation.decision,
+          ai_reason: evaluation.reason,
         });
         setUserReview(submitted);
-        if (status === "approved") {
+        if (evaluation.decision === "approved") {
           setReviews((prev) => [submitted, ...prev]);
           toast.success(t("reviews.toast.approved"));
         } else {

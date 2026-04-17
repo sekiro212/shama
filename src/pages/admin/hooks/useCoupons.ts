@@ -23,7 +23,7 @@ export function useCoupons({ perfumes }: UseCouponsOptions) {
   const { t } = useLanguage();
   const { confirm, confirmDialogProps } = useConfirmDialog();
   const [coupons, setCoupons] = useState<PromoCode[]>([]);
-  const [couponsLoading, setCouponsLoading] = useState(false);
+  const [couponsLoading, setCouponsLoading] = useState(true);
   const [isCouponDialogOpen, setIsCouponDialogOpen] = useState(false);
   const [editingCoupon, setEditingCoupon] = useState<PromoCode | null>(null);
   const [couponForm, setCouponForm] = useState<CouponFormState>(

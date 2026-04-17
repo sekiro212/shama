@@ -10,6 +10,7 @@ export interface Review {
   rating: number;
   comment: string;
   status: ReviewStatus;
+  ai_reason: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -21,6 +22,7 @@ export interface NewReviewPayload {
   rating: number;
   comment: string;
   status: ReviewStatus;
+  ai_reason?: string | null;
 }
 
 export async function fetchApprovedReviews(perfumeId: string): Promise<Review[]> {

@@ -1,69 +1,19 @@
-import { useState, ReactNode } from "react";
-import { Button } from "@/components/ui/button";
+import { useState, useEffect } from "react";
+import { Outlet } from "react-router-dom";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LoadingButton } from "@/components/ui/loading-button";
-import { Globe, LogOut, Lock, Moon, Sun } from "lucide-react";
-import { toast } from "sonner";
-import { useAdminAuth } from "@/contexts/AdminAuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { useTheme } from "@/contexts/ThemeContext";
+import { useAdminAuth } from "@/contexts/AdminAuthContext";
+import AdminSidebar, { MobileAdminSidebar } from "./components/AdminSidebar";
+import { AdminTopBar } from "./components/AdminTopBar";
+import { useAdminBadges } from "./hooks/useAdminBadges";
+import { AdminEventProvider } from "./contexts/AdminEventContext";
 
-function AdminTopBar() {
-  const { t, language, setLanguage } = useLanguage();
-  const { theme, toggleTheme } = useTheme();
-  const { logout, isAuthenticated } = useAdminAuth();
-
-  return (
-    <header className="sticky top-0 z-40 border-b border-[#323D50]/10 dark:border-white/10 bg-[#F8F9FB]/80 dark:bg-[#1a2235]/80 backdrop-blur-xl">
-      <div className="container mx-auto flex items-center justify-between px-4 h-16">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] flex items-center justify-center text-white font-bold shadow-sm">
-            S
-          </div>
-          <span className="font-semibold text-[#323D50] dark:text-white text-base">
-            {t("admin.shell.title")}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Button
-            onClick={toggleTheme}
-            variant="ghost"
-            size="icon"
-            className="glass dark:bg-white/5 bg-[#5B8DD9]/10 dark:hover:bg-white/10 hover:bg-[#5B8DD9]/20 border dark:border-white/10 border-[#323D50]/10 rounded-xl w-10 h-10"
-            title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-          >
-            {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-          </Button>
-
-          <Button
-            onClick={() => setLanguage(language === "en" ? "ar" : "en")}
-            variant="ghost"
-            className="glass dark:bg-white/5 bg-[#5B8DD9]/10 dark:hover:bg-white/10 hover:bg-[#5B8DD9]/20 border dark:border-white/10 border-[#323D50]/10 rounded-xl px-3 h-10 text-sm font-semibold"
-          >
-            <Globe className="w-4 h-4 me-1.5" />
-            {language === "en" ? "AR" : "EN"}
-          </Button>
-
-          {isAuthenticated && (
-            <Button
-              onClick={() => {
-                logout();
-                toast.success(t("admin.logoutSuccess"));
-              }}
-              variant="ghost"
-              className="glass dark:bg-white/5 bg-red-500/10 dark:hover:bg-red-500/20 hover:bg-red-500/20 border dark:border-white/10 border-[#323D50]/10 rounded-xl px-3 h-10 text-sm font-semibold text-red-600 dark:text-red-400"
-            >
-              <LogOut className="w-4 h-4 me-1.5" />
-              {t("admin.shell.logout")}
-            </Button>
-          )}
-        </div>
-      </div>
-    </header>
-  );
-}
+// ---------------------------------------------------------------------------
+// Login gate -- shown when the admin is not authenticated
+// ---------------------------------------------------------------------------
 
 function AdminLoginGate() {
   const { t } = useLanguage();
@@ -85,16 +35,29 @@ function AdminLoginGate() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#F8F9FB] dark:bg-[#1a2235] flex items-center justify-center p-4">
       <div className="glass-card p-8 rounded-2xl w-full max-w-md bg-white/60 dark:bg-white/5 border border-[#323D50]/10 dark:border-white/10">
         <div className="text-center mb-6">
-          <Lock className="w-10 h-10 mx-auto mb-3 text-[#5B8DD9]" />
-          <h1 className="text-2xl font-bold gradient-text">{t("admin.shell.loginTitle")}</h1>
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] flex items-center justify-center text-white font-bold text-2xl mx-auto mb-4 shadow-lg">
+            S
+          </div>
+          <h1 className="text-2xl font-bold gradient-text">
+            {(() => {
+              const v = t("admin.shell.loginTitle");
+              return v !== "admin.shell.loginTitle" ? v : "Admin Login";
+            })()}
+          </h1>
+          <p className="text-sm text-[#6B7B8D] mt-1">
+            Shama Perfumes Administration
+          </p>
         </div>
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="admin-shell-username" className="text-[#323D50] dark:text-white/80">
+            <Label
+              htmlFor="admin-shell-username"
+              className="text-[#323D50] dark:text-white/80"
+            >
               {t("admin.shell.usernameLabel")}
             </Label>
             <Input
@@ -109,7 +72,10 @@ function AdminLoginGate() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="admin-shell-password" className="text-[#323D50] dark:text-white/80">
+            <Label
+              htmlFor="admin-shell-password"
+              className="text-[#323D50] dark:text-white/80"
+            >
               {t("admin.shell.passwordLabel")}
             </Label>
             <Input
@@ -139,13 +105,84 @@ function AdminLoginGate() {
   );
 }
 
-export default function AdminLayout({ children }: { children: ReactNode }) {
-  const { isAuthenticated } = useAdminAuth();
+// ---------------------------------------------------------------------------
+// Authenticated admin shell
+// ---------------------------------------------------------------------------
+
+function AuthenticatedShell() {
+  const { pendingReviewCount, pendingMemoryCount } = useAdminBadges();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Track sidebar collapsed state so we can offset the main content area.
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem("admin-sidebar-collapsed") === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    const handler = () => {
+      setSidebarCollapsed(
+        localStorage.getItem("admin-sidebar-collapsed") === "true"
+      );
+    };
+    window.addEventListener("storage", handler);
+
+    // Same-window localStorage writes do not fire the storage event, so we
+    // poll as a fallback.
+    const interval = setInterval(() => {
+      const val =
+        localStorage.getItem("admin-sidebar-collapsed") === "true";
+      setSidebarCollapsed((prev) => (prev !== val ? val : prev));
+    }, 200);
+
+    return () => {
+      window.removeEventListener("storage", handler);
+      clearInterval(interval);
+    };
+  }, []);
 
   return (
-    <div className="min-h-screen bg-[#F8F9FB] dark:bg-[#1a2235] text-[#323D50] dark:text-[#F5F5F5] w-full overflow-x-hidden">
-      <AdminTopBar />
-      {isAuthenticated ? <main>{children}</main> : <AdminLoginGate />}
-    </div>
+    <AdminEventProvider>
+      <div className="min-h-screen bg-[#F8F9FB] dark:bg-[#1a2235] text-[#323D50] dark:text-[#F5F5F5]">
+        <AdminSidebar
+          pendingReviewCount={pendingReviewCount}
+          pendingMemoryCount={pendingMemoryCount}
+        />
+        <MobileAdminSidebar
+          open={mobileOpen}
+          onOpenChange={setMobileOpen}
+          pendingReviewCount={pendingReviewCount}
+          pendingMemoryCount={pendingMemoryCount}
+        />
+
+        <div
+          className={`${
+            sidebarCollapsed ? "lg:ps-[72px]" : "lg:ps-64"
+          } transition-all duration-300`}
+        >
+          <AdminTopBar onMobileMenuToggle={() => setMobileOpen(true)} />
+          <main className="p-6">
+            <Outlet />
+          </main>
+        </div>
+      </div>
+    </AdminEventProvider>
   );
+}
+
+// ---------------------------------------------------------------------------
+// Layout root
+// ---------------------------------------------------------------------------
+
+export default function AdminLayout() {
+  const { isAuthenticated } = useAdminAuth();
+
+  if (!isAuthenticated) {
+    return <AdminLoginGate />;
+  }
+
+  return <AuthenticatedShell />;
 }

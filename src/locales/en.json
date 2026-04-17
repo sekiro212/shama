@@ -1,5 +1,14 @@
 {
   "admin": {
+    "nav": {
+      "overview": "Overview",
+      "orders": "Orders",
+      "products": "Products",
+      "reviews": "Reviews",
+      "giftOrders": "Gift Orders",
+      "memories": "Memories",
+      "coupons": "Coupons"
+    },
     "shell": {
       "title": "Shama Admin",
       "logout": "Logout",
@@ -36,6 +45,13 @@
       "totalRevenue": "Total Revenue",
       "avgOrderValue": "Avg Order Value",
       "totalPerfumes": "Total Perfumes",
+      "totalProducts": "Total Products",
+      "pendingMemories": "Pending Memories",
+      "revenueLast30Days": "Revenue (Last 30 Days)",
+      "orderStatusDistribution": "Order Status Distribution",
+      "topProducts": "Top Products",
+      "topCities": "Top Cities",
+      "noData": "No data available",
       "active": "Active",
       "inactive": "Inactive",
       "lowStock": "Low Stock"
