@@ -830,6 +830,21 @@
     "badge": "Try Before You Buy",
     "title": "Perfume Samples",
     "description": "Explore our luxurious fragrances in travel-sized samples before committing to a full bottle.",
+    "howItWorks": {
+      "heading": "How samples work",
+      "step1": {
+        "title": "Pick your size",
+        "body": "Choose a 3ml or 5ml sample of any fragrance in our collection — no commitment required."
+      },
+      "step2": {
+        "title": "Wear it for a week",
+        "body": "Scent lives differently on skin than on paper. Try it with your wardrobe, your mood, your moments."
+      },
+      "step3": {
+        "title": "Come back certain",
+        "body": "If it's the one, come back for the full bottle — now you know exactly how it moves with you."
+      }
+    },
     "noSamples": "No samples available",
     "checkBackSoon": "Check back soon for new sample arrivals.",
     "browseCollection": "Browse Full Collection",
@@ -856,6 +871,10 @@
   },
   "giftSets": {
     "gridBadge": "Gift Set",
+    "eyebrow": "Gifting",
+    "pullquote": "A scent someone chooses for you becomes a memory.",
+    "filterByOccasion": "By occasion",
+    "filterAll": "All",
     "title": "Gift Sets",
     "description": "Discover our carefully curated gift sets, perfect for special occasions and thoughtful presents. Each set contains a selection of our finest fragrances.",
     "filterBy": "Filter by:",

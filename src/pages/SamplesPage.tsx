@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { TestTube, ShoppingBag, Star, Sparkles, ChevronRight } from "lucide-react";
+import { TestTube, ShoppingBag, Star, Sparkles, ChevronRight, Droplet, Clock, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
 import { getPerfumeImages } from "@/services/imageService";
@@ -105,20 +105,58 @@ export default function SamplesPage() {
 
   return (
     <div className="min-h-screen bg-[#F8F9FB] dark:bg-[#1a2235] dark:text-[#F5F5F5] text-[#323D50] pt-20 md:pt-24 pb-12 sm:pb-20">
-      {/* Hero */}
-      <div className="relative overflow-hidden mb-8 sm:mb-16">
-        <div className="absolute inset-0 bg-gradient-to-b from-[#5B8DD9]/10 via-transparent to-transparent pointer-events-none" />
-        <div className="container mx-auto px-3 sm:px-4 py-8 sm:py-16 text-center relative">
-          <div className="inline-flex items-center space-x-2 rtl:space-x-reverse glass bg-[#5B8DD9]/10 border border-[#5B8DD9]/30 rounded-full px-3 sm:px-4 py-2 mb-4 sm:mb-6">
-            <TestTube className="w-4 h-4 text-[#5B8DD9]" />
-            <span className="text-xs sm:text-sm text-[#5B8DD9] font-medium">{t("samples.badge")}</span>
+      {/* Hero — editorial candlelight */}
+      <div className="relative overflow-hidden mb-8 sm:mb-14">
+        <div className="absolute inset-0 bg-gradient-to-b from-warm/8 via-transparent to-transparent pointer-events-none" />
+        <div className="container mx-auto px-3 sm:px-4 py-8 sm:py-14 text-center relative">
+          <div className="inline-flex items-center space-x-2 rtl:space-x-reverse glass bg-warm/10 border border-warm/40 rounded-full px-3 sm:px-4 py-2 mb-4 sm:mb-6">
+            <TestTube className="w-4 h-4 text-warm" />
+            <span className="font-display text-[11px] sm:text-xs tracking-[0.28em] uppercase text-warm">
+              {t("samples.badge")}
+            </span>
           </div>
-          <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold mb-3 sm:mb-4 leading-tight">
-            <span className="gradient-text">{t("samples.title")}</span>
+          <h1 className="font-display text-3xl sm:text-5xl md:text-6xl font-semibold tracking-tight mb-3 sm:mb-4 leading-[1.05] text-[#1E2A3D] dark:text-[#F5F5F5]">
+            {t("samples.title")}
           </h1>
-          <p className="dark:text-white/60 text-[#6B7B8D] text-sm sm:text-lg max-w-xl mx-auto px-2">
+          <p className="dark:text-white/65 text-[#6B7B8D] text-sm sm:text-lg max-w-xl mx-auto px-2 leading-relaxed">
             {t("samples.description")}
           </p>
+        </div>
+      </div>
+
+      {/* How samples work — 3-step editorial block */}
+      <div className="container mx-auto px-3 sm:px-4 mb-10 sm:mb-16">
+        <div className="max-w-5xl mx-auto">
+          <p className="font-display text-[11px] tracking-[0.28em] uppercase text-warm text-center mb-6">
+            {t("samples.howItWorks.heading")}
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
+            {[
+              { icon: Droplet, key: "step1" },
+              { icon: Clock, key: "step2" },
+              { icon: Package, key: "step3" },
+            ].map(({ icon: Icon, key }, idx) => (
+              <div
+                key={key}
+                className="glass-card rounded-2xl p-5 md:p-6 flex flex-col"
+              >
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-warm/15 text-warm">
+                    <Icon className="w-5 h-5" aria-hidden />
+                  </div>
+                  <span className="font-display text-xs tracking-[0.3em] text-warm/80">
+                    {String(idx + 1).padStart(2, "0")}
+                  </span>
+                </div>
+                <h3 className="font-display text-lg font-semibold text-[#1E2A3D] dark:text-[#F5F5F5] mb-1.5">
+                  {t(`samples.howItWorks.${key}.title`)}
+                </h3>
+                <p className="text-sm leading-relaxed text-[#6B7B8D] dark:text-white/65">
+                  {t(`samples.howItWorks.${key}.body`)}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
