@@ -26,6 +26,7 @@ import {
   PLACEHOLDER_IMAGE_URL,
   ProductImageFallback,
 } from "@/lib/productImage";
+import { cdnImg } from "@/lib/cdnImage";
 
 interface ProductCardProps {
   product: Product;
@@ -104,7 +105,7 @@ const ProductCardComponent = ({ product }: ProductCardProps) => {
       >
         <CardBody className="glass-card group cursor-pointer animate-scale-in relative overflow-hidden w-full h-full flex flex-col focus-within:ring-2 focus-within:ring-warm/60 focus-within:ring-offset-2 focus-within:ring-offset-transparent">
           {/* Glow Effect — warm candlelight */}
-          <div className="absolute inset-0 bg-gradient-to-br from-warm/10 via-warm/20 to-warm-glow/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl blur-xl -z-10" />
+          <div className="absolute inset-0 bg-gradient-to-br from-warm/10 via-warm/20 to-warm-glow/10 opacity-0 hover-only:group-hover:opacity-100 transition-opacity duration-500 rounded-2xl -z-10" />
 
           {/* Image Container */}
           <CardItem
@@ -116,10 +117,13 @@ const ProductCardComponent = ({ product }: ProductCardProps) => {
                 {hasImages ? (
                   <>
                     <img
-                      src={productImages[currentImageIndex]}
+                      src={cdnImg(productImages[currentImageIndex], { width: 480, format: "webp" })}
                       alt={productName}
                       loading="lazy"
-                      className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 group-hover:scale-[1.04] ${
+                      decoding="async"
+                      width={480}
+                      height={600}
+                      className={`absolute inset-0 w-full h-full object-cover transition-transform duration-300 hover-only:group-hover:scale-[1.04] ${
                         imageLoaded ? "opacity-100" : "opacity-0"
                       }`}
                       onLoad={() => setImageLoaded(true)}
@@ -133,12 +137,12 @@ const ProductCardComponent = ({ product }: ProductCardProps) => {
                     )}
                   </>
                 ) : (
-                  <ProductImageFallback className="absolute inset-0 w-full h-full transition-transform duration-700 group-hover:scale-[1.04]" />
+                  <ProductImageFallback className="absolute inset-0 w-full h-full transition-transform duration-300 hover-only:group-hover:scale-[1.04]" />
                 )}
 
                 {/* Multiple Images Indicator — bottom-end so it doesn't fight the wishlist heart */}
                 {productImages.length > 1 && (
-                  <div className="absolute bottom-3 end-3 bg-black/55 backdrop-blur-sm rounded-full px-2 py-1 text-white text-xs flex items-center rtl:space-x-reverse">
+                  <div className="absolute bottom-3 end-3 bg-black/70 rounded-full px-2 py-1 text-white text-xs flex items-center rtl:space-x-reverse">
                     <ImageIcon className="w-3 h-3 me-1" />
                     {productImages.length}
                   </div>
@@ -150,7 +154,7 @@ const ProductCardComponent = ({ product }: ProductCardProps) => {
                     {/* Previous Button */}
                     <button
                       onClick={prevImage}
-                      className="absolute left-2 top-1/2 -translate-y-1/2 glass bg-black/50 backdrop-blur-sm border border-[#323D50]/15 dark:border-white/20 rounded-full p-2 text-white hover:bg-black/70 transition-all duration-300 opacity-0 group-hover:opacity-100"
+                      className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/70 border border-white/20 rounded-full p-2 text-white hover:bg-black/85 transition-colors duration-300 opacity-0 hover-only:group-hover:opacity-100"
                     >
                       <ChevronLeft className="w-4 h-4" />
                     </button>
@@ -158,7 +162,7 @@ const ProductCardComponent = ({ product }: ProductCardProps) => {
                     {/* Next Button */}
                     <button
                       onClick={nextImage}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 glass bg-black/50 backdrop-blur-sm border border-[#323D50]/15 dark:border-white/20 rounded-full p-2 text-white hover:bg-black/70 transition-all duration-300 opacity-0 group-hover:opacity-100"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/70 border border-white/20 rounded-full p-2 text-white hover:bg-black/85 transition-colors duration-300 opacity-0 hover-only:group-hover:opacity-100"
                     >
                       <ChevronRight className="w-4 h-4" />
                     </button>
@@ -201,7 +205,7 @@ const ProductCardComponent = ({ product }: ProductCardProps) => {
                       toast.success(`${productName} ${t("product.addedToWishlist")}`);
                     }
                   }}
-                  className="absolute top-3 end-3 z-20 w-11 h-11 sm:w-10 sm:h-10 rounded-full flex items-center justify-center bg-black/40 backdrop-blur-sm border border-[#323D50]/15 dark:border-white/20 hover:bg-black/60 transition-all duration-200 hover:scale-110"
+                  className="absolute top-3 end-3 z-20 w-11 h-11 sm:w-10 sm:h-10 rounded-full flex items-center justify-center bg-black/60 border border-white/20 hover:bg-black/80 transition-colors duration-200"
                 >
                   <Heart
                     className={`w-4 h-4 transition-colors duration-200 ${
@@ -221,7 +225,7 @@ const ProductCardComponent = ({ product }: ProductCardProps) => {
                       e.stopPropagation();
                       setQuickViewOpen(true);
                     }}
-                    className="glass bg-white/20 backdrop-blur-md border-white/30 text-white hover:bg-warm/20 hover:border-warm/60 px-6 py-3 rounded-full font-medium transition-colors"
+                    className="bg-white/25 border-white/30 text-white hover:bg-warm/30 hover:border-warm/60 px-6 py-3 rounded-full font-medium transition-colors"
                   >
                     <Eye className="w-4 h-4 me-2" />
                     {t("product.quickView")}
@@ -232,7 +236,7 @@ const ProductCardComponent = ({ product }: ProductCardProps) => {
 
             {/* Product Type Badge */}
             <div className="absolute top-3 start-3">
-              <div className="flex items-center space-x-1 rtl:space-x-reverse glass bg-black/40 backdrop-blur-md rounded-full px-2.5 sm:px-3 py-1.5 sm:py-2 border border-warm/30">
+              <div className="flex items-center space-x-1 rtl:space-x-reverse bg-black/65 rounded-full px-2.5 sm:px-3 py-1.5 sm:py-2 border border-warm/30">
                 {product.type === "gift" ? (
                   <Gift className="h-4 w-4 text-warm" />
                 ) : product.type === "sample" ? (
@@ -248,7 +252,7 @@ const ProductCardComponent = ({ product }: ProductCardProps) => {
 
             {/* Sold Out Overlay — Fraunces italic + amber ring */}
             {isSoldOut && (
-              <div className="absolute inset-0 bg-black/55 backdrop-blur-sm flex items-center justify-center ring-1 ring-inset ring-warm/40">
+              <div className="absolute inset-0 bg-black/70 flex items-center justify-center ring-1 ring-inset ring-warm/40">
                 <div className="text-center">
                   <div className="font-display italic text-white text-2xl mb-1.5">
                     {t("product.outOfStock")}

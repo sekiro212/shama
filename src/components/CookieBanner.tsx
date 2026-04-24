@@ -49,7 +49,7 @@ export default function CookieBanner() {
           animate={reduce ? { opacity: 1 } : { opacity: 1, y: 0 }}
           exit={reduce ? { opacity: 0 } : { opacity: 0, y: 24 }}
           transition={{ duration: 0.4, ease: "easeOut" }}
-          className="fixed inset-x-0 bottom-0 sm:bottom-4 z-[60] flex justify-center px-3 sm:px-6 pb-3 sm:pb-0 pointer-events-none"
+          className="fixed inset-x-0 bottom-0 sm:bottom-4 z-[45] flex justify-center px-3 sm:px-6 pb-safe-3 sm:pb-0 pointer-events-none"
         >
           <div className="pointer-events-auto w-full sm:max-w-3xl glass-card rounded-2xl border border-warm/30 px-4 sm:px-6 py-4 sm:py-5 shadow-3xl">
             <div className="flex flex-col sm:flex-row sm:items-center gap-4">

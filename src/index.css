@@ -84,7 +84,7 @@ html[lang="ar"] #root {
 body {
   margin: 0;
   min-width: 320px;
-  min-height: 100vh;
+  min-height: 100dvh;
   background: linear-gradient(
     135deg,
     #F8F9FB 0%,
@@ -93,8 +93,6 @@ body {
     #EDF1F7 75%,
     #F8F9FB 100%
   );
-  background-size: 400% 400%;
-  animation: gradientShift 15s ease infinite;
   width: 100%;
   overflow-x: hidden;
   position: relative;
@@ -109,19 +107,6 @@ body {
     #1a2235 75%,
     #16202f 100%
   );
-}
-
-/* Background Animation */
-@keyframes gradientShift {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
 }
 
 /* Floating Particles Effect - dark mode only */
@@ -142,18 +127,8 @@ body {
     radial-gradient(1px 1px at 130px 80px, rgba(62, 107, 181, 0.3), transparent);
   background-repeat: repeat;
   background-size: 150px 100px;
-  animation: particleFloat 20s linear infinite;
   pointer-events: none;
   z-index: 1;
-}
-
-@keyframes particleFloat {
-  0% {
-    transform: translateY(0px) rotate(0deg);
-  }
-  100% {
-    transform: translateY(-100px) rotate(360deg);
-  }
 }
 
 /* Enhanced Typography */
@@ -166,10 +141,7 @@ h6 {
   font-weight: 700;
   letter-spacing: -0.025em;
   line-height: 1.2;
-  background: linear-gradient(135deg, #323D50 0%, #5B8DD9 100%);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: #323D50;
 }
 
 .dark h1,
@@ -178,10 +150,7 @@ h6 {
 .dark h4,
 .dark h5,
 .dark h6 {
-  background: linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: #ffffff;
 }
 
 h1 {
@@ -198,7 +167,6 @@ h1 {
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  text-shadow: 0 0 40px rgba(91, 141, 217, 0.3);
 }
 
 /* Enhanced Link Styles */
@@ -801,20 +769,24 @@ button[data-variant="ghost"]:hover {
 
 /* ── Scent Memory Wall marquee ───────────────────────── */
 @keyframes memory-marquee {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-50%); }
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-50%, 0, 0); }
 }
 @keyframes memory-marquee-reverse {
-  from { transform: translateX(-50%); }
-  to   { transform: translateX(0); }
+  from { transform: translate3d(-50%, 0, 0); }
+  to   { transform: translate3d(0, 0, 0); }
 }
 .memory-marquee {
   animation: memory-marquee 45s linear infinite;
   width: max-content;
+  will-change: transform;
+  backface-visibility: hidden;
 }
 .memory-marquee-reverse {
   animation: memory-marquee-reverse 45s linear infinite;
   width: max-content;
+  will-change: transform;
+  backface-visibility: hidden;
 }
 .memory-marquee:hover,
 .memory-marquee-reverse:hover {

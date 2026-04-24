@@ -430,6 +430,25 @@ interface FieldProps {
   touched?: boolean;
 }
 
+type FieldInputMode = "text" | "email" | "tel" | "numeric" | "decimal" | "search" | "url" | "none";
+
+const AUTOCOMPLETE_BY_ID: Record<string, string> = {
+  firstName: "given-name",
+  lastName: "family-name",
+  email: "email",
+  phone: "tel",
+  address: "street-address",
+  city: "address-level2",
+  postal: "postal-code",
+  postalCode: "postal-code",
+};
+
+const INPUTMODE_BY_TYPE: Record<string, FieldInputMode> = {
+  email: "email",
+  tel: "tel",
+  number: "numeric",
+};
+
 function Field({
   id,
   label,
@@ -456,6 +475,8 @@ function Field({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         aria-invalid={showError || undefined}
+        autoComplete={AUTOCOMPLETE_BY_ID[id]}
+        inputMode={INPUTMODE_BY_TYPE[type]}
         className="glass dark:bg-white/5 bg-white/80 border-[#323D50]/15 dark:border-white/15 focus:border-warm focus:ring-warm/30 rounded-xl h-12"
       />
       {showError && (

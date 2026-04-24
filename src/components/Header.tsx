@@ -25,6 +25,7 @@ import { useWishlist } from "@/contexts/WishlistContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useScrollThreshold } from "@/hooks/useScrollThreshold";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
@@ -55,22 +56,14 @@ const ANNOUNCEMENT_DISMISS_KEY = "shama.announcement.dismissed";
 
 export default function Header({ onCartClick, onSearchClick }: HeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
   const [announcementOpen, setAnnouncementOpen] = useState(false);
+  const scrolled = useScrollThreshold(50);
   const { getItemCount } = useCart();
   const { items: wishlistItems } = useWishlist();
   const { t, isRTL, language, setLanguage } = useLanguage();
   const { theme, toggleTheme } = useTheme();
   const { user, signOut } = useAuth();
   const location = useLocation();
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 50);
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
 
   useEffect(() => {
     const msg = t("header.announcement");
@@ -105,7 +98,7 @@ export default function Header({ onCartClick, onSearchClick }: HeaderProps) {
     <>
       {/* Announcement bar */}
       {announcementOpen && (
-        <div className="fixed top-0 inset-x-0 z-[60] bg-[#1a2235] dark:bg-[#0E1420] text-[#F5F5F5]/90 text-[11px] sm:text-xs tracking-[0.18em] uppercase">
+        <div className="fixed top-0 inset-x-0 z-[60] pt-safe bg-[#1a2235] dark:bg-[#0E1420] text-[#F5F5F5]/90 text-[11px] sm:text-xs tracking-[0.18em] uppercase">
           <div className="container mx-auto px-4 h-8 flex items-center justify-center relative">
             <span className="font-medium truncate text-center">
               {t("header.announcement")}
@@ -113,7 +106,7 @@ export default function Header({ onCartClick, onSearchClick }: HeaderProps) {
             <button
               onClick={dismissAnnouncement}
               aria-label={t("common.close") || "Dismiss"}
-              className="absolute end-2 top-1/2 -translate-y-1/2 p-1 rounded-md hover:bg-white/10 transition-colors"
+              className="absolute end-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-md hover:bg-white/10 transition-colors"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -122,11 +115,11 @@ export default function Header({ onCartClick, onSearchClick }: HeaderProps) {
       )}
 
       <header
-        className={`fixed inset-x-0 z-50 transition-all duration-500 ${
-          announcementOpen ? "top-8" : "top-0"
+        className={`fixed inset-x-0 z-50 transition-colors duration-500 ${
+          announcementOpen ? "top-8" : "top-0 pt-safe"
         } ${
           scrolled
-            ? "backdrop-blur-xl bg-[#F8F9FB]/85 dark:bg-[#1a2235]/85 border-b border-warm/10"
+            ? "backdrop-blur-md bg-[#F8F9FB]/90 dark:bg-[#1a2235]/90 border-b border-warm/10"
             : "bg-transparent"
         }`}
       >
@@ -252,7 +245,7 @@ export default function Header({ onCartClick, onSearchClick }: HeaderProps) {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent
                       align={isRTL ? "start" : "end"}
-                      className="w-56 glass-card dark:bg-[#1a2235]/95 bg-white/95 backdrop-blur-xl border dark:border-white/10 border-[#323D50]/10 rounded-xl"
+                      className="w-56 glass-card dark:bg-[#1a2235]/98 bg-white/98 backdrop-blur-md border dark:border-white/10 border-[#323D50]/10 rounded-xl"
                     >
                       <DropdownMenuLabel className="font-normal text-xs text-[#6B7B8D] dark:text-white/60 truncate">
                         {user.email}
@@ -350,7 +343,7 @@ export default function Header({ onCartClick, onSearchClick }: HeaderProps) {
                 </SheetTrigger>
                 <SheetContent
                   side={isRTL ? "left" : "right"}
-                  className="glass-card bg-[#F8F9FB]/98 dark:bg-[#1a2235]/95 backdrop-blur-2xl border-s border-warm/15 w-80"
+                  className="glass-card bg-[#F8F9FB]/98 dark:bg-[#1a2235]/98 backdrop-blur-md border-s border-warm/15 w-80"
                 >
                   {/* Mobile Menu Header */}
                   <div className="flex items-center justify-between mb-6">

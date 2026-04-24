@@ -27,13 +27,61 @@ import {
   getFullBottles,
   Product,
 } from "@/services/productsService";
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { motion, useReducedMotion } from "framer-motion";
 import RecentlyViewed from "@/components/RecentlyViewed";
 import { BackgroundBeamsWithCollision } from "@/components/ui/background-beams-with-collision";
-import MarketingVideoSection from "@/components/MarketingVideoSection";
 import ScentMemoryWall from "@/components/ScentMemoryWall";
+
+const MarketingVideoSection = lazy(() => import("@/components/MarketingVideoSection"));
+
+const VIDEO_PLACEHOLDER = (
+  <div className="py-24" aria-hidden="true">
+    <div className="container mx-auto px-4">
+      <div className="mx-auto mb-12 h-[180px]" />
+      <div className="flex justify-center">
+        <div className="rounded-3xl" style={{ width: "min(360px, 90vw)", aspectRatio: "9 / 16" }} />
+      </div>
+    </div>
+  </div>
+);
+
+function MarketingVideoGate() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const node = ref.current;
+    if (!node || typeof IntersectionObserver === "undefined") {
+      setVisible(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          setVisible(true);
+          io.disconnect();
+        }
+      },
+      { rootMargin: "400px 0px" }
+    );
+    io.observe(node);
+    return () => io.disconnect();
+  }, []);
+
+  return (
+    <div ref={ref}>
+      {visible ? (
+        <Suspense fallback={VIDEO_PLACEHOLDER}>
+          <MarketingVideoSection />
+        </Suspense>
+      ) : (
+        VIDEO_PLACEHOLDER
+      )}
+    </div>
+  );
+}
 
 const TikTokIcon = ({ className }: { className?: string }) => (
   <svg
@@ -218,9 +266,9 @@ export default function HomePage() {
     reduceMotion
       ? ({ initial: { opacity: 0 }, animate: { opacity: 1 }, transition: { duration: 0.4, delay } } as const)
       : ({
-          initial: { opacity: 0, y: 24, filter: "blur(8px)" },
-          animate: { opacity: 1, y: 0, filter: "blur(0px)" },
-          transition: { duration: 0.8, delay, ease: "easeOut" },
+          initial: { opacity: 0, y: 24 },
+          animate: { opacity: 1, y: 0 },
+          transition: { duration: 0.6, delay, ease: "easeOut" },
         } as const);
 
   const stats = [
@@ -231,17 +279,20 @@ export default function HomePage() {
   ];
 
   return (
-    <div className="grain-bg min-h-screen w-full bg-[#F8F9FB] dark:bg-[#1a2235] relative overflow-hidden">
+    <div className="grain-bg min-h-dvh w-full bg-[#F8F9FB] dark:bg-[#1a2235] relative overflow-hidden">
       {/* Hero — one orchestrated reveal */}
-      <section className="relative min-h-[88vh] flex items-center justify-center w-full overflow-hidden">
+      <section className="relative min-h-[88dvh] flex items-center justify-center w-full overflow-hidden">
         {/* Static background wash — no parallax */}
         <div className="absolute inset-0 z-0" aria-hidden>
           <img
-            src="https://images.unsplash.com/photo-1594736797933-d0401ba2fe65?w=1920&h=1080&fit=crop"
+            src="https://images.unsplash.com/photo-1594736797933-d0401ba2fe65?w=1280&q=60&auto=format&fit=crop"
+            srcSet="https://images.unsplash.com/photo-1594736797933-d0401ba2fe65?w=640&q=60&auto=format&fit=crop 640w, https://images.unsplash.com/photo-1594736797933-d0401ba2fe65?w=1280&q=60&auto=format&fit=crop 1280w, https://images.unsplash.com/photo-1594736797933-d0401ba2fe65?w=1920&q=65&auto=format&fit=crop 1920w"
+            sizes="100vw"
             alt=""
             className="w-full h-full object-cover opacity-25"
             loading="eager"
-            fetchPriority="high"
+            fetchPriority="auto"
+            decoding="async"
           />
           {/* Warm candlelight glow from the center */}
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(232,185,138,0.18)_0%,transparent_55%)]" />
@@ -357,7 +408,7 @@ export default function HomePage() {
       </section>
 
       {/* Marketing Video */}
-      <MarketingVideoSection />
+      <MarketingVideoGate />
 
       {/* AI Finder Banner */}
       <section className="py-8 sm:py-12 relative z-10">

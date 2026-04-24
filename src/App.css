@@ -5,7 +5,7 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-color: #F8F9FB;
-  min-height: 100vh;
+  min-height: 100dvh;
   width: 100%;
 }
 
@@ -40,11 +40,6 @@ html, body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #3E6BB5;
-}
-
-/* Smooth transitions */
-* {
-  transition: all 0.2s ease-in-out;
 }
 
 /* Override default button focus styles */

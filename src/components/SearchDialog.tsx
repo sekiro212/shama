@@ -8,6 +8,7 @@ import { useSearch } from "@/hooks/useSearch";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { SmartSearchResult } from "@/services/aiService";
 import { Product } from "@/services/productsService";
+import { cdnImg } from "@/lib/cdnImage";
 
 interface SearchDialogProps {
   open: boolean;
@@ -64,7 +65,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="p-0 gap-0 max-w-2xl w-[95vw] sm:w-[95vw] max-h-[85vh] overflow-hidden rounded-2xl sm:rounded-3xl border-0 shadow-[0_32px_80px_rgba(0,0,0,0.25)] bg-white/95 dark:bg-[#0f1521]/95 backdrop-blur-2xl">
+      <DialogContent className="p-0 gap-0 max-w-2xl w-[100vw] sm:w-[95vw] h-[100dvh] sm:h-auto max-h-[100dvh] sm:max-h-[85vh] overflow-hidden sm:rounded-3xl border-0 shadow-[0_32px_80px_rgba(0,0,0,0.25)] bg-white/97 dark:bg-[#0f1521]/97 backdrop-blur-md">
 
         {/* ── Input bar ── */}
         <div className={`relative flex items-center gap-2 sm:gap-3 px-4 sm:px-5 py-3 sm:py-4 border-b border-warm/15 dark:border-warm/10 ${isRTL ? "flex-row-reverse" : ""}`}>
@@ -304,8 +305,12 @@ function TextResultRow({
     >
       <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 bg-black/4 dark:bg-white/5 shadow-sm ring-1 ring-transparent group-hover:ring-warm/40 transition-colors">
         <img
-          src={product.images?.[0]?.image_url || ""}
+          src={cdnImg(product.images?.[0]?.image_url, { width: 96, format: "webp" })}
           alt={product.name}
+          loading="lazy"
+          decoding="async"
+          width={48}
+          height={48}
           className="w-full h-full object-cover"
         />
       </div>
@@ -355,8 +360,12 @@ function AIResultRow({
       {/* Image with amber ring */}
       <div className="w-13 h-13 rounded-xl overflow-hidden flex-shrink-0 ring-1.5 ring-warm/60 shadow-sm" style={{ width: 52, height: 52 }}>
         <img
-          src={result.product.images?.[0]?.image_url || ""}
+          src={cdnImg(result.product.images?.[0]?.image_url, { width: 104, format: "webp" })}
           alt={result.product.name}
+          loading="lazy"
+          decoding="async"
+          width={52}
+          height={52}
           className="w-full h-full object-cover"
         />
       </div>

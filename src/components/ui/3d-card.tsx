@@ -1,18 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-
-import React, {
-  createContext,
-  useState,
-  useContext,
-  useRef,
-  useEffect,
-} from "react";
-
-const MouseEnterContext = createContext<
-  [boolean, React.Dispatch<React.SetStateAction<boolean>>] | undefined
->(undefined);
+import React, { useRef } from "react";
 
 export const CardContainer = ({
   children,
@@ -27,40 +16,40 @@ export const CardContainer = ({
   onMouseEnter?: React.MouseEventHandler<HTMLDivElement>;
   onMouseLeave?: React.MouseEventHandler<HTMLDivElement>;
 }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [isMouseEntered, setIsMouseEntered] = useState(false);
+  const isTouchLikeRef = useRef(false);
+
+  const handlePointerEnter = (e: React.PointerEvent<HTMLDivElement>) => {
+    isTouchLikeRef.current = e.pointerType === "touch" || e.pointerType === "pen";
+  };
+
+  const handlePointerLeave = () => {
+    isTouchLikeRef.current = false;
+  };
 
   const handleMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
-    setIsMouseEntered(true);
+    if (isTouchLikeRef.current) return;
     onMouseEnterProp?.(e);
   };
 
   const handleMouseLeave = (e: React.MouseEvent<HTMLDivElement>) => {
-    setIsMouseEntered(false);
+    if (isTouchLikeRef.current) return;
     onMouseLeaveProp?.(e);
   };
 
   return (
-    <MouseEnterContext.Provider value={[isMouseEntered, setIsMouseEntered]}>
+    <div
+      className={cn("py-20 flex items-center justify-center", containerClassName)}
+    >
       <div
-        className={cn(
-          "py-20 flex items-center justify-center",
-          containerClassName
-        )}
+        onPointerEnter={handlePointerEnter}
+        onPointerLeave={handlePointerLeave}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        className={cn("flex items-center justify-center relative", className)}
       >
-        <div
-          ref={containerRef}
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
-          className={cn(
-            "flex items-center justify-center relative transition-all duration-200 ease-linear",
-            className
-          )}
-        >
-          {children}
-        </div>
+        {children}
       </div>
-    </MouseEnterContext.Provider>
+    </div>
   );
 };
 
@@ -102,13 +91,4 @@ export const CardItem = ({
       {children}
     </Tag>
   );
-};
-
-// Create a hook to use the context
-export const useMouseEnter = () => {
-  const context = useContext(MouseEnterContext);
-  if (context === undefined) {
-    throw new Error("useMouseEnter must be used within a MouseEnterProvider");
-  }
-  return context;
 };

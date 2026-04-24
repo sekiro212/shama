@@ -1075,16 +1075,14 @@ const ReviewSection = React.memo(
       let cancelled = false;
       async function load() {
         setLoading(true);
-        const approved = await fetchApprovedReviews(productId);
-        if (!cancelled) setReviews(approved);
-
-        if (user) {
-          const existing = await fetchUserReview(productId, user.id);
-          if (!cancelled) setUserReview(existing);
-        } else {
-          setUserReview(null);
-        }
-        if (!cancelled) setLoading(false);
+        const [approvedResult, existingResult] = await Promise.allSettled([
+          fetchApprovedReviews(productId),
+          user ? fetchUserReview(productId, user.id) : Promise.resolve(null),
+        ]);
+        if (cancelled) return;
+        if (approvedResult.status === "fulfilled") setReviews(approvedResult.value);
+        setUserReview(existingResult.status === "fulfilled" ? existingResult.value : null);
+        setLoading(false);
       }
       load();
       return () => {

@@ -32,9 +32,9 @@ export function ChatbotButton({ isOpen: controlledOpen, onOpen, onClose }: Chatb
       <button
         onClick={handleToggle}
         aria-label={isOpen ? t("chatbot.close") : t("chatbot.open")}
-        className={`fixed bottom-20 sm:bottom-6 ${isRTL ? "left-4 sm:left-6" : "right-4 sm:right-6"} z-50 w-14 h-14 rounded-full ${isOpen ? "hidden sm:flex" : "flex"} items-center justify-center transition-all duration-300 hover:scale-110 shadow-xl ${
+        className={`fixed bottom-safe-20 sm:bottom-6 ${isRTL ? "left-4 sm:left-6" : "right-4 sm:right-6"} z-50 w-14 h-14 rounded-full ${isOpen ? "hidden sm:flex" : "flex"} items-center justify-center transition-colors duration-300 shadow-xl ${
           isOpen
-            ? "bg-white/10 border border-[#323D50]/15 dark:border-white/20 backdrop-blur-xl hover:bg-white/20"
+            ? "bg-white/15 border border-white/20 hover:bg-white/25"
             : "bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] hover:shadow-[#5B8DD9]/40 chat-button-glow"
         }`}
       >

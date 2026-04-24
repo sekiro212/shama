@@ -198,7 +198,7 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
           ) : (
             <>
               {/* Cart Items - Scrollable */}
-              <div className="flex-1 overflow-y-auto py-4 space-y-4 pb-24 scrollbar-hide">
+              <div className="flex-1 overflow-y-auto py-4 space-y-4 pb-safe-24 scrollbar-hide">
                 {items.map((item) => (
                   <div
                     key={`${item.id}-${item.size}`}
