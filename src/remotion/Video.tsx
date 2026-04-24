@@ -1,30 +1,21 @@
-import { AbsoluteFill, Sequence } from "remotion";
+import { Audio, Sequence } from "remotion";
 import { VideoProps } from "./schema";
-import { HookScene } from "./scenes/HookScene";
-import { BrandRevealScene } from "./scenes/BrandRevealScene";
-import { SocialProofScene } from "./scenes/SocialProofScene";
-import { ProductShowcaseScene } from "./scenes/ProductShowcaseScene";
-import { DesireBuilderScene } from "./scenes/DesireBuilderScene";
+import { ProblemScene } from "./scenes/ProblemScene";
+import { SolutionScene } from "./scenes/SolutionScene";
+import { AIFinderScene } from "./scenes/AIFinderScene";
+import { QuizScene } from "./scenes/QuizScene";
+import { ProductScene } from "./scenes/ProductScene";
+import { DeliveryScene } from "./scenes/DeliveryScene";
 import { CTAScene } from "./scenes/CTAScene";
-
-// 30fps, total = 750 frames = 25 seconds
-// Each scene's component handles its own fade-in via useCurrentFrame()
-const SCENES = {
-  hook:     { from: 0,   dur: 90  }, // 3s
-  brand:    { from: 90,  dur: 120 }, // 4s
-  social:   { from: 210, dur: 120 }, // 4s
-  products: { from: 330, dur: 180 }, // 6s
-  desire:   { from: 510, dur: 120 }, // 4s
-  cta:      { from: 630, dur: 120 }, // 4s — ends at frame 750
-};
+import { backgroundMusic, BACKGROUND_VOLUME } from "./audio";
+import { SCENES } from "./timing";
 
 export const ShamaVideo: React.FC<VideoProps> = (props) => {
   const {
     brandName,
-    tagline,
     primaryColor,
     goldColor,
-    stats,
+    blindPrice,
     products,
     language,
     instagramHandle,
@@ -32,7 +23,6 @@ export const ShamaVideo: React.FC<VideoProps> = (props) => {
   } = props;
 
   return (
-    // Explicit fill div — ensures black bg visible in @remotion/player context
     <div
       style={{
         width: "100%",
@@ -42,50 +32,51 @@ export const ShamaVideo: React.FC<VideoProps> = (props) => {
         overflow: "hidden",
       }}
     >
-      <Sequence from={SCENES.hook.from} durationInFrames={SCENES.hook.dur}>
-        <HookScene language={language} />
+      {/* Continuous background music bed — low enough to sit under voiceover */}
+      <Audio src={backgroundMusic()} volume={BACKGROUND_VOLUME} />
+
+      <Sequence from={SCENES.problem.from} durationInFrames={SCENES.problem.dur}>
+        <ProblemScene language={language} blindPrice={blindPrice} goldColor={goldColor} />
       </Sequence>
 
-      <Sequence from={SCENES.brand.from} durationInFrames={SCENES.brand.dur}>
-        <BrandRevealScene
-          brandName={brandName}
-          primaryColor={primaryColor}
-          goldColor={goldColor}
+      <Sequence from={SCENES.solution.from} durationInFrames={SCENES.solution.dur}>
+        <SolutionScene language={language} goldColor={goldColor} />
+      </Sequence>
+
+      <Sequence from={SCENES.ai.from} durationInFrames={SCENES.ai.dur}>
+        <AIFinderScene
           language={language}
-        />
-      </Sequence>
-
-      <Sequence from={SCENES.social.from} durationInFrames={SCENES.social.dur}>
-        <SocialProofScene
-          stats={stats}
-          primaryColor={primaryColor}
           goldColor={goldColor}
-          language={language}
-        />
-      </Sequence>
-
-      <Sequence from={SCENES.products.from} durationInFrames={SCENES.products.dur}>
-        <ProductShowcaseScene
+          primaryColor={primaryColor}
           products={products}
-          primaryColor={primaryColor}
-          goldColor={goldColor}
-          language={language}
         />
       </Sequence>
 
-      <Sequence from={SCENES.desire.from} durationInFrames={SCENES.desire.dur}>
-        <DesireBuilderScene goldColor={goldColor} language={language} />
+      <Sequence from={SCENES.quiz.from} durationInFrames={SCENES.quiz.dur}>
+        <QuizScene language={language} goldColor={goldColor} primaryColor={primaryColor} />
+      </Sequence>
+
+      <Sequence from={SCENES.product.from} durationInFrames={SCENES.product.dur}>
+        <ProductScene
+          language={language}
+          goldColor={goldColor}
+          primaryColor={primaryColor}
+          products={products}
+        />
+      </Sequence>
+
+      <Sequence from={SCENES.delivery.from} durationInFrames={SCENES.delivery.dur}>
+        <DeliveryScene language={language} goldColor={goldColor} />
       </Sequence>
 
       <Sequence from={SCENES.cta.from} durationInFrames={SCENES.cta.dur}>
         <CTAScene
+          language={language}
           brandName={brandName}
-          tagline={tagline}
           goldColor={goldColor}
           primaryColor={primaryColor}
           instagramHandle={instagramHandle}
           tiktokHandle={tiktokHandle}
-          language={language}
         />
       </Sequence>
     </div>

@@ -1,248 +1,149 @@
-import {
-  AbsoluteFill,
-  useCurrentFrame,
-  useVideoConfig,
-  interpolate,
-  spring,
-} from "remotion";
-import { loadFont } from "@remotion/google-fonts/PlayfairDisplay";
-import { loadFont as loadInter } from "@remotion/google-fonts/Inter";
+import { AbsoluteFill, Audio, useCurrentFrame, interpolate, spring, useVideoConfig } from "remotion";
+import { dir, isRtl, t, type Lang } from "../i18n";
+import { getFonts } from "../fonts";
 import { GoldParticles } from "../components/GoldParticles";
-
-const { fontFamily: playfairFont } = loadFont("normal", {
-  weights: ["700"],
-  subsets: ["latin"],
-});
-
-const { fontFamily: interFont } = loadInter("normal", {
-  weights: ["300", "400", "600"],
-  subsets: ["latin"],
-});
+import { sceneAudio } from "../audio";
 
 type Props = {
+  language: Lang;
   brandName: string;
-  tagline: string;
   goldColor: string;
   primaryColor: string;
   instagramHandle: string;
   tiktokHandle: string;
-  language: "en" | "ar";
 };
 
+const TOTAL_FRAMES = 150;
+
 export const CTAScene: React.FC<Props> = ({
+  language,
   brandName,
-  tagline,
   goldColor,
   primaryColor,
   instagramHandle,
   tiktokHandle,
-  language,
 }) => {
   const frame = useCurrentFrame();
-  const { fps, durationInFrames } = useVideoConfig();
-  const isAr = language === "ar";
+  const { fps } = useVideoConfig();
+  const fonts = getFonts(language);
 
-  const bgOpacity = interpolate(frame, [0, 15], [0, 1], {
-    extrapolateRight: "clamp",
-  });
-
-  const titleSpring = spring({
+  const brandEnter = spring({
     frame,
     fps,
-    config: { damping: 200 },
+    config: { damping: 18, stiffness: 90, mass: 0.8 },
   });
 
-  const titleOpacity = interpolate(frame, [0, 20], [0, 1], {
+  const ruleWidth = interpolate(frame, [22, 56], [0, 420], {
     extrapolateRight: "clamp",
+    easing: (x) => 1 - Math.pow(1 - x, 4),
   });
 
-  const ctaOpacity = interpolate(frame, [20, 45], [0, 1], {
+  const urlOpacity = interpolate(frame, [44, 60], [0, 1], { extrapolateRight: "clamp" });
+  const urlScale = interpolate(frame, [44, 70], [0.96, 1], {
+    extrapolateRight: "clamp",
+    easing: (x) => 1 - Math.pow(1 - x, 3),
+  });
+
+  const tagOpacity = interpolate(frame, [70, 86], [0, 1], { extrapolateRight: "clamp" });
+  const socialOpacity = interpolate(frame, [90, 108], [0, 1], { extrapolateRight: "clamp" });
+
+  const exitOpacity = interpolate(frame, [TOTAL_FRAMES - 12, TOTAL_FRAMES], [1, 0], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
-
-  const ctaScale = spring({
-    frame: frame - 20,
-    fps,
-    config: { damping: 15, stiffness: 120 },
-  });
-
-  const sampleOpacity = interpolate(frame, [40, 60], [0, 1], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
-
-  const socialOpacity = interpolate(frame, [60, 80], [0, 1], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
-
-  const logoFinalOpacity = interpolate(
-    frame,
-    [durationInFrames - 25, durationInFrames - 5],
-    [1, 0],
-    { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
-  );
-
-  const ctaText = isAr ? "اكتشف عطرك المميز" : "Find Your Signature Scent";
-  const sampleText = isAr ? "جرب العينات من ١٥ د.ل فقط" : "Try samples from 15 LYD";
-  const shopText = isAr ? "تسوق الآن" : "Shop Now";
-
-  const pulseScale = 1 + 0.03 * Math.sin((frame / fps) * Math.PI * 2);
 
   return (
     <AbsoluteFill
       style={{
-        background: `radial-gradient(ellipse at 50% 40%, #1a1f3a 0%, #0A0A0A 70%)`,
-        opacity: bgOpacity,
-        direction: isAr ? "rtl" : "ltr",
+        background: "#0A0A0A",
+        direction: dir(language),
+        alignItems: "center",
+        justifyContent: "center",
+        opacity: exitOpacity,
       }}
     >
-      <GoldParticles durationInFrames={durationInFrames} />
+      <Audio src={sceneAudio("cta", language)} volume={0.95} />
 
-      <AbsoluteFill
+      <GoldParticles durationInFrames={TOTAL_FRAMES} />
+
+      <div
         style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 28,
-          paddingInline: 48,
+          opacity: brandEnter,
+          transform: `translateY(${(1 - brandEnter) * 16}px)`,
+          fontFamily: fonts.body,
+          fontSize: 22,
+          fontWeight: 600,
+          color: goldColor,
+          letterSpacing: 6,
+          textTransform: "uppercase",
+          marginBottom: 26,
+          direction: "ltr",
         }}
       >
-        <div
-          style={{
-            fontFamily: playfairFont,
-            fontSize: 68,
-            fontWeight: 700,
-            background: `linear-gradient(135deg, ${goldColor} 0%, #FFF5C0 50%, ${goldColor} 100%)`,
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            backgroundClip: "text",
-            textAlign: "center",
-            transform: `scale(${titleSpring})`,
-            opacity: titleOpacity,
-            lineHeight: 1.2,
-          }}
-        >
-          {brandName}
-        </div>
+        {brandName}
+      </div>
 
-        <div
-          style={{
-            fontFamily: interFont,
-            fontSize: 28,
-            fontWeight: 300,
-            color: "rgba(255,255,255,0.85)",
-            textAlign: "center",
-            opacity: titleOpacity,
-            letterSpacing: 1,
-            lineHeight: 1.4,
-          }}
-        >
-          {ctaText}
-        </div>
+      <div
+        style={{
+          height: 1,
+          width: ruleWidth,
+          background: `linear-gradient(90deg, transparent 0%, ${goldColor} 50%, transparent 100%)`,
+          marginBottom: 30,
+        }}
+      />
 
-        <div
-          style={{
-            transform: `scale(${ctaScale * pulseScale})`,
-            opacity: ctaOpacity,
-          }}
-        >
-          <div
-            style={{
-              background: `linear-gradient(135deg, ${goldColor}, #FFF5C0, ${goldColor})`,
-              borderRadius: 50,
-              paddingInline: 56,
-              paddingBlock: 20,
-              fontFamily: interFont,
-              fontSize: 26,
-              fontWeight: 600,
-              color: "#0A0A0A",
-              textAlign: "center",
-              boxShadow: `0 0 40px rgba(212, 175, 55, 0.4)`,
-            }}
-          >
-            {shopText}
-          </div>
-        </div>
+      <div
+        style={{
+          opacity: urlOpacity,
+          transform: `scale(${urlScale})`,
+          fontFamily: fonts.display,
+          fontSize: 144,
+          fontWeight: 700,
+          color: "#F5F5F5",
+          textAlign: "center",
+          lineHeight: 1,
+          letterSpacing: -2,
+          textShadow: `0 0 60px ${primaryColor}33`,
+        }}
+      >
+        <span dir="ltr">{t("cta_url", language)}</span>
+      </div>
 
-        <div
-          style={{
-            opacity: sampleOpacity,
-            fontFamily: interFont,
-            fontSize: 22,
-            fontWeight: 300,
-            color: goldColor,
-            textAlign: "center",
-            letterSpacing: 1,
-          }}
-        >
-          {sampleText}
-        </div>
+      <div
+        style={{
+          opacity: tagOpacity,
+          marginTop: 30,
+          fontFamily: fonts.body,
+          fontSize: 36,
+          fontWeight: 400,
+          color: "rgba(245,245,245,0.75)",
+          textAlign: "center",
+          letterSpacing: isRtl(language) ? 0 : 0.5,
+          padding: "0 40px",
+        }}
+      >
+        {t("cta_tag", language)}
+      </div>
 
-        <div
-          style={{
-            width: "80%",
-            height: 1,
-            backgroundColor: "rgba(212, 175, 55, 0.3)",
-            opacity: socialOpacity,
-          }}
-        />
-
-        <div
-          style={{
-            display: "flex",
-            flexDirection: isAr ? "row-reverse" : "row",
-            gap: 32,
-            opacity: socialOpacity,
-          }}
-        >
-          <div
-            style={{
-              fontFamily: interFont,
-              fontSize: 20,
-              fontWeight: 400,
-              color: "rgba(255,255,255,0.7)",
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-            }}
-          >
-            <span style={{ fontSize: 24 }}>📸</span>
-            {instagramHandle}
-          </div>
-          <div
-            style={{
-              fontFamily: interFont,
-              fontSize: 20,
-              fontWeight: 400,
-              color: "rgba(255,255,255,0.7)",
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-            }}
-          >
-            <span style={{ fontSize: 24 }}>🎵</span>
-            {tiktokHandle}
-          </div>
-        </div>
-
-        <div
-          style={{
-            opacity: logoFinalOpacity,
-            fontFamily: playfairFont,
-            fontSize: 42,
-            fontWeight: 700,
-            color: goldColor,
-            letterSpacing: 6,
-            textAlign: "center",
-            marginTop: 8,
-          }}
-        >
-          {brandName}
-        </div>
-      </AbsoluteFill>
+      <div
+        style={{
+          opacity: socialOpacity,
+          marginTop: 80,
+          display: "flex",
+          flexDirection: "row",
+          gap: 40,
+          fontFamily: fonts.body,
+          fontSize: 22,
+          fontWeight: 500,
+          color: "rgba(245,245,245,0.55)",
+          letterSpacing: 1,
+          direction: "ltr",
+        }}
+      >
+        <span>{instagramHandle}</span>
+        <span style={{ color: goldColor, opacity: 0.5 }}>·</span>
+        <span>{tiktokHandle}</span>
+      </div>
     </AbsoluteFill>
   );
 };

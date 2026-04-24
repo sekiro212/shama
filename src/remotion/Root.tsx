@@ -1,10 +1,9 @@
 import { Composition, Folder } from "remotion";
 import { ShamaVideo } from "./Video";
 import { videoSchema, defaultVideoProps } from "./schema";
+import { TOTAL_FRAMES, FPS } from "./timing";
 
-// Total: 750 frames = 25 seconds at 30fps
-// (sum of scene durations) - (5 transitions × 15 frames) = 825 - 75 = 750
-const DURATION_IN_FRAMES = 750;
+const DURATION_IN_FRAMES = TOTAL_FRAMES;
 
 export const RemotionRoot: React.FC = () => {
   return (
@@ -13,7 +12,7 @@ export const RemotionRoot: React.FC = () => {
         id="ShamaVideo-EN"
         component={ShamaVideo}
         durationInFrames={DURATION_IN_FRAMES}
-        fps={30}
+        fps={FPS}
         width={1080}
         height={1920}
         schema={videoSchema}
@@ -26,7 +25,7 @@ export const RemotionRoot: React.FC = () => {
         id="ShamaVideo-AR"
         component={ShamaVideo}
         durationInFrames={DURATION_IN_FRAMES}
-        fps={30}
+        fps={FPS}
         width={1080}
         height={1920}
         schema={videoSchema}

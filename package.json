@@ -12,7 +12,12 @@
     "test:e2e:report": "playwright show-report",
     "remotion:studio": "npx remotion studio src/remotion/index.ts",
     "remotion:render": "npx remotion render src/remotion/index.ts ShamaVideo-EN",
-    "remotion:render:ar": "npx remotion render src/remotion/index.ts ShamaVideo-AR"
+    "remotion:render:ar": "npx remotion render src/remotion/index.ts ShamaVideo-AR",
+    "voiceover": "node scripts/generate-voiceover-openrouter.mjs",
+    "voiceover:fit": "node scripts/fit-voiceover.mjs",
+    "voiceover:elevenlabs": "node scripts/generate-voiceover.mjs",
+    "voiceover:local": "node scripts/generate-voiceover-local.mjs",
+    "music": "node scripts/generate-music.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

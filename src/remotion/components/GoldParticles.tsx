@@ -1,6 +1,6 @@
 import { useCurrentFrame, interpolate } from "remotion";
 
-const PARTICLES = Array.from({ length: 30 }, (_, i) => ({
+const PARTICLES = Array.from({ length: 9 }, (_, i) => ({
   id: i,
   x: ((i * 53 + 17) % 100),
   y: ((i * 37 + 11) % 100),

@@ -27,14 +27,13 @@ import {
   getFullBottles,
   Product,
 } from "@/services/productsService";
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { motion, useReducedMotion } from "framer-motion";
 import RecentlyViewed from "@/components/RecentlyViewed";
 import { BackgroundBeamsWithCollision } from "@/components/ui/background-beams-with-collision";
 import ScentMemoryWall from "@/components/ScentMemoryWall";
-
-const MarketingVideoSection = lazy(() => import("@/components/MarketingVideoSection"));
+import MarketingVideoSection from "@/components/MarketingVideoSection";
 
 const VIDEO_PLACEHOLDER = (
   <div className="py-24" aria-hidden="true">
@@ -48,39 +47,10 @@ const VIDEO_PLACEHOLDER = (
 );
 
 function MarketingVideoGate() {
-  const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    const node = ref.current;
-    if (!node || typeof IntersectionObserver === "undefined") {
-      setVisible(true);
-      return;
-    }
-    const io = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((e) => e.isIntersecting)) {
-          setVisible(true);
-          io.disconnect();
-        }
-      },
-      { rootMargin: "400px 0px" }
-    );
-    io.observe(node);
-    return () => io.disconnect();
-  }, []);
-
-  return (
-    <div ref={ref}>
-      {visible ? (
-        <Suspense fallback={VIDEO_PLACEHOLDER}>
-          <MarketingVideoSection />
-        </Suspense>
-      ) : (
-        VIDEO_PLACEHOLDER
-      )}
-    </div>
-  );
+  // Now that the section is a tiny <video> tag (not the heavy Remotion Player),
+  // there's no point in lazy-loading it — render directly so we never hit the
+  // intersection-observer race that left the placeholder stuck.
+  return <MarketingVideoSection />;
 }
 
 const TikTokIcon = ({ className }: { className?: string }) => (
@@ -281,7 +251,7 @@ export default function HomePage() {
   return (
     <div className="grain-bg min-h-dvh w-full bg-[#F8F9FB] dark:bg-[#1a2235] relative overflow-hidden">
       {/* Hero — one orchestrated reveal */}
-      <section className="relative min-h-[88dvh] flex items-center justify-center w-full overflow-hidden">
+      <section className="relative min-h-[72dvh] sm:min-h-[76dvh] lg:min-h-[78dvh] flex items-center justify-center w-full overflow-hidden">
         {/* Static background wash — no parallax */}
         <div className="absolute inset-0 z-0" aria-hidden>
           <img
@@ -322,7 +292,7 @@ export default function HomePage() {
 
             <motion.p
               {...heroRise(0.3)}
-              className="text-lg sm:text-xl md:text-2xl text-[#323D50]/80 dark:text-white/85 mb-10 sm:mb-12 max-w-2xl mx-auto leading-relaxed"
+              className="text-lg sm:text-xl md:text-2xl text-[#323D50]/80 dark:text-white/85 mb-8 sm:mb-10 max-w-2xl mx-auto leading-relaxed"
             >
               {t("home.hero.description")}
             </motion.p>
@@ -355,7 +325,80 @@ export default function HomePage() {
         </BackgroundBeamsWithCollision>
       </section>
 
-      {/* Stats — editorial row on desktop, cards on mobile */}
+      {/* Featured Products — sits right under the hero so products earn the screen */}
+      <section id="products" className="pt-8 sm:pt-12 md:pt-16 pb-14 sm:pb-20 md:pb-24 relative z-10">
+        <div className="container mx-auto px-3 sm:px-4">
+          <SectionHeader
+            eyebrow={t("home.featured.badge")}
+            title={t("home.featured.title")}
+            description={t("home.featured.description")}
+            action={
+              <Button
+                asChild
+                variant="outline"
+                className="glass-card border-[#5B8DD9]/40 text-[#3E6BB5] dark:text-[#8BB4F0] hover:bg-[#5B8DD9] hover:text-white px-6 py-3 rounded-xl font-semibold"
+              >
+                <Link to="/collection">
+                  {t("home.featured.viewAll")}
+                  <ChevronRight className={`ms-2 h-4 w-4 ${isRTL ? "rotate-180" : ""}`} />
+                </Link>
+              </Button>
+            }
+          />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
+            {loading
+              ? Array.from({ length: 3 }).map((_, index) => (
+                  <div
+                    key={index}
+                    className="glass-card rounded-2xl p-6 animate-pulse"
+                  >
+                    <div className="aspect-square bg-white/10 rounded-lg mb-4" />
+                    <div className="h-6 bg-white/10 rounded mb-2" />
+                    <div className="h-4 bg-white/10 rounded w-3/4 mb-2" />
+                    <div className="h-8 bg-white/10 rounded w-1/2" />
+                  </div>
+                ))
+              : featuredProducts.map((product, index) => (
+                  <motion.div
+                    key={product.id}
+                    initial={{ opacity: 0, y: 24 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{
+                      duration: 0.5,
+                      delay: 0.05 + index * 0.06,
+                      ease: "easeOut",
+                    }}
+                  >
+                    <ProductCard product={product} />
+                  </motion.div>
+                ))}
+          </div>
+
+          {/* Mobile fallback for action — show "View All" under the grid too */}
+          <div className="text-center mt-10 md:hidden">
+            <Button
+              asChild
+              variant="outline"
+              className="glass-card border-[#5B8DD9]/40 text-[#3E6BB5] hover:bg-[#5B8DD9] hover:text-white px-6 py-3 rounded-xl font-semibold"
+            >
+              <Link to="/collection">
+                {t("home.featured.viewAll")}
+                <ChevronRight className={`ms-2 h-4 w-4 ${isRTL ? "rotate-180" : ""}`} />
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* AI Finder Banner — bridge from "here are products" to "help me pick" */}
+      <section className="py-8 sm:py-12 relative z-10">
+        <div className="container mx-auto px-3 sm:px-4">
+          <AIFinderBanner />
+        </div>
+      </section>
+
+      {/* Stats — social proof after users have seen the product */}
       <section className="py-14 sm:py-20 relative z-10">
         <div className="container mx-auto px-3 sm:px-4">
           {/* Desktop: single connected row with dividers */}
@@ -407,81 +450,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Marketing Video */}
+      {/* Marketing Video — cinematic brand film, fine to live deep */}
       <MarketingVideoGate />
-
-      {/* AI Finder Banner */}
-      <section className="py-8 sm:py-12 relative z-10">
-        <div className="container mx-auto px-3 sm:px-4">
-          <AIFinderBanner />
-        </div>
-      </section>
-
-      {/* Featured Products — editorial split header */}
-      <section id="products" className="py-14 sm:py-20 md:py-24 relative z-10">
-        <div className="container mx-auto px-3 sm:px-4">
-          <SectionHeader
-            eyebrow={t("home.featured.badge")}
-            title={t("home.featured.title")}
-            description={t("home.featured.description")}
-            action={
-              <Button
-                asChild
-                variant="outline"
-                className="glass-card border-[#5B8DD9]/40 text-[#3E6BB5] dark:text-[#8BB4F0] hover:bg-[#5B8DD9] hover:text-white px-6 py-3 rounded-xl font-semibold"
-              >
-                <Link to="/collection">
-                  {t("home.featured.viewAll")}
-                  <ChevronRight className={`ms-2 h-4 w-4 ${isRTL ? "rotate-180" : ""}`} />
-                </Link>
-              </Button>
-            }
-          />
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
-            {loading
-              ? Array.from({ length: 3 }).map((_, index) => (
-                  <div
-                    key={index}
-                    className="glass-card rounded-2xl p-6 animate-pulse"
-                  >
-                    <div className="aspect-square bg-white/10 rounded-lg mb-4" />
-                    <div className="h-6 bg-white/10 rounded mb-2" />
-                    <div className="h-4 bg-white/10 rounded w-3/4 mb-2" />
-                    <div className="h-8 bg-white/10 rounded w-1/2" />
-                  </div>
-                ))
-              : featuredProducts.map((product, index) => (
-                  <motion.div
-                    key={product.id}
-                    initial={{ opacity: 0, y: 24 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{
-                      duration: 0.5,
-                      delay: 0.1 + index * 0.08,
-                      ease: "easeOut",
-                    }}
-                  >
-                    <ProductCard product={product} />
-                  </motion.div>
-                ))}
-          </div>
-
-          {/* Mobile fallback for action — show "View All" under the grid too */}
-          <div className="text-center mt-10 md:hidden">
-            <Button
-              asChild
-              variant="outline"
-              className="glass-card border-[#5B8DD9]/40 text-[#3E6BB5] hover:bg-[#5B8DD9] hover:text-white px-6 py-3 rounded-xl font-semibold"
-            >
-              <Link to="/collection">
-                {t("home.featured.viewAll")}
-                <ChevronRight className={`ms-2 h-4 w-4 ${isRTL ? "rotate-180" : ""}`} />
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </section>
 
       {/* About — image left / text right on desktop */}
       <section className="py-14 sm:py-20 md:py-24 relative z-10">
