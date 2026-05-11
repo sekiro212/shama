@@ -18,7 +18,7 @@ export default function MarketingVideoSection() {
   };
 
   return (
-    <section className="py-24 relative z-10" dir={isRTL ? "rtl" : "ltr"}>
+    <section className="py-24 relative z-10 overflow-x-hidden" dir={isRTL ? "rtl" : "ltr"}>
       <div className="container mx-auto px-4">
         <div className="text-center mb-12 animate-slide-up">
           <span className="inline-flex items-center gap-2 text-[11px] sm:text-xs font-semibold tracking-[0.24em] uppercase text-warm mb-4">
@@ -32,18 +32,15 @@ export default function MarketingVideoSection() {
             {t("home.marketingVideo.description")}
           </p>
         </div>
+      </div>
 
-        <div className="flex justify-center">
-          <div
-            className="relative rounded-3xl overflow-hidden shadow-2xl"
-            style={{
-              width: "min(360px, 90vw)",
-              aspectRatio: "9 / 16",
-              backgroundColor: "#0A0A0A",
-              boxShadow:
-                "0 0 0 1px rgba(91,141,217,0.3), 0 25px 50px rgba(0,0,0,0.5), 0 0 80px rgba(212,175,55,0.1)",
-            }}
-          >
+      <div className="flex justify-center px-4 lg:px-0">
+        <div
+          className="relative overflow-hidden rounded-3xl w-[min(360px,90vw)] aspect-[9/16] shadow-[0_0_0_1px_rgba(91,141,217,0.3),0_25px_50px_rgba(0,0,0,0.5),0_0_80px_rgba(212,175,55,0.1)] lg:rounded-none lg:shadow-none lg:w-screen lg:h-screen lg:aspect-auto"
+          style={{
+            backgroundColor: "#0A0A0A",
+          }}
+        >
             <video
               ref={videoRef}
               key={src}
@@ -85,7 +82,6 @@ export default function MarketingVideoSection() {
                 </span>
               </button>
             )}
-          </div>
         </div>
       </div>
     </section>
