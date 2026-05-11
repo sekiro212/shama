@@ -378,26 +378,26 @@ export default function CollectionPage() {
             ? Array.from({ length: 8 }).map((_, index) => (
                 <div
                   key={index}
-                  className="glass-card rounded-2xl overflow-hidden animate-pulse"
+                  className="glass-card rounded-2xl overflow-hidden"
                 >
-                  <div className="aspect-[4/5] bg-white/10 dark:bg-white/5" />
+                  <div className="aspect-[4/5] shama-skeleton" />
                   <div className="p-5 space-y-3">
-                    <div className="h-6 bg-white/10 dark:bg-white/5 rounded w-3/4" />
+                    <div className="h-6 shama-skeleton rounded w-3/4" />
                     <div className="flex items-center justify-between">
-                      <div className="h-3 bg-white/10 dark:bg-white/5 rounded w-20" />
-                      <div className="h-5 bg-white/10 dark:bg-white/5 rounded-full w-16" />
+                      <div className="h-3 shama-skeleton rounded w-20" />
+                      <div className="h-5 shama-skeleton rounded-full w-16" />
                     </div>
                     <div className="space-y-2">
-                      <div className="h-3 bg-white/10 dark:bg-white/5 rounded w-full" />
-                      <div className="h-3 bg-white/10 dark:bg-white/5 rounded w-5/6" />
+                      <div className="h-3 shama-skeleton rounded w-full" />
+                      <div className="h-3 shama-skeleton rounded w-5/6" />
                     </div>
                     <div className="flex gap-1.5">
-                      <div className="h-5 bg-white/10 dark:bg-white/5 rounded-full w-14" />
-                      <div className="h-5 bg-white/10 dark:bg-white/5 rounded-full w-14" />
+                      <div className="h-5 shama-skeleton rounded-full w-14" />
+                      <div className="h-5 shama-skeleton rounded-full w-14" />
                     </div>
                     <div className="flex items-end justify-between pt-2">
-                      <div className="h-7 bg-white/10 dark:bg-white/5 rounded w-24" />
-                      <div className="h-11 bg-white/10 dark:bg-white/5 rounded-xl w-28" />
+                      <div className="h-7 shama-skeleton rounded w-24" />
+                      <div className="h-11 shama-skeleton rounded-xl w-28" />
                     </div>
                   </div>
                 </div>

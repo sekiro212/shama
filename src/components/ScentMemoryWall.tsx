@@ -82,60 +82,87 @@ export default function ScentMemoryWall() {
 
   const row1 = memories.filter((_, i) => i % 2 === 0);
   const row2 = memories.filter((_, i) => i % 2 === 1);
+  const isEmpty = memories.length === 0;
 
   return (
-    <section className="py-16 overflow-hidden">
-      {/* Section header */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.6 }}
-        className="container mx-auto px-4 mb-10 text-center"
-      >
-        <span className="inline-flex items-center gap-2 text-[11px] sm:text-xs font-semibold tracking-[0.24em] uppercase text-warm mb-3">
-          <span className="h-px w-6 bg-warm/60" aria-hidden />
-          {t("memories.eyebrow")}
-        </span>
-        <h2 className="font-display text-3xl md:text-4xl font-semibold text-[#1E2A3D] dark:text-[#F5F5F5] mb-3 leading-[1.05]">
-          {t("memories.title")}
-        </h2>
-        <p className="text-[#6B7B8D] dark:text-white/70 mb-6 max-w-prose mx-auto">{t("memories.subtitle")}</p>
-        <Button
-          onClick={() => setOpen(true)}
-          className="bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] text-white rounded-xl glow-warm-hover"
+    <section className={isEmpty ? "py-8 overflow-hidden" : "py-16 overflow-hidden"}>
+      {/* Compact empty state — preserve entry point without 800px of desert */}
+      {isEmpty ? (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+          className="container mx-auto px-4"
         >
-          <Plus className={`w-4 h-4 ${isRTL ? "ms-2" : "me-2"}`} />
-          {t("memories.shareButton")}
-        </Button>
-      </motion.div>
-
-      {/* Marquee rows */}
-      {memories.length === 0 ? (
-        <p className="text-center text-[#6B7B8D] text-sm">
-          {t("memories.empty")}
-        </p>
-      ) : (
-        <div className="space-y-3">
-          {/* Row 1 — left to right */}
-          <div className="overflow-hidden">
-            <div className="flex gap-3 memory-marquee">
-              {[...row1, ...row1].map((m, i) => (
-                <MemoryCard key={`r1-${i}`} memory={m} />
-              ))}
+          <div className="glass-card rounded-2xl px-5 py-4 sm:px-6 sm:py-5 flex flex-col sm:flex-row items-center gap-4 sm:gap-6 max-w-2xl mx-auto">
+            <div className="flex-1 text-center sm:text-start">
+              <p className="text-[10px] sm:text-[11px] font-semibold tracking-[0.24em] uppercase text-warm mb-1">
+                {t("memories.eyebrow")}
+              </p>
+              <p className="text-sm text-[#6B7B8D] dark:text-white/70 leading-snug">
+                {t("memories.empty")}
+              </p>
             </div>
+            <Button
+              onClick={() => setOpen(true)}
+              size="sm"
+              className="shrink-0 bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] text-white rounded-xl glow-warm-hover"
+            >
+              <Plus className={`w-4 h-4 ${isRTL ? "ms-2" : "me-2"}`} />
+              {t("memories.shareButton")}
+            </Button>
           </div>
-          {/* Row 2 — right to left */}
-          {row2.length > 0 && (
+        </motion.div>
+      ) : (
+        <>
+          {/* Section header */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="container mx-auto px-4 mb-10 text-center"
+          >
+            <span className="inline-flex items-center gap-2 text-[11px] sm:text-xs font-semibold tracking-[0.24em] uppercase text-warm mb-3">
+              <span className="h-px w-6 bg-warm/60" aria-hidden />
+              {t("memories.eyebrow")}
+            </span>
+            <h2 className="font-display text-3xl md:text-4xl font-semibold text-[#1E2A3D] dark:text-[#F5F5F5] mb-3 leading-[1.05]">
+              {t("memories.title")}
+            </h2>
+            <p className="text-[#6B7B8D] dark:text-white/70 mb-6 max-w-prose mx-auto">{t("memories.subtitle")}</p>
+            <Button
+              onClick={() => setOpen(true)}
+              className="bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] text-white rounded-xl glow-warm-hover"
+            >
+              <Plus className={`w-4 h-4 ${isRTL ? "ms-2" : "me-2"}`} />
+              {t("memories.shareButton")}
+            </Button>
+          </motion.div>
+
+          {/* Marquee rows */}
+          <div className="space-y-3">
+            {/* Row 1 — left to right */}
             <div className="overflow-hidden">
-              <div className="flex gap-3 memory-marquee-reverse">
-                {[...row2, ...row2].map((m, i) => (
-                  <MemoryCard key={`r2-${i}`} memory={m} />
+              <div className="flex gap-3 memory-marquee">
+                {[...row1, ...row1].map((m, i) => (
+                  <MemoryCard key={`r1-${i}`} memory={m} />
                 ))}
               </div>
             </div>
-          )}
-        </div>
+            {/* Row 2 — right to left */}
+            {row2.length > 0 && (
+              <div className="overflow-hidden">
+                <div className="flex gap-3 memory-marquee-reverse">
+                  {[...row2, ...row2].map((m, i) => (
+                    <MemoryCard key={`r2-${i}`} memory={m} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </>
       )}
 
       {/* Submit modal */}

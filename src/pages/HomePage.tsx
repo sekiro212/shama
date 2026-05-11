@@ -259,15 +259,15 @@ export default function HomePage() {
             srcSet="https://images.unsplash.com/photo-1594736797933-d0401ba2fe65?w=640&q=60&auto=format&fit=crop 640w, https://images.unsplash.com/photo-1594736797933-d0401ba2fe65?w=1280&q=60&auto=format&fit=crop 1280w, https://images.unsplash.com/photo-1594736797933-d0401ba2fe65?w=1920&q=65&auto=format&fit=crop 1920w"
             sizes="100vw"
             alt=""
-            className="w-full h-full object-cover opacity-25"
+            className="w-full h-full object-cover opacity-40 dark:opacity-35"
             loading="eager"
             fetchPriority="auto"
             decoding="async"
           />
           {/* Warm candlelight glow from the center */}
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(232,185,138,0.18)_0%,transparent_55%)]" />
-          {/* Paper + midnight gradient readability wash */}
-          <div className="absolute inset-0 bg-gradient-to-b from-[#F8F9FB]/30 via-transparent to-[#F8F9FB] dark:from-[#1a2235]/40 dark:via-transparent dark:to-[#1a2235]" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(232,185,138,0.22)_0%,transparent_60%)]" />
+          {/* Paper + midnight gradient readability wash — heavier at the edges so type stays crisp */}
+          <div className="absolute inset-0 bg-gradient-to-b from-[#F8F9FB]/55 via-[#F8F9FB]/10 to-[#F8F9FB] dark:from-[#1a2235]/55 dark:via-[#1a2235]/10 dark:to-[#1a2235]" />
         </div>
 
         <BackgroundBeamsWithCollision>
@@ -346,17 +346,25 @@ export default function HomePage() {
             }
           />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
+          <div
+            className={
+              loading || featuredProducts.length >= 3
+                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8"
+                : featuredProducts.length === 2
+                  ? "grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 md:gap-8 max-w-3xl mx-auto"
+                  : "max-w-md mx-auto"
+            }
+          >
             {loading
               ? Array.from({ length: 3 }).map((_, index) => (
                   <div
                     key={index}
-                    className="glass-card rounded-2xl p-6 animate-pulse"
+                    className="glass-card rounded-2xl p-6"
                   >
-                    <div className="aspect-square bg-white/10 rounded-lg mb-4" />
-                    <div className="h-6 bg-white/10 rounded mb-2" />
-                    <div className="h-4 bg-white/10 rounded w-3/4 mb-2" />
-                    <div className="h-8 bg-white/10 rounded w-1/2" />
+                    <div className="aspect-square shama-skeleton rounded-lg mb-4" />
+                    <div className="h-6 shama-skeleton rounded mb-2" />
+                    <div className="h-4 shama-skeleton rounded w-3/4 mb-2" />
+                    <div className="h-8 shama-skeleton rounded w-1/2" />
                   </div>
                 ))
               : featuredProducts.map((product, index) => (

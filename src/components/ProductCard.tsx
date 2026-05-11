@@ -37,6 +37,7 @@ const ProductCardComponent = ({ product }: ProductCardProps) => {
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const { t, language } = useLanguage();
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [quickViewOpen, setQuickViewOpen] = useState(false);
@@ -75,24 +76,30 @@ const ProductCardComponent = ({ product }: ProductCardProps) => {
 
   const isSoldOut = !product.is_active || product.stock_quantity === 0;
 
+  const swapImage = (next: number) => {
+    setImageLoaded(false);
+    setImageError(false);
+    setCurrentImageIndex(next);
+  };
+
   const nextImage = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setCurrentImageIndex((prev) => (prev + 1) % productImages.length);
+    swapImage((currentImageIndex + 1) % productImages.length);
   };
 
   const prevImage = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setCurrentImageIndex(
-      (prev) => (prev - 1 + productImages.length) % productImages.length
+    swapImage(
+      (currentImageIndex - 1 + productImages.length) % productImages.length
     );
   };
 
   const goToImage = (index: number, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setCurrentImageIndex(index);
+    swapImage(index);
   };
 
   return (
@@ -114,7 +121,7 @@ const ProductCardComponent = ({ product }: ProductCardProps) => {
           >
             <Link to={`/product/${product.id}`}>
               <div className="relative aspect-[4/5] overflow-hidden transform-gpu">
-                {hasImages ? (
+                {hasImages && !imageError ? (
                   <>
                     <img
                       src={cdnImg(productImages[currentImageIndex], { width: 480, format: "webp" })}
@@ -127,12 +134,13 @@ const ProductCardComponent = ({ product }: ProductCardProps) => {
                         imageLoaded ? "opacity-100" : "opacity-0"
                       }`}
                       onLoad={() => setImageLoaded(true)}
+                      onError={() => setImageError(true)}
                     />
 
-                    {/* Image Loading Placeholder */}
+                    {/* Image Loading Placeholder — branded shimmer */}
                     {!imageLoaded && (
-                      <div className="absolute inset-0 bg-gradient-to-br from-warm/10 to-warm-glow/10 animate-pulse flex items-center justify-center">
-                        <Sparkles className="w-8 h-8 text-warm animate-spin" />
+                      <div className="absolute inset-0 shama-skeleton flex items-center justify-center">
+                        <Sparkles className="w-8 h-8 text-warm/70" />
                       </div>
                     )}
                   </>

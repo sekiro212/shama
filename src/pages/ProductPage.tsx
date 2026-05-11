@@ -55,7 +55,7 @@ export default function ProductPage() {
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
-  const [activeTab, setActiveTab] = useState("details");
+  const [activeTab, setActiveTab] = useState("journey");
   const [selectedSample, setSelectedSample] = useState<string | null>(null);
   const [selectedBottleSize, setSelectedBottleSize] = useState<string | null>(
     null
@@ -266,9 +266,9 @@ export default function ProductPage() {
   };
 
   const tabs = [
-    { id: "details", label: t("product.details"), icon: Info },
-    { id: "notes", label: t("product.fragranceNotes"), icon: Sparkles },
     { id: "journey", label: t("product.journey"), icon: Wind },
+    { id: "notes", label: t("product.fragranceNotes"), icon: Sparkles },
+    { id: "details", label: t("product.details"), icon: Info },
   ];
 
   return (
@@ -314,10 +314,10 @@ export default function ProductPage() {
                     }`}
                     onLoad={() => setIsImageLoaded(true)}
                   />
-                  {/* Loading Placeholder */}
+                  {/* Loading Placeholder — branded shimmer */}
                   {!isImageLoaded && (
-                    <div className="absolute inset-0 bg-gradient-to-br from-[#5B8DD9]/20 to-[#3E6BB5]/20 animate-pulse flex items-center justify-center">
-                      <Sparkles className="w-12 h-12 text-[#5B8DD9] animate-spin" />
+                    <div className="absolute inset-0 shama-skeleton flex items-center justify-center">
+                      <Sparkles className="w-12 h-12 text-warm/70" />
                     </div>
                   )}
                   {/* Overlay Actions */}
