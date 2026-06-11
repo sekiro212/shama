@@ -11,6 +11,7 @@ import {
   Copy,
 } from "lucide-react";
 import { StatusBadge } from "../components/StatusBadge";
+import { vanexStatusLabel } from "../constants";
 import { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import {
@@ -208,7 +209,7 @@ export function OrdersTab({ ordersApi }: OrdersTabProps) {
               <StatusBadge
                 type="vanex"
                 status={vanexStatus}
-                label={t(`admin.vanex.statuses.${vanexStatus}`)}
+                label={vanexStatusLabel(t, vanexStatus)}
               />
             )}
           </div>

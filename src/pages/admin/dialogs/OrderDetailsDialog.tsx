@@ -18,6 +18,7 @@ import { canCancelVanex, canRecallVanex } from "@/lib/vanexStatus";
 import type { Order } from "@/services/ordersService";
 import type { useOrders } from "../hooks/useOrders";
 import { StatusBadge } from "../components/StatusBadge";
+import { vanexStatusLabel } from "../constants";
 
 type VanexActions = Pick<
   ReturnType<typeof useOrders>,
@@ -224,7 +225,7 @@ export function OrderDetailsDialog({
                         <StatusBadge
                           type="vanex"
                           status={vanexStatus}
-                          label={t(`admin.vanex.statuses.${vanexStatus}`)}
+                          label={vanexStatusLabel(t, vanexStatus)}
                         />
                       ) : (
                         <span className="text-[#6B7B8D] dark:text-white/40 text-sm italic">
@@ -280,7 +281,7 @@ export function OrderDetailsDialog({
                                 <StatusBadge
                                   type="vanex"
                                   status={logEntry.status}
-                                  label={t(`admin.vanex.statuses.${logEntry.status}`)}
+                                  label={vanexStatusLabel(t, logEntry.status)}
                                 />
                                 <span className="text-xs text-[#6B7B8D] dark:text-white/40">
                                   {new Date(logEntry.created_at).toLocaleString()}

@@ -26,7 +26,7 @@ import {
   type VanexCity,
   type VanexSubCity,
 } from "@/services/vanexService";
-import { fetchOrdersByEmail, type Order } from "@/services/ordersService";
+import { fetchMyOrders, type Order } from "@/services/ordersService";
 import { toast } from "sonner";
 
 export interface ShippingFormData {
@@ -86,10 +86,10 @@ export default function ShippingSection({
 
   // Pre-fill from user's last order (if any)
   useEffect(() => {
-    if (!user?.email) return;
+    if (!user) return;
     let cancelled = false;
     setPrefilling(true);
-    fetchOrdersByEmail(user.email)
+    fetchMyOrders(user.id)
       .then((orders) => {
         if (cancelled || orders.length === 0) return;
         const last = orders[0] as Order;

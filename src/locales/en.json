@@ -219,15 +219,36 @@
     },
     "confirmDialog": {
       "delete": "Delete",
-      "deleteOrder": { "title": "Delete Order" },
-      "acceptOrder": { "title": "Accept Order", "confirm": "Accept & Deduct Stock" },
-      "returnOrder": { "title": "Process Return", "confirm": "Return & Restore Stock" },
-      "sendToVanex": { "title": "Send to Vanex Delivery", "confirm": "Create Package" },
-      "deletePerfume": { "title": "Delete Perfume" },
-      "deleteImage": { "title": "Delete Image" },
-      "deleteReview": { "title": "Delete Review" },
-      "deleteMemory": { "title": "Delete Memory" },
-      "deleteCoupon": { "title": "Delete Coupon" }
+      "deleteOrder": {
+        "title": "Delete Order"
+      },
+      "acceptOrder": {
+        "title": "Accept Order",
+        "confirm": "Accept & Deduct Stock"
+      },
+      "returnOrder": {
+        "title": "Process Return",
+        "confirm": "Return & Restore Stock"
+      },
+      "sendToVanex": {
+        "title": "Send to Vanex Delivery",
+        "confirm": "Create Package"
+      },
+      "deletePerfume": {
+        "title": "Delete Perfume"
+      },
+      "deleteImage": {
+        "title": "Delete Image"
+      },
+      "deleteReview": {
+        "title": "Delete Review"
+      },
+      "deleteMemory": {
+        "title": "Delete Memory"
+      },
+      "deleteCoupon": {
+        "title": "Delete Coupon"
+      }
     },
     "vanex": {
       "sendSuccess": "Sent to Vanex! Package code: {code}",
@@ -274,6 +295,7 @@
         "complete": "Complete",
         "cancelled": "Cancelled",
         "canceled": "Cancelled",
+        "store_canceled": "Cancelled by store",
         "returned": "Returned",
         "store_return": "Returned to store",
         "recalled": "Recalled",

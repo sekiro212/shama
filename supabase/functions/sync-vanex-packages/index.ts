@@ -8,11 +8,39 @@ const TERMINAL_STATUSES = [
   "delivered",
   "cancelled",
   "canceled",
+  "store_canceled",
   "returned",
   "recalled",
   "store_return",
   "complete",
 ] as const;
+
+// Vanex status → order status. The order follows the package: en-route
+// statuses keep it "shipped", terminal ones move it to delivered/returned.
+const VANEX_TO_ORDER_STATUS: Record<string, string> = {
+  store_new: "shipped",
+  accepted_by_store: "shipped",
+  pending: "shipped",
+  ship_pending: "shipped",
+  ship_preperation: "shipped",
+  ship_received: "shipped",
+  in_warehouse: "shipped",
+  in_transit: "shipped",
+  shipped: "shipped",
+  delivered: "delivered",
+  complete: "delivered",
+  cancelled: "returned",
+  canceled: "returned",
+  store_canceled: "returned",
+  recalled: "returned",
+  returned: "returned",
+  store_return: "returned",
+  ship_del_return: "returned",
+};
+
+// Order statuses an admin sets deliberately; only a terminal Vanex status
+// (delivered/returned) may override them.
+const ORDER_TERMINAL = ["delivered", "accepted", "returned"];
 
 interface VanexTrackingLogRaw {
   id: number;
@@ -73,6 +101,7 @@ function mapLogs(raw: VanexTrackingLogRaw[]): VanexLogStored[] {
 
 interface OrderSyncRow {
   id: string;
+  status: string;
   vanex_package_code: string;
   vanex_package_id: number | null;
   vanex_status: string | null;
@@ -117,6 +146,15 @@ async function syncOne(
     }
   }
 
+  // Mirror the Vanex status onto the order itself
+  const mappedOrderStatus = VANEX_TO_ORDER_STATUS[status];
+  if (mappedOrderStatus && mappedOrderStatus !== order.status) {
+    const mappedIsTerminal = ["delivered", "returned"].includes(mappedOrderStatus);
+    if (!ORDER_TERMINAL.includes(order.status) || mappedIsTerminal) {
+      patch.status = mappedOrderStatus;
+    }
+  }
+
   const { error } = await supabase.from("orders").update(patch).eq("id", order.id);
   if (error) {
     return { ok: false, error: error.message };
@@ -146,7 +184,7 @@ serve(async (req) => {
   let query = supabase
     .from("orders")
     .select(
-      "id, vanex_package_code, vanex_package_id, vanex_status, vanex_current_location, vanex_estimated_delivery, vanex_logs",
+      "id, status, vanex_package_code, vanex_package_id, vanex_status, vanex_current_location, vanex_estimated_delivery, vanex_logs",
     )
     .not("vanex_package_code", "is", null);
 

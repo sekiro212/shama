@@ -122,9 +122,10 @@ export default function CheckoutPage() {
       const discount = confirmedPromo?.valid ? confirmedPromo.discount : 0;
 
       const orderData = {
+        user_id: user?.id ?? null,
         first_name: formData.firstName,
         last_name: formData.lastName,
-        email: formData.email,
+        email: formData.email.trim().toLowerCase(),
         phone: formData.phone,
         city: formData.city,
         place_name: formData.placeName,

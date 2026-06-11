@@ -39,3 +39,18 @@ export const initialPerfumeData: Omit<Perfume, "id" | "created_at" | "updated_at
   has_samples: false,
   has_bottle_sizes: false,
 };
+
+/**
+ * Translate a Vanex status code, falling back to a humanized version of the
+ * raw code (e.g. "store_canceled" → "store canceled") when no translation
+ * key exists — Vanex adds statuses we may not have localized yet.
+ */
+export const vanexStatusLabel = (
+  t: (key: string) => string,
+  status: string
+): string => {
+  const label = t(`admin.vanex.statuses.${status}`);
+  return label === `admin.vanex.statuses.${status}`
+    ? status.replace(/_/g, " ")
+    : label;
+};

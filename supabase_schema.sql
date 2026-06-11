@@ -865,3 +865,22 @@ INSERT INTO processing_metadata (key, value) VALUES
   ('last_reengagement_check', '{"timestamp":"2000-01-01T00:00:00Z"}');
 
 ALTER TABLE processing_metadata ENABLE ROW LEVEL SECURITY;
+
+-- Transfer proofs storage policies (bank-transfer receipt uploads at checkout)
+CREATE POLICY "Anyone can upload transfer proofs"
+ON storage.objects FOR INSERT
+WITH CHECK (bucket_id = 'transfer-proofs');
+
+CREATE POLICY "Public read transfer proofs"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'transfer-proofs');
+
+UPDATE storage.buckets
+SET public = TRUE,
+    file_size_limit = 5242880,
+    allowed_mime_types = ARRAY['image/jpeg','image/png','image/webp']
+WHERE id = 'transfer-proofs';
+
+-- Link orders to authenticated users (My Orders matched by user_id, email fallback for guests)
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id);

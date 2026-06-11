@@ -151,6 +151,8 @@ export const createVanexPackage = async (
 
 /**
  * Track a Vanex package by its tracking code (public endpoint, no auth).
+ * API returns { data: { package: {...}, logs: [...] } } — map it to the
+ * flat VanexTracking shape the UI consumes.
  */
 export const trackVanexPackage = async (
   code: string,
@@ -159,7 +161,25 @@ export const trackVanexPackage = async (
     const res = await fetch(`${VANEX_BASE}/tracking?code=${encodeURIComponent(code)}`);
     if (!res.ok) return null;
     const json = await res.json();
-    return (json.data as VanexTracking) || null;
+    const pkg = json.data?.package;
+    if (!pkg) return null;
+    const logs = Array.isArray(json.data?.logs) ? json.data.logs : [];
+    return {
+      code: pkg.code,
+      status: pkg.status,
+      status_ar: pkg.status_ar ?? undefined,
+      receiver_name: pkg.reciever ?? undefined,
+      current_location: pkg.city ?? null,
+      estimated_delivery: pkg.delivery_date ?? null,
+      logs: logs.map(
+        (l: { id: number; type: string; details?: string; time: string }) => ({
+          id: l.id,
+          status: l.type,
+          description: l.details,
+          created_at: l.time,
+        }),
+      ),
+    };
   } catch (err) {
     console.error("Vanex trackPackage error:", err);
     return null;

@@ -11,7 +11,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { fetchOrdersByEmail, type Order } from "@/services/ordersService";
+import { fetchMyOrders, type Order } from "@/services/ordersService";
 import OrderDetailView from "@/components/OrderDetailView";
 
 const STATUS_PILL: Record<string, string> = {
@@ -41,7 +41,7 @@ const MyOrdersPage = () => {
       return;
     }
     setLoading(true);
-    fetchOrdersByEmail(user.email || "").then((data) => {
+    fetchMyOrders(user.id).then((data) => {
       setOrders(data);
       if (data.length > 0) setSelectedId(data[0].id);
       setLoading(false);

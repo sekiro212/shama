@@ -219,15 +219,36 @@
     },
     "confirmDialog": {
       "delete": "حذف",
-      "deleteOrder": { "title": "حذف الطلب" },
-      "acceptOrder": { "title": "قبول الطلب", "confirm": "قبول وخصم المخزون" },
-      "returnOrder": { "title": "معالجة الإرجاع", "confirm": "إرجاع واستعادة المخزون" },
-      "sendToVanex": { "title": "إرسال إلى توصيل فانكس", "confirm": "إنشاء طرد" },
-      "deletePerfume": { "title": "حذف العطر" },
-      "deleteImage": { "title": "حذف الصورة" },
-      "deleteReview": { "title": "حذف المراجعة" },
-      "deleteMemory": { "title": "حذف الذكرى" },
-      "deleteCoupon": { "title": "حذف الكوبون" }
+      "deleteOrder": {
+        "title": "حذف الطلب"
+      },
+      "acceptOrder": {
+        "title": "قبول الطلب",
+        "confirm": "قبول وخصم المخزون"
+      },
+      "returnOrder": {
+        "title": "معالجة الإرجاع",
+        "confirm": "إرجاع واستعادة المخزون"
+      },
+      "sendToVanex": {
+        "title": "إرسال إلى توصيل فانكس",
+        "confirm": "إنشاء طرد"
+      },
+      "deletePerfume": {
+        "title": "حذف العطر"
+      },
+      "deleteImage": {
+        "title": "حذف الصورة"
+      },
+      "deleteReview": {
+        "title": "حذف المراجعة"
+      },
+      "deleteMemory": {
+        "title": "حذف الذكرى"
+      },
+      "deleteCoupon": {
+        "title": "حذف الكوبون"
+      }
     },
     "vanex": {
       "sendSuccess": "تم الإرسال إلى فانكس! رمز الطرد: {code}",
@@ -274,6 +295,7 @@
         "complete": "مكتمل",
         "cancelled": "ملغى",
         "canceled": "ملغى",
+        "store_canceled": "ألغاه المتجر",
         "returned": "مُرجَع",
         "store_return": "أُرجع إلى المتجر",
         "recalled": "مسترجَع",

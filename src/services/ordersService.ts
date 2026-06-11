@@ -11,6 +11,7 @@ export interface VanexOrderLog {
 
 export interface Order {
   id: string;
+  user_id?: string | null;
   first_name: string;
   last_name: string;
   email: string;
@@ -111,13 +112,15 @@ export const fetchOrders = async (filters?: OrderFilters): Promise<Order[]> => {
   }
 };
 
-// Fetch orders by user email (for My Orders page)
-export const fetchOrdersByEmail = async (email: string): Promise<Order[]> => {
+// Fetch orders belonging to a user (for My Orders page).
+// Matches strictly by user_id — the checkout email is contact info only
+// and may differ from the account email.
+export const fetchMyOrders = async (userId: string): Promise<Order[]> => {
   try {
     const { data, error } = await supabase
       .from("orders")
       .select("*")
-      .eq("email", email.trim().toLowerCase())
+      .eq("user_id", userId)
       .order("created_at", { ascending: false });
 
     if (error) {
