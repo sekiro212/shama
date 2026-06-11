@@ -20,14 +20,15 @@ const VOICE_EN = process.env.VOICE_EN || "marin";
 const VOICE_AR = process.env.VOICE_AR || "marin";
 
 // Per-scene target durations (seconds) — keep voiceover under these.
+// Mirrors VO_BUDGET_SECONDS in src/remotion/timing.ts, held ~0.4s under each
+// budget so the natural VO length fits without atempo time-stretching.
 const TARGET = {
-  problem:  4.5,
-  solution: 4.0,
-  ai:       4.5,
-  quiz:     3.5,
-  product:  5.0,
-  delivery: 4.0,
-  cta:      4.0,
+  problem:  3.4,
+  solution: 3.0,
+  ai:       3.6,
+  product:  4.0,
+  delivery: 3.0,
+  cta:      3.6,
 };
 
 const SYSTEM_EN =
@@ -42,24 +43,24 @@ const SYSTEM_AR =
   "الأداء: نبرة دافئة، حميمة، واثقة، بإيقاع سريع ومتوازن مثل إعلان تلفزيوني فاخر مدته ثلاثون ثانية. " +
   "لا تبطّئ الكلمات، ولا تطيل، ولا تتكلم بنبرة درامية. الإيقاع متواصل من البداية للنهاية.";
 
+// NOTE: these spoken lines must stay consistent with the on-screen text in
+// src/remotion/i18n.ts (separate asset). Quiz is dropped from the cut.
 const SCRIPT = {
   en: {
-    problem:  "Buying perfume blind? Five hundred dinars gone.",
+    problem:  "Buying perfume blind? Five hundred dinars, gone.",
     solution: "Try first. Samples from three milliliters.",
     ai:       "Type what you want. We find it.",
-    quiz:     "Take the quiz. Find your scent.",
-    product:  "Real perfumes. Fair prices. Every bottle has a sample.",
+    product:  "Real perfumes. Fair prices. A sample in every bottle.",
     delivery: "Vanex to your door, in two days.",
-    cta:      "Shama dot ly.",
+    cta:      "Shama dot ly. Find your scent.",
   },
   ar: {
     problem:  "تشتري عطرك على العمياني؟ خمسمية دينار راحت.",
     solution: "جرّب الأول. عيّنات من ثلاث ملي.",
     ai:       "اكتب اللي تبي. ونلقاه لك.",
-    quiz:     "خذ الاختبار، اكتشف عطرك.",
-    product:  "عطور حقيقية، أسعار عادلة.",
+    product:  "عطور حقيقية، أسعار عادلة. وكل قارورة معاها عيّنة.",
     delivery: "فانكس لباب بيتك، خلال يومين.",
-    cta:      "شامة دوت إل واي.",
+    cta:      "شامة دوت إل واي. اكتشف عطرك.",
   },
 };
 

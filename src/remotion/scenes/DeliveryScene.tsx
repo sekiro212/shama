@@ -1,11 +1,13 @@
-import { AbsoluteFill, Audio, useCurrentFrame, interpolate, spring, useVideoConfig } from "remotion";
+import { AbsoluteFill, useCurrentFrame, interpolate, spring, useVideoConfig } from "remotion";
 import { dir, isRtl, t, type Lang } from "../i18n";
 import { getFonts } from "../fonts";
-import { sceneAudio } from "../audio";
+import { SceneBackdrop } from "../components/SceneBackdrop";
+import { KineticText } from "../components/KineticText";
 
 type Props = {
   language: Lang;
   goldColor: string;
+  primaryColor: string;
 };
 
 // Libya outline traced from Natural Earth simplified borders, projected to a
@@ -55,13 +57,11 @@ const MISRATA = { x: 257, y: 76 };
 const BENGHAZI = { x: 359, y: 95 };
 const SABHA = { x: 243, y: 192 };
 
-export const DeliveryScene: React.FC<Props> = ({ language, goldColor }) => {
+export const DeliveryScene: React.FC<Props> = ({ language, goldColor, primaryColor }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const fonts = getFonts(language);
-
-  const titleOpacity = interpolate(frame, [0, 14], [0, 1], { extrapolateRight: "clamp" });
-  const titleY = interpolate(frame, [0, 18], [22, 0], { extrapolateRight: "clamp", easing: (x) => 1 - Math.pow(1 - x, 3) });
+  const rtl = isRtl(language);
 
   const subOpacity = interpolate(frame, [56, 70], [0, 1], { extrapolateRight: "clamp" });
 
@@ -82,8 +82,6 @@ export const DeliveryScene: React.FC<Props> = ({ language, goldColor }) => {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
-
-  const exitOpacity = interpolate(frame, [78, 90], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
 
   // Quadratic bezier from Tripoli through bay-bottom control point to Benghazi.
   // B(t) = (1-t)² P0 + 2(1-t)t P1 + t² P2
@@ -106,34 +104,27 @@ export const DeliveryScene: React.FC<Props> = ({ language, goldColor }) => {
   const truckAngle = (Math.atan2(dy, dx) * 180) / Math.PI;
 
   return (
-    <AbsoluteFill
-      style={{
-        background: "#0A0A0A",
-        direction: dir(language),
-        alignItems: "center",
-        justifyContent: "center",
-        opacity: exitOpacity,
-        gap: 32,
-      }}
-    >
-      <Audio src={sceneAudio("delivery", language)} volume={0.95} />
+    <AbsoluteFill style={{ direction: dir(language) }}>
+      <SceneBackdrop primaryColor={primaryColor} goldColor={goldColor} seed={5.1} intensity={1} />
 
-      <div
+      <AbsoluteFill style={{ alignItems: "center", justifyContent: "center", direction: dir(language), gap: 32 }}>
+      <KineticText
+        mode="rise"
+        delay={0}
+        rtl={rtl}
         style={{
-          opacity: titleOpacity,
-          transform: `translateY(${titleY}px)`,
           fontFamily: fonts.display,
           fontSize: 72,
-          fontWeight: isRtl(language) ? 800 : 700,
+          fontWeight: rtl ? 800 : 700,
           color: "#F5F5F5",
           textAlign: "center",
           padding: "0 40px",
           lineHeight: 1.15,
-          letterSpacing: isRtl(language) ? 0 : -0.5,
+          letterSpacing: rtl ? 0 : -0.5,
         }}
       >
         {t("delivery_title", language)}
-      </div>
+      </KineticText>
 
       <div
         style={{
@@ -307,6 +298,7 @@ export const DeliveryScene: React.FC<Props> = ({ language, goldColor }) => {
       >
         {t("delivery_sub", language)}
       </div>
+      </AbsoluteFill>
     </AbsoluteFill>
   );
 };

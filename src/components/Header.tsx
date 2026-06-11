@@ -27,7 +27,13 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useScrollThreshold } from "@/hooks/useScrollThreshold";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -88,11 +94,15 @@ export default function Header({ onCartClick, onSearchClick }: HeaderProps) {
   const isActive = (href: string) =>
     href === "/" ? location.pathname === "/" : location.pathname.startsWith(href);
 
+  // Visible keyboard focus ring, theme-aware offset (a11y: focus-states)
+  const focusRing =
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5B8DD9] focus-visible:ring-offset-2 focus-visible:ring-offset-[#F8F9FB] dark:focus-visible:ring-offset-[#1a2235]";
+
   const iconBtn =
-    "glass dark:bg-white/5 bg-[#5B8DD9]/10 dark:hover:bg-white/10 hover:bg-[#5B8DD9]/20 border dark:border-white/10 border-[#323D50]/10 rounded-xl w-10 h-10 transition-colors duration-300";
+    `glass dark:bg-white/5 bg-[#5B8DD9]/10 dark:hover:bg-white/10 hover:bg-[#5B8DD9]/20 border dark:border-white/10 border-[#323D50]/10 rounded-xl w-10 h-10 transition-[background-color,border-color,transform] duration-300 motion-safe:active:scale-95 ${focusRing}`;
 
   const badge =
-    "absolute -top-1 -end-1 min-w-[18px] h-[18px] px-1 bg-warm text-[#1a2235] text-[10px] rounded-full flex items-center justify-center font-bold leading-none ring-2 ring-[#F8F9FB] dark:ring-[#1a2235]";
+    "pointer-events-none absolute -top-1 -end-1 min-w-[18px] h-[18px] px-1 bg-warm text-[#1a2235] text-[10px] rounded-full flex items-center justify-center font-bold leading-none ring-2 ring-[#F8F9FB] dark:ring-[#1a2235]";
 
   return (
     <>
@@ -119,8 +129,8 @@ export default function Header({ onCartClick, onSearchClick }: HeaderProps) {
           announcementOpen ? "top-8" : "top-0 pt-safe"
         } ${
           scrolled
-            ? "backdrop-blur-md bg-[#F8F9FB]/90 dark:bg-[#1a2235]/90 border-b border-warm/10"
-            : "bg-transparent"
+            ? "backdrop-blur-md bg-[#F8F9FB]/90 dark:bg-[#1a2235]/90 border-b border-warm/10 shadow-[0_6px_28px_-16px_rgba(30,42,61,0.35)] dark:shadow-[0_10px_36px_-18px_rgba(0,0,0,0.7)]"
+            : "bg-transparent border-b border-transparent"
         }`}
       >
         <div className="container mx-auto px-3 sm:px-4 py-3 sm:py-4">
@@ -128,11 +138,11 @@ export default function Header({ onCartClick, onSearchClick }: HeaderProps) {
             {/* Logo */}
             <Link
               to="/"
-              className="group flex items-center space-x-3 rtl:space-x-reverse transition-transform duration-300 hover:scale-[1.02]"
+              className={`group flex items-center space-x-3 rtl:space-x-reverse rounded-xl transition-transform duration-300 motion-safe:hover:scale-[1.02] ${focusRing}`}
               aria-label="Shama Perfumes home"
             >
               <div className="relative">
-                <div className="w-10 h-10 glass rounded-xl overflow-hidden border border-[#323D50]/10 dark:border-white/10">
+                <div className="w-10 h-10 glass rounded-xl overflow-hidden border border-[#323D50]/10 dark:border-white/15">
                   <img
                     src="/shama-logo.jpg"
                     alt=""
@@ -151,40 +161,33 @@ export default function Header({ onCartClick, onSearchClick }: HeaderProps) {
               </div>
             </Link>
 
-            {/* Desktop Navigation */}
-            <nav className="hidden lg:flex items-center gap-1" aria-label="Primary">
+            {/* Desktop Navigation — text-only editorial; icons reserved for utilities + mobile */}
+            <nav className="hidden lg:flex items-center gap-0.5" aria-label="Primary">
               {navigation.map((item) => {
                 const active = isActive(item.href);
-                const Icon = item.Icon;
                 return (
                   <Link
                     key={item.href}
                     to={item.href}
                     aria-current={active ? "page" : undefined}
-                    className="group relative px-2.5 py-2 rounded-lg transition-colors duration-300 hover:bg-[#5B8DD9]/5 dark:hover:bg-white/5 whitespace-nowrap"
+                    className={`group relative px-3 py-2 rounded-lg transition-colors duration-300 whitespace-nowrap ${focusRing}`}
                   >
-                    <div className="flex items-center gap-1.5">
-                      <Icon
-                        className={`w-4 h-4 transition-colors duration-300 ${
-                          item.isAiFinder
-                            ? "text-[#5B8DD9]"
-                            : active
-                            ? "text-warm"
-                            : "text-[#3E6BB5] dark:text-[#8BB4F0]"
-                        }`}
-                      />
-                      <span
-                        className={`text-[13px] font-medium transition-colors duration-300 ${
-                          active
-                            ? "text-[#1E2A3D] dark:text-[#F5F5F5]"
-                            : "text-[#323D50]/80 dark:text-white/80"
-                        }`}
-                      >
-                        {item.name}
-                      </span>
-                    </div>
                     <span
-                      className={`absolute bottom-0 left-2.5 right-2.5 h-[2px] bg-warm origin-center transition-transform duration-300 ${
+                      className={`flex items-center gap-1.5 text-[13.5px] font-medium transition-colors duration-300 ${
+                        isRTL ? "" : "tracking-wide"
+                      } ${
+                        active
+                          ? "text-[#1E2A3D] dark:text-[#F5F5F5]"
+                          : item.isAiFinder
+                          ? "text-[#5B8DD9] dark:text-[#8BB4F0]"
+                          : "text-[#323D50]/75 dark:text-white/75 group-hover:text-[#1E2A3D] dark:group-hover:text-white"
+                      }`}
+                    >
+                      {item.isAiFinder && <Sparkles className="w-3.5 h-3.5" aria-hidden />}
+                      {item.name}
+                    </span>
+                    <span
+                      className={`absolute bottom-0.5 left-3 right-3 h-[1.5px] rounded-full bg-warm origin-center transition-transform duration-300 ${
                         active ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
                       }`}
                       aria-hidden
@@ -282,24 +285,27 @@ export default function Header({ onCartClick, onSearchClick }: HeaderProps) {
                   </Link>
                 )}
 
-                <Link to="/wishlist">
+                {/* Badge lives on the Link, not the <button> — global `button{overflow:hidden}` would clip it */}
+                <Link to="/wishlist" className="relative inline-flex">
                   <Button
                     variant="ghost"
                     size="icon"
                     aria-label={t("header.wishlist")}
-                    className={`${iconBtn} relative`}
+                    className={iconBtn}
                   >
                     <Heart className="w-4 h-4" />
-                    {wishlistItems.length > 0 && (
-                      <span className={badge}>{wishlistItems.length}</span>
-                    )}
                   </Button>
+                  {wishlistItems.length > 0 && (
+                    <span className={badge} aria-hidden>
+                      {wishlistItems.length > 99 ? "99+" : wishlistItems.length}
+                    </span>
+                  )}
                 </Link>
 
                 <Button
                   onClick={onCartClick}
                   aria-label={t("header.cart")}
-                  className="bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] hover:from-[#3E6BB5] hover:to-[#5B8DD9] text-white border-0 rounded-xl px-4 h-10 font-medium glow-warm-hover relative"
+                  className={`bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] hover:from-[#3E6BB5] hover:to-[#5B8DD9] text-white border-0 rounded-xl px-4 h-10 font-medium glow-warm-hover relative motion-safe:active:scale-95 transition-transform ${focusRing}`}
                 >
                   <ShoppingBag className="w-4 h-4 me-2" />
                   <span className="inline-flex items-center gap-2">
@@ -316,20 +322,23 @@ export default function Header({ onCartClick, onSearchClick }: HeaderProps) {
 
             {/* Mobile Actions: Cart + Menu */}
             <div className="flex items-center gap-2 lg:hidden">
-              <Button
-                onClick={onCartClick}
-                aria-label={t("header.cart")}
-                variant="ghost"
-                size="icon"
-                className={`${iconBtn} w-11 h-11 dark:text-[#F5F5F5] text-[#323D50] relative`}
-              >
-                <ShoppingBag className="h-5 w-5" />
+              {/* Badge on the wrapper, not the <button> (global button{overflow:hidden} clips children) */}
+              <span className="relative inline-flex">
+                <Button
+                  onClick={onCartClick}
+                  aria-label={t("header.cart")}
+                  variant="ghost"
+                  size="icon"
+                  className={`${iconBtn} w-11 h-11 dark:text-[#F5F5F5] text-[#323D50]`}
+                >
+                  <ShoppingBag className="h-5 w-5" />
+                </Button>
                 {getItemCount() > 0 && (
-                  <span className={badge}>
+                  <span className={badge} aria-hidden>
                     {getItemCount() > 99 ? "99+" : getItemCount()}
                   </span>
                 )}
-              </Button>
+              </span>
               <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
                 <SheetTrigger asChild>
                   <Button
@@ -345,6 +354,12 @@ export default function Header({ onCartClick, onSearchClick }: HeaderProps) {
                   side={isRTL ? "left" : "right"}
                   className="glass-card bg-[#F8F9FB]/98 dark:bg-[#1a2235]/98 backdrop-blur-md border-s border-warm/15 w-80"
                 >
+                  {/* Accessible name for screen readers (visually hidden) */}
+                  <SheetTitle className="sr-only">{t("header.menu")}</SheetTitle>
+                  <SheetDescription className="sr-only">
+                    {t("header.luxuryScents")}
+                  </SheetDescription>
+
                   {/* Mobile Menu Header */}
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center space-x-3 rtl:space-x-reverse">
@@ -373,7 +388,7 @@ export default function Header({ onCartClick, onSearchClick }: HeaderProps) {
                           to={item.href}
                           onClick={() => setIsMenuOpen(false)}
                           aria-current={active ? "page" : undefined}
-                          className={`relative flex items-center gap-3 rounded-xl px-4 py-3 transition-colors ${
+                          className={`relative flex items-center gap-3 rounded-xl px-4 py-3 transition-colors motion-safe:active:scale-[0.98] ${focusRing} ${
                             active
                               ? "bg-warm/10 text-[#1E2A3D] dark:text-[#F5F5F5]"
                               : "hover:bg-[#5B8DD9]/10 dark:hover:bg-white/5 text-[#323D50]/85 dark:text-white/85"
@@ -501,7 +516,7 @@ export default function Header({ onCartClick, onSearchClick }: HeaderProps) {
                       onCartClick();
                       setIsMenuOpen(false);
                     }}
-                    className="w-full bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] hover:from-[#3E6BB5] hover:to-[#5B8DD9] text-white border-0 rounded-xl py-4 font-semibold glow-warm-hover"
+                    className={`w-full bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] hover:from-[#3E6BB5] hover:to-[#5B8DD9] text-white border-0 rounded-xl py-4 font-semibold glow-warm-hover motion-safe:active:scale-[0.98] transition-transform ${focusRing}`}
                   >
                     <ShoppingBag className="w-5 h-5 me-2" />
                     {t("header.cart")}

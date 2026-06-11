@@ -1,24 +1,27 @@
-import { AbsoluteFill, Audio, useCurrentFrame, interpolate, spring, useVideoConfig } from "remotion";
+import { AbsoluteFill, useCurrentFrame, interpolate, spring, useVideoConfig } from "remotion";
 import { dir, isRtl, t, formatPrice, type Lang } from "../i18n";
 import { getFonts } from "../fonts";
-import { sceneAudio } from "../audio";
+import { SceneBackdrop } from "../components/SceneBackdrop";
+import { KineticText } from "../components/KineticText";
 
 type Props = {
   language: Lang;
   blindPrice: number;
   goldColor: string;
+  primaryColor: string;
 };
 
-export const ProblemScene: React.FC<Props> = ({ language, blindPrice, goldColor }) => {
+export const ProblemScene: React.FC<Props> = ({ language, blindPrice, goldColor, primaryColor }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const fonts = getFonts(language);
-
-  const hookOpacity = interpolate(frame, [0, 14], [0, 1], { extrapolateRight: "clamp" });
-  const hookY = interpolate(frame, [0, 18], [22, 0], { extrapolateRight: "clamp", easing: (x) => 1 - Math.pow(1 - x, 3) });
+  const rtl = isRtl(language);
 
   const subOpacity = interpolate(frame, [22, 36], [0, 1], { extrapolateRight: "clamp" });
-  const counterStart = 24;
+
+  // Price counts up to the blind-buy price, then a strike-through slashes it — the
+  // money is "gone". Loss aversion made visible.
+  const counterStart = 20;
   const counterProgress = spring({
     frame: frame - counterStart,
     fps,
@@ -27,72 +30,75 @@ export const ProblemScene: React.FC<Props> = ({ language, blindPrice, goldColor 
   const shownPrice = Math.round(counterProgress * blindPrice);
   const priceText = formatPrice(shownPrice, language);
 
-  const exitOpacity = interpolate(frame, [78, 90], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  // Once the counter lands on the full price, slash it red — the money is gone.
+  const struck = frame >= 46;
 
   return (
-    <AbsoluteFill
-      style={{
-        background: "#0A0A0A",
-        direction: dir(language),
-        alignItems: "center",
-        justifyContent: "center",
-        opacity: exitOpacity,
-      }}
-    >
-      <Audio src={sceneAudio("problem", language)} volume={0.95} />
+    <AbsoluteFill style={{ direction: dir(language) }}>
+      <SceneBackdrop primaryColor={primaryColor} goldColor={goldColor} seed={0} intensity={1.15} />
 
-      <div
+      <AbsoluteFill
         style={{
-          opacity: hookOpacity,
-          transform: `translateY(${hookY}px)`,
+          alignItems: "center",
+          justifyContent: "center",
+          direction: dir(language),
+        }}
+      >
+      <KineticText
+        mode="rise"
+        delay={2}
+        stagger={4}
+        rtl={rtl}
+        style={{
           fontFamily: fonts.display,
-          fontSize: isRtl(language) ? 78 : 96,
-          fontWeight: isRtl(language) ? 800 : 700,
+          fontSize: rtl ? 86 : 100,
+          fontWeight: rtl ? 800 : 700,
           color: "#F5F5F5",
           textAlign: "center",
-          lineHeight: 1.2,
-          maxWidth: 980,
-          padding: "0 50px",
-          letterSpacing: isRtl(language) ? 0 : -1,
-          wordBreak: "break-word",
+          lineHeight: 1.18,
+          maxWidth: 940,
+          padding: "0 56px",
+          letterSpacing: rtl ? 0 : -1.5,
         }}
       >
         {t("problem_hook", language)}
-      </div>
+      </KineticText>
 
       <div
         style={{
           opacity: subOpacity,
-          marginTop: 56,
+          marginTop: 58,
           fontFamily: fonts.body,
           fontSize: 44,
           fontWeight: 400,
           color: "rgba(245,245,245,0.72)",
-          textAlign: "center",
           letterSpacing: 0.2,
-          display: "flex",
-          flexDirection: isRtl(language) ? "row-reverse" : "row",
-          alignItems: "baseline",
-          justifyContent: "center",
-          gap: 14,
+          textAlign: "center",
+          direction: dir(language),
+          lineHeight: 1.3,
+          padding: "0 40px",
+          maxWidth: 1000,
         }}
       >
         <span
           style={{
             fontFamily: fonts.display,
-            fontSize: 68,
+            fontSize: 66,
             fontWeight: 700,
-            color: goldColor,
+            color: struck ? "#FF5F57" : goldColor,
             fontVariantNumeric: "tabular-nums",
-            minWidth: 140,
-            textAlign: isRtl(language) ? "left" : "right",
-            direction: "ltr",
+            textDecoration: struck ? "line-through" : "none",
+            textDecorationColor: "#FF5F57",
+            textDecorationThickness: 5,
+            textShadow: struck ? "0 0 22px rgba(255,95,87,0.45)" : "none",
+            marginInlineEnd: 14,
           }}
         >
           {priceText}
         </span>
-        <span>{t("problem_sub_suffix", language)}</span>
+        {t("problem_sub_suffix", language)}
       </div>
+      </AbsoluteFill>
     </AbsoluteFill>
   );
 };

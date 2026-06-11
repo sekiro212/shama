@@ -371,39 +371,29 @@ export default function CollectionPage() {
         </div>
       </div>
 
-      {/* Products Grid */}
-      <div className="container mx-auto px-4 pt-8 pb-12 max-w-7xl">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 xl:gap-8 auto-rows-fr items-stretch">
+      {/* Products Grid — edge-to-edge hairline lattice (Amouage-style) */}
+      <div className="w-full pt-8 pb-12">
+        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 auto-rows-fr border-t border-s border-[#323D50]/10 dark:border-white/10">
           {loading
             ? Array.from({ length: 8 }).map((_, index) => (
                 <div
                   key={index}
-                  className="glass-card rounded-2xl overflow-hidden"
+                  className="border-b border-e border-[#323D50]/10 dark:border-white/10"
                 >
                   <div className="aspect-[4/5] shama-skeleton" />
-                  <div className="p-5 space-y-3">
-                    <div className="h-6 shama-skeleton rounded w-3/4" />
-                    <div className="flex items-center justify-between">
-                      <div className="h-3 shama-skeleton rounded w-20" />
-                      <div className="h-5 shama-skeleton rounded-full w-16" />
-                    </div>
-                    <div className="space-y-2">
-                      <div className="h-3 shama-skeleton rounded w-full" />
-                      <div className="h-3 shama-skeleton rounded w-5/6" />
-                    </div>
-                    <div className="flex gap-1.5">
-                      <div className="h-5 shama-skeleton rounded-full w-14" />
-                      <div className="h-5 shama-skeleton rounded-full w-14" />
-                    </div>
-                    <div className="flex items-end justify-between pt-2">
-                      <div className="h-7 shama-skeleton rounded w-24" />
-                      <div className="h-11 shama-skeleton rounded-xl w-28" />
-                    </div>
+                  <div className="flex flex-col items-center gap-2 px-4 pb-6 pt-5">
+                    <div className="h-4 w-2/3 rounded shama-skeleton" />
+                    <div className="h-4 w-16 rounded shama-skeleton" />
                   </div>
                 </div>
               ))
             : filteredProducts.map((product) => (
-                <ProductCard key={product.id} product={product} />
+                <div
+                  key={product.id}
+                  className="border-b border-e border-[#323D50]/10 dark:border-white/10"
+                >
+                  <ProductCard product={product} />
+                </div>
               ))}
         </div>
 

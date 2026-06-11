@@ -1,11 +1,14 @@
-import { AbsoluteFill, Audio, useCurrentFrame, interpolate, spring, useVideoConfig } from "remotion";
+import { AbsoluteFill, useCurrentFrame, interpolate, spring, useVideoConfig } from "remotion";
 import { dir, isRtl, t, type Lang } from "../i18n";
 import { getFonts } from "../fonts";
-import { sceneAudio } from "../audio";
+import { SceneBackdrop } from "../components/SceneBackdrop";
+import { KineticText } from "../components/KineticText";
+import { LightSweep } from "../components/LightSweep";
 
 type Props = {
   language: Lang;
   goldColor: string;
+  primaryColor: string;
 };
 
 const SAMPLES = [
@@ -14,53 +17,43 @@ const SAMPLES = [
   { ml: "30ml", height: 340 },
 ];
 
-export const SolutionScene: React.FC<Props> = ({ language, goldColor }) => {
+export const SolutionScene: React.FC<Props> = ({ language, goldColor, primaryColor }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const fonts = getFonts(language);
+  const rtl = isRtl(language);
 
-  const titleOpacity = interpolate(frame, [0, 14], [0, 1], { extrapolateRight: "clamp" });
-  const titleY = interpolate(frame, [0, 18], [22, 0], { extrapolateRight: "clamp", easing: (x) => 1 - Math.pow(1 - x, 3) });
+  const subOpacity = interpolate(frame, [54, 68], [0, 1], { extrapolateRight: "clamp" });
 
-  const subOpacity = interpolate(frame, [56, 70], [0, 1], { extrapolateRight: "clamp" });
-
-  const underlineWidth = interpolate(frame, [22, 50], [0, 320], {
+  const underlineWidth = interpolate(frame, [20, 48], [0, 320], {
     extrapolateRight: "clamp",
     easing: (x) => 1 - Math.pow(1 - x, 4),
   });
 
-  const exitOpacity = interpolate(frame, [78, 90], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-
-  const ordered = isRtl(language) ? [...SAMPLES].reverse() : SAMPLES;
+  const ordered = rtl ? [...SAMPLES].reverse() : SAMPLES;
 
   return (
-    <AbsoluteFill
-      style={{
-        background: "#0A0A0A",
-        direction: dir(language),
-        alignItems: "center",
-        justifyContent: "center",
-        opacity: exitOpacity,
-      }}
-    >
-      <Audio src={sceneAudio("solution", language)} volume={0.95} />
+    <AbsoluteFill style={{ direction: dir(language) }}>
+      <SceneBackdrop primaryColor={primaryColor} goldColor={goldColor} seed={1.4} intensity={1} />
 
-      <div
+      <AbsoluteFill style={{ alignItems: "center", justifyContent: "center", direction: dir(language) }}>
+      <KineticText
+        mode="rise"
+        delay={0}
+        rtl={rtl}
         style={{
-          opacity: titleOpacity,
-          transform: `translateY(${titleY}px)`,
           fontFamily: fonts.display,
-          fontSize: 88,
-          fontWeight: isRtl(language) ? 800 : 700,
+          fontSize: 90,
+          fontWeight: rtl ? 800 : 700,
           color: "#F5F5F5",
           textAlign: "center",
           lineHeight: 1.1,
-          letterSpacing: isRtl(language) ? 0 : -0.5,
+          letterSpacing: rtl ? 0 : -0.5,
           padding: "0 40px",
         }}
       >
         {t("solution_title", language)}
-      </div>
+      </KineticText>
 
       <div
         style={{
@@ -69,30 +62,35 @@ export const SolutionScene: React.FC<Props> = ({ language, goldColor }) => {
           width: underlineWidth,
           background: goldColor,
           borderRadius: 2,
+          boxShadow: `0 0 16px ${goldColor}88`,
         }}
       />
 
       <div
         style={{
+          position: "relative",
           marginTop: 80,
           display: "flex",
           flexDirection: "row",
           alignItems: "flex-end",
           gap: 60,
+          padding: "0 30px",
         }}
       >
         {ordered.map((s, i) => {
           const enter = spring({
-            frame: frame - 14 - i * 10,
+            frame: frame - 12 - i * 9,
             fps,
             config: { damping: 14, stiffness: 100, mass: 0.7 },
           });
+          // gentle continuous float, phase-offset per vial
+          const float = Math.sin((frame + i * 20) / 22) * 5;
           return (
             <div
               key={s.ml}
               style={{
                 opacity: enter,
-                transform: `translateY(${(1 - enter) * 40}px)`,
+                transform: `translateY(${(1 - enter) * 40 + float}px)`,
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
@@ -101,15 +99,18 @@ export const SolutionScene: React.FC<Props> = ({ language, goldColor }) => {
             >
               <div
                 style={{
+                  position: "relative",
                   width: 84,
                   height: s.height,
-                  background: "linear-gradient(180deg, rgba(212,175,55,0.0) 0%, rgba(212,175,55,0.18) 60%, rgba(212,175,55,0.55) 100%)",
+                  background:
+                    "linear-gradient(180deg, rgba(212,175,55,0.0) 0%, rgba(212,175,55,0.18) 60%, rgba(212,175,55,0.55) 100%)",
                   borderRadius: 14,
                   border: "1px solid rgba(212,175,55,0.35)",
-                  position: "relative",
+                  overflow: "hidden",
                   boxShadow: "0 30px 80px rgba(212,175,55,0.15)",
                 }}
               >
+                {/* cap */}
                 <div
                   style={{
                     position: "absolute",
@@ -123,6 +124,7 @@ export const SolutionScene: React.FC<Props> = ({ language, goldColor }) => {
                     border: "1px solid rgba(245,245,245,0.12)",
                   }}
                 />
+                <LightSweep delay={26 + i * 8} duration={30} bandWidth={60} color="rgba(255,240,200,0.5)" />
               </div>
               <div
                 style={{
@@ -148,7 +150,7 @@ export const SolutionScene: React.FC<Props> = ({ language, goldColor }) => {
           fontFamily: fonts.body,
           fontSize: 30,
           fontWeight: 400,
-          color: "rgba(245,245,245,0.55)",
+          color: "rgba(245,245,245,0.6)",
           textAlign: "center",
           letterSpacing: 0.3,
           padding: "0 40px",
@@ -156,6 +158,7 @@ export const SolutionScene: React.FC<Props> = ({ language, goldColor }) => {
       >
         {t("solution_sub", language)}
       </div>
+      </AbsoluteFill>
     </AbsoluteFill>
   );
 };

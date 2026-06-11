@@ -1,10 +1,10 @@
-import { AbsoluteFill, Audio, useCurrentFrame, interpolate, spring, useVideoConfig, staticFile } from "remotion";
+import { AbsoluteFill, useCurrentFrame, interpolate, spring, useVideoConfig, staticFile } from "remotion";
 
 const resolveAsset = (url: string) => (url.startsWith("/") ? staticFile(url.slice(1)) : url);
 import { dir, isRtl, t, type Lang } from "../i18n";
 import { getFonts } from "../fonts";
 import { BrowserChrome } from "../components/BrowserChrome";
-import { sceneAudio } from "../audio";
+import { SceneBackdrop } from "../components/SceneBackdrop";
 import type { Product } from "../schema";
 
 type Props = {
@@ -14,10 +14,14 @@ type Props = {
   products: Product[];
 };
 
+const TYPE_START = 16;
+const TYPE_SPEED = 0.85; // chars per frame
+
 export const AIFinderScene: React.FC<Props> = ({ language, goldColor, primaryColor, products }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const fonts = getFonts(language);
+  const rtl = isRtl(language);
 
   const chromeEnter = spring({
     frame,
@@ -25,29 +29,22 @@ export const AIFinderScene: React.FC<Props> = ({ language, goldColor, primaryCol
     config: { damping: 18, stiffness: 90, mass: 0.8 },
   });
 
-  const labelOpacity = interpolate(frame, [10, 28], [0, 1], { extrapolateRight: "clamp" });
+  const labelOpacity = interpolate(frame, [6, 22], [0, 1], { extrapolateRight: "clamp" });
 
   const typed = t("ai_typed", language);
-  const charsToShow = Math.max(0, Math.min(typed.length, Math.floor((frame - 30) * 0.7)));
+  const charsToShow = Math.max(0, Math.min(typed.length, Math.floor((frame - TYPE_START) * TYPE_SPEED)));
   const typedSubstring = typed.slice(0, charsToShow);
+  const doneTyping = charsToShow >= typed.length;
 
   const cursorVisible = Math.floor(frame / 8) % 2 === 0;
 
-  const resultsStart = 30 + Math.ceil(typed.length / 0.7) + 6;
-  const exitOpacity = interpolate(frame, [138, 150], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const resultsStart = TYPE_START + Math.ceil(typed.length / TYPE_SPEED) + 4;
 
   return (
-    <AbsoluteFill
-      style={{
-        background: "#0A0A0A",
-        direction: dir(language),
-        alignItems: "center",
-        justifyContent: "center",
-        opacity: exitOpacity,
-      }}
-    >
-      <Audio src={sceneAudio("ai", language)} volume={0.95} />
+    <AbsoluteFill style={{ direction: dir(language) }}>
+      <SceneBackdrop primaryColor={primaryColor} goldColor={goldColor} seed={2.7} intensity={1.05} />
 
+      <AbsoluteFill style={{ alignItems: "center", justifyContent: "center", direction: dir(language) }}>
       <div
         style={{
           opacity: labelOpacity,
@@ -82,14 +79,17 @@ export const AIFinderScene: React.FC<Props> = ({ language, goldColor, primaryCol
           >
             <div
               style={{
+                position: "relative",
                 background: "rgba(255,255,255,0.04)",
-                border: "1px solid rgba(255,255,255,0.08)",
+                border: `1px solid ${doneTyping ? goldColor + "66" : "rgba(255,255,255,0.08)"}`,
                 borderRadius: 18,
                 padding: "22px 26px",
                 display: "flex",
-                flexDirection: isRtl(language) ? "row-reverse" : "row",
+                flexDirection: rtl ? "row-reverse" : "row",
                 alignItems: "center",
                 gap: 18,
+                transition: "border-color 0.3s",
+                boxShadow: doneTyping ? `0 0 30px ${goldColor}22` : "none",
               }}
             >
               <div
@@ -110,6 +110,7 @@ export const AIFinderScene: React.FC<Props> = ({ language, goldColor, primaryCol
                   color: "rgba(245,245,245,0.95)",
                   letterSpacing: 0.2,
                   minHeight: 36,
+                  textAlign: rtl ? "right" : "left",
                 }}
               >
                 {typedSubstring}
@@ -121,7 +122,7 @@ export const AIFinderScene: React.FC<Props> = ({ language, goldColor, primaryCol
                     background: goldColor,
                     marginInlineStart: 4,
                     verticalAlign: "middle",
-                    opacity: cursorVisible ? 1 : 0,
+                    opacity: !doneTyping && cursorVisible ? 1 : 0,
                   }}
                 />
               </div>
@@ -151,7 +152,7 @@ export const AIFinderScene: React.FC<Props> = ({ language, goldColor, primaryCol
             >
               {products.slice(0, 3).map((p, i) => {
                 const cardEnter = spring({
-                  frame: frame - resultsStart - i * 8,
+                  frame: frame - resultsStart - i * 7,
                   fps,
                   config: { damping: 18, stiffness: 110, mass: 0.7 },
                 });
@@ -186,7 +187,7 @@ export const AIFinderScene: React.FC<Props> = ({ language, goldColor, primaryCol
                         fontSize: 22,
                         fontWeight: 600,
                         color: "#F5F5F5",
-                        textAlign: isRtl(language) ? "right" : "left",
+                        textAlign: rtl ? "right" : "left",
                       }}
                     >
                       {p.name[language]}
@@ -201,18 +202,20 @@ export const AIFinderScene: React.FC<Props> = ({ language, goldColor, primaryCol
 
       <div
         style={{
-          opacity: interpolate(frame, [resultsStart + 24, resultsStart + 38], [0, 1], { extrapolateRight: "clamp" }),
+          opacity: interpolate(frame, [resultsStart + 20, resultsStart + 34], [0, 1], { extrapolateRight: "clamp" }),
           marginTop: 36,
           fontFamily: fonts.body,
           fontSize: 28,
           fontWeight: 400,
-          color: "rgba(245,245,245,0.65)",
+          color: "rgba(245,245,245,0.7)",
           textAlign: "center",
           letterSpacing: 0.3,
+          padding: "0 40px",
         }}
       >
         {t("ai_caption", language)}
       </div>
+      </AbsoluteFill>
     </AbsoluteFill>
   );
 };

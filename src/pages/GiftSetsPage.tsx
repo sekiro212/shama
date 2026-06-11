@@ -162,25 +162,29 @@ export default function GiftSetsPage() {
 
         {/* Gift Sets Grid */}
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          <div className="grid grid-cols-2 lg:grid-cols-3 border-t border-s border-[#323D50]/10 dark:border-white/10">
             {Array.from({ length: 6 }).map((_, i) => (
               <div
                 key={i}
-                className="glass-card rounded-2xl overflow-hidden animate-pulse"
+                className="border-b border-e border-[#323D50]/10 dark:border-white/10"
               >
-                <div className="aspect-[4/5] bg-white/10 dark:bg-white/5" />
-                <div className="p-5 space-y-3">
-                  <div className="h-6 bg-white/10 dark:bg-white/5 rounded w-3/4" />
-                  <div className="h-3 bg-white/10 dark:bg-white/5 rounded w-1/2" />
-                  <div className="h-11 bg-white/10 dark:bg-white/5 rounded-xl w-full" />
+                <div className="aspect-[4/5] shama-skeleton" />
+                <div className="flex flex-col items-center gap-2 px-4 pb-6 pt-5">
+                  <div className="h-4 w-2/3 rounded shama-skeleton" />
+                  <div className="h-4 w-16 rounded shama-skeleton" />
                 </div>
               </div>
             ))}
           </div>
         ) : filteredGiftSets.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          <div className="grid grid-cols-2 lg:grid-cols-3 border-t border-s border-[#323D50]/10 dark:border-white/10">
             {filteredGiftSets.map((product) => (
-              <ProductCard key={product.id} product={product} />
+              <div
+                key={product.id}
+                className="border-b border-e border-[#323D50]/10 dark:border-white/10"
+              >
+                <ProductCard product={product} />
+              </div>
             ))}
           </div>
         ) : (

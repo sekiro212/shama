@@ -349,22 +349,23 @@ export default function HomePage() {
           <div
             className={
               loading || featuredProducts.length >= 3
-                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8"
+                ? "grid grid-cols-2 md:grid-cols-3 border-t border-s border-[#323D50]/10 dark:border-white/10"
                 : featuredProducts.length === 2
-                  ? "grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 md:gap-8 max-w-3xl mx-auto"
-                  : "max-w-md mx-auto"
+                  ? "grid grid-cols-2 border-t border-s border-[#323D50]/10 dark:border-white/10 max-w-3xl mx-auto"
+                  : "max-w-md mx-auto border border-[#323D50]/10 dark:border-white/10"
             }
           >
             {loading
               ? Array.from({ length: 3 }).map((_, index) => (
                   <div
                     key={index}
-                    className="glass-card rounded-2xl p-6"
+                    className="border-b border-e border-[#323D50]/10 dark:border-white/10"
                   >
-                    <div className="aspect-square shama-skeleton rounded-lg mb-4" />
-                    <div className="h-6 shama-skeleton rounded mb-2" />
-                    <div className="h-4 shama-skeleton rounded w-3/4 mb-2" />
-                    <div className="h-8 shama-skeleton rounded w-1/2" />
+                    <div className="aspect-[4/5] shama-skeleton" />
+                    <div className="flex flex-col items-center gap-2 px-4 pb-6 pt-5">
+                      <div className="h-4 w-2/3 rounded shama-skeleton" />
+                      <div className="h-4 w-16 rounded shama-skeleton" />
+                    </div>
                   </div>
                 ))
               : featuredProducts.map((product, index) => (
@@ -377,6 +378,7 @@ export default function HomePage() {
                       delay: 0.05 + index * 0.06,
                       ease: "easeOut",
                     }}
+                    className="border-b border-e border-[#323D50]/10 dark:border-white/10"
                   >
                     <ProductCard product={product} />
                   </motion.div>

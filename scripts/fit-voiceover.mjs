@@ -14,15 +14,15 @@ import { fileURLToPath } from "node:url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..");
 
-// Scene durations in seconds (from Video.tsx SCENES map / 30 fps).
+// Per-scene voiceover budgets in seconds — mirrors VO_BUDGET_SECONDS in
+// src/remotion/timing.ts (the audible window before the next scene's VO starts).
 const SCENE_SECONDS = {
-  problem:  3.0,
-  solution: 3.0,
-  ai:       5.0,
-  quiz:     4.0,
-  product:  5.0,
-  delivery: 3.0,
-  cta:      5.0,
+  problem:  3.8,
+  solution: 3.4,
+  ai:       4.0,
+  product:  4.4,
+  delivery: 3.4,
+  cta:      4.13,
 };
 const HEADROOM = 0.92; // leave ~8% breathing room
 
@@ -47,8 +47,10 @@ function atempoChain(ratio) {
 function fit(file, targetDur) {
   const cur = probeDuration(file);
   const ratio = cur / targetDur;
-  if (ratio <= 1.02 && ratio >= 0.85) {
-    // Close enough, skip
+  // Only ever speed up an overrun. A line that is naturally shorter than its
+  // budget is left alone — the gap becomes a natural breath. (Slowing short VO
+  // down with atempo drags the delivery and was the artifact we avoid.)
+  if (ratio <= 1.05) {
     return { cur, ratio, action: "skip" };
   }
   const tmp = file + ".tmp.mp3";

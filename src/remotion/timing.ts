@@ -1,27 +1,99 @@
 // Single source of truth for video timing.
-// Scene durations are sized so the *natural* voiceover length fits comfortably
-// without atempo time-stretching (which causes fast-then-slow artifacts).
+//
+// The video is a TransitionSeries of 6 scenes. Scene visual durations are listed
+// in SCENE_DURATIONS. Adjacent scenes overlap by TRANSITION_FRAMES (the cross-fade),
+// so the total timeline is SUM(durations) - (n-1) * TRANSITION_FRAMES.
+//
+// Voiceover is DECOUPLED from the visual TransitionSeries: each scene's VO plays as
+// an absolutely-positioned <Audio> on the main timeline (see Video.tsx), starting at
+// the scene's absolute start frame + AUDIO_LEAD_IN. Because consecutive scene starts
+// are (duration - transition) apart, VO clips never overlap as long as each clip is
+// shorter than that gap minus the lead-in. VO_BUDGET_SECONDS encodes those budgets and
+// is mirrored by the TARGET map in scripts/generate-voiceover-openrouter.mjs.
 
 export const FPS = 30;
 
-export const SCENES = {
-  problem:  { from: 0,    dur: 150 }, // 5.0s
-  solution: { from: 150,  dur: 135 }, // 4.5s
-  ai:       { from: 285,  dur: 150 }, // 5.0s
-  quiz:     { from: 435,  dur: 120 }, // 4.0s
-  product:  { from: 555,  dur: 165 }, // 5.5s
-  delivery: { from: 720,  dur: 135 }, // 4.5s
-  cta:      { from: 855,  dur: 135 }, // 4.5s — ends at frame 990
-} as const;
+// Cross-fade between scenes (frames). Adjacent scenes play simultaneously for this long.
+export const TRANSITION_FRAMES = 12;
 
-export const TOTAL_FRAMES = 990; // 33s
+// Frames a scene's voiceover waits after the scene's visual start, so it lands after
+// the cross-fade settles and the headline begins to read.
+export const AUDIO_LEAD_IN = 8;
 
-export const SCENE_SECONDS: Record<keyof typeof SCENES, number> = {
-  problem:  SCENES.problem.dur / FPS,
-  solution: SCENES.solution.dur / FPS,
-  ai:       SCENES.ai.dur / FPS,
-  quiz:     SCENES.quiz.dur / FPS,
-  product:  SCENES.product.dur / FPS,
-  delivery: SCENES.delivery.dur / FPS,
-  cta:      SCENES.cta.dur / FPS,
+export type SceneKey =
+  | "problem"
+  | "solution"
+  | "ai"
+  | "product"
+  | "delivery"
+  | "cta";
+
+// Scene order in the cut. (Quiz is intentionally dropped — redundant with AI Finder.)
+export const SCENE_ORDER: SceneKey[] = [
+  "problem",
+  "solution",
+  "ai",
+  "product",
+  "delivery",
+  "cta",
+];
+
+// Visual duration of each scene, in frames.
+export const SCENE_DURATIONS: Record<SceneKey, number> = {
+  problem:  126, // 4.2s — hook
+  solution: 114, // 3.8s
+  ai:       132, // 4.4s
+  product:  144, // 4.8s
+  delivery: 114, // 3.8s
+  cta:      132, // 4.4s
 };
+
+// Absolute start frame of each scene on the final (overlapped) timeline.
+// start[0] = 0; start[i] = start[i-1] + duration[i-1] - TRANSITION_FRAMES.
+export const SCENE_START: Record<SceneKey, number> = (() => {
+  const out = {} as Record<SceneKey, number>;
+  let cursor = 0;
+  SCENE_ORDER.forEach((key, i) => {
+    out[key] = cursor;
+    cursor += SCENE_DURATIONS[key] - (i < SCENE_ORDER.length - 1 ? TRANSITION_FRAMES : 0);
+  });
+  return out;
+})();
+
+// Total timeline length = last scene start + its full duration.
+export const TOTAL_FRAMES = (() => {
+  const last = SCENE_ORDER[SCENE_ORDER.length - 1];
+  return SCENE_START[last] + SCENE_DURATIONS[last];
+})();
+
+// Absolute frame at which each scene's voiceover should start.
+export const AUDIO_START: Record<SceneKey, number> = (() => {
+  const out = {} as Record<SceneKey, number>;
+  SCENE_ORDER.forEach((key) => {
+    out[key] = SCENE_START[key] + AUDIO_LEAD_IN;
+  });
+  return out;
+})();
+
+// Per-scene voiceover budget (seconds): the audible window before the next scene's VO
+// starts (or the timeline ends). Keep generated VO comfortably under these. Mirrored by
+// TARGET in scripts/generate-voiceover-openrouter.mjs.
+export const VO_BUDGET_SECONDS: Record<SceneKey, number> = (() => {
+  const out = {} as Record<SceneKey, number>;
+  SCENE_ORDER.forEach((key, i) => {
+    const next = SCENE_ORDER[i + 1];
+    const gapFrames = next
+      ? AUDIO_START[next] - AUDIO_START[key]
+      : TOTAL_FRAMES - AUDIO_START[key];
+    out[key] = +(gapFrames / FPS).toFixed(2);
+  });
+  return out;
+})();
+
+export const SCENE_SECONDS: Record<SceneKey, number> = (() => {
+  const out = {} as Record<SceneKey, number>;
+  SCENE_ORDER.forEach((key) => {
+    out[key] = SCENE_DURATIONS[key] / FPS;
+  });
+  return out;
+})();

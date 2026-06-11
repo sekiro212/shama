@@ -1,8 +1,9 @@
-import { AbsoluteFill, Audio, useCurrentFrame, interpolate, spring, useVideoConfig } from "remotion";
+import { AbsoluteFill, useCurrentFrame, interpolate, spring, useVideoConfig } from "remotion";
 import { dir, isRtl, t, type Lang } from "../i18n";
 import { getFonts } from "../fonts";
 import { GoldParticles } from "../components/GoldParticles";
-import { sceneAudio } from "../audio";
+import { SceneBackdrop } from "../components/SceneBackdrop";
+import { LightSweep } from "../components/LightSweep";
 
 type Props = {
   language: Lang;
@@ -13,8 +14,6 @@ type Props = {
   tiktokHandle: string;
 };
 
-const TOTAL_FRAMES = 150;
-
 export const CTAScene: React.FC<Props> = ({
   language,
   brandName,
@@ -24,8 +23,9 @@ export const CTAScene: React.FC<Props> = ({
   tiktokHandle,
 }) => {
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
+  const { fps, durationInFrames } = useVideoConfig();
   const fonts = getFonts(language);
+  const rtl = isRtl(language);
 
   const brandEnter = spring({
     frame,
@@ -33,39 +33,28 @@ export const CTAScene: React.FC<Props> = ({
     config: { damping: 18, stiffness: 90, mass: 0.8 },
   });
 
-  const ruleWidth = interpolate(frame, [22, 56], [0, 420], {
+  const ruleWidth = interpolate(frame, [20, 52], [0, 420], {
     extrapolateRight: "clamp",
     easing: (x) => 1 - Math.pow(1 - x, 4),
   });
 
-  const urlOpacity = interpolate(frame, [44, 60], [0, 1], { extrapolateRight: "clamp" });
-  const urlScale = interpolate(frame, [44, 70], [0.96, 1], {
-    extrapolateRight: "clamp",
-    easing: (x) => 1 - Math.pow(1 - x, 3),
+  const urlSpring = spring({
+    frame: frame - 40,
+    fps,
+    config: { damping: 16, stiffness: 110, mass: 0.8 },
   });
+  const urlOpacity = interpolate(urlSpring, [0, 0.6], [0, 1], { extrapolateRight: "clamp" });
 
-  const tagOpacity = interpolate(frame, [70, 86], [0, 1], { extrapolateRight: "clamp" });
-  const socialOpacity = interpolate(frame, [90, 108], [0, 1], { extrapolateRight: "clamp" });
-
-  const exitOpacity = interpolate(frame, [TOTAL_FRAMES - 12, TOTAL_FRAMES], [1, 0], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
+  const tagOpacity = interpolate(frame, [66, 82], [0, 1], { extrapolateRight: "clamp" });
+  const socialOpacity = interpolate(frame, [86, 104], [0, 1], { extrapolateRight: "clamp" });
 
   return (
-    <AbsoluteFill
-      style={{
-        background: "#0A0A0A",
-        direction: dir(language),
-        alignItems: "center",
-        justifyContent: "center",
-        opacity: exitOpacity,
-      }}
-    >
-      <Audio src={sceneAudio("cta", language)} volume={0.95} />
+    <AbsoluteFill style={{ direction: dir(language) }}>
+      <SceneBackdrop primaryColor={primaryColor} goldColor={goldColor} seed={0.3} intensity={1.2} />
 
-      <GoldParticles durationInFrames={TOTAL_FRAMES} />
+      <GoldParticles durationInFrames={durationInFrames} />
 
+      <AbsoluteFill style={{ alignItems: "center", justifyContent: "center", direction: dir(language) }}>
       <div
         style={{
           opacity: brandEnter,
@@ -94,8 +83,9 @@ export const CTAScene: React.FC<Props> = ({
 
       <div
         style={{
+          position: "relative",
           opacity: urlOpacity,
-          transform: `scale(${urlScale})`,
+          transform: `scale(${0.94 + urlSpring * 0.06})`,
           fontFamily: fonts.display,
           fontSize: 144,
           fontWeight: 700,
@@ -103,10 +93,12 @@ export const CTAScene: React.FC<Props> = ({
           textAlign: "center",
           lineHeight: 1,
           letterSpacing: -2,
-          textShadow: `0 0 60px ${primaryColor}33`,
+          textShadow: `0 0 60px ${primaryColor}44`,
+          padding: "0 20px",
         }}
       >
         <span dir="ltr">{t("cta_url", language)}</span>
+        <LightSweep delay={56} duration={30} bandWidth={34} color="rgba(255,245,210,0.55)" />
       </div>
 
       <div
@@ -116,9 +108,9 @@ export const CTAScene: React.FC<Props> = ({
           fontFamily: fonts.body,
           fontSize: 36,
           fontWeight: 400,
-          color: "rgba(245,245,245,0.75)",
+          color: "rgba(245,245,245,0.78)",
           textAlign: "center",
-          letterSpacing: isRtl(language) ? 0 : 0.5,
+          letterSpacing: rtl ? 0 : 0.5,
           padding: "0 40px",
         }}
       >
@@ -144,6 +136,7 @@ export const CTAScene: React.FC<Props> = ({
         <span style={{ color: goldColor, opacity: 0.5 }}>·</span>
         <span>{tiktokHandle}</span>
       </div>
+      </AbsoluteFill>
     </AbsoluteFill>
   );
 };

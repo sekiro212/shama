@@ -213,14 +213,14 @@ export default function AIFinderPage() {
               <p className="font-display text-xs tracking-[0.28em] uppercase text-warm mb-5 text-center tabular-nums">
                 {sortedResults.length} {t("aiFinder.matchesFound")}
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              <div className="grid grid-cols-2 lg:grid-cols-3 border-t border-s border-[#323D50]/10 dark:border-white/10">
                 {sortedResults.map((result, index) => (
                   <motion.div
                     key={result.product.id}
                     initial={reduce ? { opacity: 0 } : { opacity: 0, y: 16 }}
                     animate={reduce ? { opacity: 1 } : { opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.06 }}
-                    className="relative"
+                    className="relative border-b border-e border-[#323D50]/10 dark:border-white/10"
                   >
                     <ProductCard product={result.product} />
                     <MatchBadge
