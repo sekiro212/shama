@@ -24,7 +24,6 @@ export default function GiftStep3Customize({ value, onChange, onNext, onBack, is
     { value: "eid", label: t("giftBuilder.occasionEid") },
     { value: "anniversary", label: t("giftBuilder.occasionAnniversary") },
     { value: "wedding", label: t("giftBuilder.occasionWedding") },
-    { value: "valentine", label: t("giftBuilder.occasionValentine") },
     { value: "just_because", label: t("giftBuilder.occasionJustBecause") },
   ];
 

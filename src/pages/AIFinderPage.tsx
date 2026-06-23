@@ -15,9 +15,9 @@ export default function AIFinderPage() {
   const reduce = useReducedMotion();
 
   const CHIPS = [
-    { label: t("home.chipNightOut"), query: "a seductive perfume for a night out" },
+    { label: t("home.chipNightOut"), query: "an elegant perfume for a night out" },
     { label: t("home.chipEveryday"), query: "a light fresh everyday perfume" },
-    { label: t("home.chipGiftForHer"), query: "a romantic floral gift for her" },
+    { label: t("home.chipGiftForHer"), query: "an elegant floral gift for her" },
     { label: t("home.chipWoody"), query: "woody warm oriental perfume" },
     { label: t("home.chipSummer"), query: "a bright citrus perfume for summer" },
     { label: t("home.chipOffice"), query: "a clean subtle perfume for office wear" },

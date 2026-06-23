@@ -33,25 +33,6 @@ import { motion, useReducedMotion } from "framer-motion";
 import RecentlyViewed from "@/components/RecentlyViewed";
 import { BackgroundBeamsWithCollision } from "@/components/ui/background-beams-with-collision";
 import ScentMemoryWall from "@/components/ScentMemoryWall";
-import MarketingVideoSection from "@/components/MarketingVideoSection";
-
-const VIDEO_PLACEHOLDER = (
-  <div className="py-24" aria-hidden="true">
-    <div className="container mx-auto px-4">
-      <div className="mx-auto mb-12 h-[180px]" />
-      <div className="flex justify-center">
-        <div className="rounded-3xl" style={{ width: "min(360px, 90vw)", aspectRatio: "9 / 16" }} />
-      </div>
-    </div>
-  </div>
-);
-
-function MarketingVideoGate() {
-  // Now that the section is a tiny <video> tag (not the heavy Remotion Player),
-  // there's no point in lazy-loading it — render directly so we never hit the
-  // intersection-observer race that left the placeholder stuck.
-  return <MarketingVideoSection />;
-}
 
 const TikTokIcon = ({ className }: { className?: string }) => (
   <svg
@@ -109,7 +90,6 @@ function SectionHeader({
 const AIFinderBanner = () => {
   const navigate = useNavigate();
   const { t, isRTL } = useLanguage();
-  const reduceMotion = useReducedMotion();
 
   const chips = [
     { label: t("home.chipNightOut"), query: "night out" },
@@ -125,14 +105,11 @@ const AIFinderBanner = () => {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-80px" }}
       transition={{ duration: 0.6, ease: "easeOut" }}
-      className="glass-card rounded-3xl overflow-hidden my-8"
+      className="glass-card rounded-3xl overflow-hidden my-8 max-w-3xl mx-auto"
     >
       <div className="relative p-6 md:p-10">
-        {/* Warm corner wash */}
-        <div className="absolute top-0 end-0 w-56 h-56 bg-gradient-to-bl from-warm/15 via-[#5B8DD9]/10 to-transparent pointer-events-none" />
-
-        <div className="relative flex flex-col md:flex-row items-center gap-6 md:gap-10">
-          <div className="flex-1 text-center md:text-start">
+        <div className="relative flex flex-col md:flex-row items-center justify-center gap-6 md:gap-12 max-w-4xl mx-auto w-full">
+          <div className="max-w-xl text-center md:text-start">
             <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.2em] uppercase text-warm bg-warm/10 px-3 py-1 rounded-full mb-4">
               <Sparkles className="w-3 h-3" />
               {t("home.aiPowered")}
@@ -171,23 +148,6 @@ const AIFinderBanner = () => {
             </button>
           </div>
 
-          {/* Single rotating ring — candlelight halo */}
-          <div className="hidden md:flex items-center justify-center w-36 h-36 relative flex-shrink-0">
-            <motion.div
-              className="absolute rounded-full border border-warm/30"
-              style={{ width: 128, height: 128 }}
-              animate={reduceMotion ? undefined : { rotate: 360 }}
-              transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
-            >
-              <span
-                className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-warm"
-                aria-hidden
-              />
-            </motion.div>
-            <div className="w-20 h-20 rounded-full bg-warm/10 flex items-center justify-center">
-              <Sparkles className="w-9 h-9 text-warm" />
-            </div>
-          </div>
         </div>
       </div>
     </motion.div>
@@ -460,9 +420,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Marketing Video — cinematic brand film, fine to live deep */}
-      <MarketingVideoGate />
-
       {/* About — image left / text right on desktop */}
       <section className="py-14 sm:py-20 md:py-24 relative z-10">
         <div className="container mx-auto px-3 sm:px-4">
@@ -600,29 +557,25 @@ export default function HomePage() {
           <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 max-w-5xl mx-auto">
             {[
               {
-                // TODO(shama): replace with brand imagery from @shama._200
-                image: "https://images.unsplash.com/photo-1541643600914-78b084683601?w=400&h=400&fit=crop",
+                image: "/gallery-creed-aventus.jpg",
                 href: "https://www.instagram.com/shama._200/?igsh=dDcyZmc3ODByNHBl&utm_source=qr",
                 icon: <Instagram className="h-6 w-6 text-white" />,
                 title: "Instagram",
               },
               {
-                // TODO(shama): replace with brand imagery from @shama._200
-                image: "https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?w=400&h=400&fit=crop",
+                image: "/gallery-ysl-tuxedo.jpg",
                 href: "https://www.instagram.com/shama._200/?igsh=dDcyZmc3ODByNHBl&utm_source=qr",
                 icon: <Instagram className="h-6 w-6 text-white" />,
                 title: "Instagram",
               },
               {
-                // TODO(shama): replace with brand imagery from @shama_625 TikTok
-                image: "https://images.unsplash.com/photo-1523293182086-7651a899d37f?w=400&h=400&fit=crop",
+                image: "/gallery-bois-imperial.jpg",
                 href: "https://www.tiktok.com/@shama_625?_r=1&_d=ehaiidj2573dih&sec_uid=MS4wLjABAAAAtWhwVbsiMc_T7iAluhIopScG5tmdWhTlCRauHrAVmp3Eo_PnjOOOITTHFURnrnqF&share_author_id=7492887353330516997&sharer_language=en&source=h5_m&u_code=ejkmi594adgdl5&ug_btm=b8727,b0&social_share_type=4&utm_source=copy&sec_user_id=MS4wLjABAAAAtWhwVbsiMc_T7iAluhIopScG5tmdWhTlCRauHrAVmp3Eo_PnjOOOITTHFURnrnqF&tt_from=copy&utm_medium=ios&utm_campaign=client_share&enable_checksum=1&user_id=7492887353330516997&share_link_id=87C185B6-D290-4FE5-876D-5F6E6C350F98&share_app_id=1233",
                 icon: <TikTokIcon className="h-6 w-6 text-white" />,
                 title: "TikTok",
               },
               {
-                // TODO(shama): replace with brand imagery from Facebook
-                image: "https://images.unsplash.com/photo-1615634260167-c8cdede054de?w=400&h=400&fit=crop",
+                image: "/gallery-valentino-roma.jpg",
                 href: "https://www.facebook.com/profile.php?id=61575028689348&mibextid=wwXIfr&rdid=ziyFSHbQTmrIb4HW&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2F1EqWpzXQyk%2F%3Fmibextid%3DwwXIfr",
                 icon: <Facebook className="h-6 w-6 text-white" />,
                 title: "Facebook",

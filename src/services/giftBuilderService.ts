@@ -54,7 +54,7 @@ export function buildGiftImagePrompt(
   const styleDescription =
     style === "realistic"
       ? "Octane render quality, ray-traced shadows, ambient occlusion, global illumination, physically-based rendering, ultra-sharp product detail, luxury brand editorial photography"
-      : "warm painterly lifestyle illustration, impressionist oil painting technique, romantic golden-hour bokeh, rich textured brushwork, luxury brand watercolor and gouache style";
+      : "warm painterly lifestyle illustration, impressionist oil painting technique, warm golden-hour bokeh, rich textured brushwork, luxury brand watercolor and gouache style";
 
   const lightingDescription =
     style === "realistic"

@@ -4,7 +4,6 @@ import {
   Moon,
   Gem,
   Heart,
-  HeartHandshake,
   Sparkles,
   Package,
   ShoppingBag,
@@ -38,7 +37,6 @@ const OCCASION_ICONS: Record<string, LucideIcon> = {
   eid: Moon,
   anniversary: Gem,
   wedding: Heart,
-  valentine: HeartHandshake,
   just_because: Gift,
 };
 

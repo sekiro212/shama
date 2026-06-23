@@ -16,7 +16,7 @@ interface SearchDialogProps {
 }
 
 const QUICK_SEARCHES: { label: string; query: string; Icon: Icon }[] = [
-  { label: "Night out", query: "seductive perfume for night", Icon: Moon },
+  { label: "Night out", query: "elegant perfume for night", Icon: Moon },
   { label: "Woody & warm", query: "woody warm perfume", Icon: Trees },
   { label: "Gift for her", query: "gift perfume for women", Icon: Gift },
   { label: "Summer fresh", query: "light fresh summer perfume", Icon: Sun },

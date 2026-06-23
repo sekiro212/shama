@@ -19,7 +19,6 @@ const OCCASIONS: { key: Occasion; labelKey: string; tokens: string[] }[] = [
   { key: "birthday", labelKey: "giftBuilder.occasionBirthday", tokens: ["birthday", "ميلاد"] },
   { key: "anniversary", labelKey: "giftBuilder.occasionAnniversary", tokens: ["anniversary", "ذكرى"] },
   { key: "eid", labelKey: "giftBuilder.occasionEid", tokens: ["eid", "عيد"] },
-  { key: "valentine", labelKey: "giftBuilder.occasionValentine", tokens: ["valentine", "الحب", "رومانسي"] },
   { key: "wedding", labelKey: "giftBuilder.occasionWedding", tokens: ["wedding", "زفاف", "زواج"] },
   { key: "justBecause", labelKey: "giftBuilder.occasionJustBecause", tokens: ["gift", "هدية"] },
 ];

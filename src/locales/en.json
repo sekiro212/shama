@@ -809,7 +809,7 @@
       "question": "What's the occasion?",
       "subtitle": "Choose when you'll wear this fragrance",
       "dailyWear": "Daily Wear",
-      "dateNight": "Date Night",
+      "dateNight": "Evening",
       "office": "Office",
       "specialEvent": "Special Event"
     },
@@ -1160,7 +1160,7 @@
     "chip2": "Anniversary gift",
     "chip3": "Eid gift",
     "chip4": "For a friend who loves florals",
-    "chip5": "Romantic gift for her",
+    "chip5": "Elegant gift for her",
     "step2Title": "Pick your perfumes",
     "step2Subtitle": "Select up to 4 perfumes for this gift",
     "step2Next": "Customize Gift Box",
