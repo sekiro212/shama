@@ -92,9 +92,9 @@ const AIFinderBanner = () => {
   const { t, isRTL } = useLanguage();
 
   const chips = [
-    { label: t("home.chipNightOut"), query: "night out" },
+    { label: t("home.chipNightOut"), query: "special occasion" },
     { label: t("home.chipEveryday"), query: "everyday fresh" },
-    { label: t("home.chipGiftForHer"), query: "gift for her" },
+    { label: t("home.chipGiftForHer"), query: "special gift" },
     { label: t("home.chipWoody"), query: "woody warm" },
     { label: t("home.chipSummer"), query: "summer light" },
   ];
