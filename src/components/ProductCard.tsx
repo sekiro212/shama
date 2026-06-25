@@ -146,7 +146,7 @@ const ProductCardComponent = ({ product }: ProductCardProps) => {
         <button
           onClick={toggleWishlist}
           aria-label={t("header.wishlist")}
-          className="absolute end-3 top-3 z-20 flex h-10 w-10 items-center justify-center rounded-full border border-[#323D50]/10 bg-white/85 backdrop-blur-sm transition-all duration-300 motion-safe:active:scale-90 dark:border-white/15 dark:bg-black/55 md:opacity-0 md:translate-y-1 md:group-hover:translate-y-0 md:group-hover:opacity-100 focus-visible:opacity-100 focus-visible:translate-y-0"
+          className="absolute end-3 top-3 z-20 flex h-10 w-10 p-0 items-center justify-center rounded-full border border-[#323D50]/10 bg-white/85 backdrop-blur-sm transition-all duration-300 motion-safe:active:scale-90 dark:border-white/15 dark:bg-black/55 md:opacity-0 md:translate-y-1 md:group-hover:translate-y-0 md:group-hover:opacity-100 focus-visible:opacity-100 focus-visible:translate-y-0"
         >
           <Heart
             className={`h-4 w-4 transition-colors duration-200 ${
