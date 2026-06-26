@@ -39,6 +39,7 @@ import {
   type VanexSubCity,
 } from "@/services/vanexService";
 import { fetchMyOrders, type Order } from "@/services/ordersService";
+import { getUserProfile } from "@/services/profileService";
 import { toast } from "sonner";
 
 export interface ShippingFormData {
@@ -108,35 +109,57 @@ export default function ShippingSection({
       .finally(() => setCitiesLoading(false));
   }, []);
 
-  // Pre-fill from user's last order (if any)
-  // تعبئة الحقول مسبقًا من آخر طلب للمستخدم (إن وُجد) ثم التحوّل إلى وضع البطاقة.
+  // Pre-fill the form for logged-in users.
+  // Source priority: saved profile (user_profiles) → last order → account email.
+  // تعبئة الحقول مسبقًا: الأولوية لملف المستخدم المحفوظ، ثم آخر طلب، ثم بريد الحساب.
   // يُستخدم العلم cancelled لتفادي تحديث الحالة بعد إزالة المكوّن.
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
     setPrefilling(true);
-    fetchMyOrders(user.id, user.email)
-      .then((orders) => {
+
+    Promise.all([
+      getUserProfile(user.id),
+      fetchMyOrders(user.id, user.email),
+    ])
+      .then(([profile, orders]) => {
         if (cancelled) return;
-        // No prior order — still seed the account email so this order links to
-        // the account (and is recoverable in "My Orders").
-        if (orders.length === 0) {
-          if (user.email) onChange({ ...EMPTY_SHIPPING, email: user.email });
+
+        // 1) Saved profile takes priority.
+        if (profile) {
+          onChange({
+            firstName: profile.first_name || "",
+            lastName: profile.last_name || "",
+            email: profile.email || user.email || "",
+            phone: profile.phone || "",
+            city: profile.city || "",
+            placeName: profile.place_name || "",
+            vanexCityId: profile.vanex_city_id ?? null,
+            vanexSubCityId: profile.vanex_sub_city_id ?? null,
+          });
+          setMode("card");
           return;
         }
-        const last = orders[0] as Order;
-        const seeded: ShippingFormData = {
-          firstName: last.first_name || "",
-          lastName: last.last_name || "",
-          email: last.email || user.email || "",
-          phone: last.phone || "",
-          city: last.city || "",
-          placeName: last.place_name || "",
-          vanexCityId: last.vanex_city_id ?? null,
-          vanexSubCityId: last.vanex_sub_city_id ?? null,
-        };
-        onChange(seeded);
-        setMode("card");
+
+        // 2) Fall back to the user's last order.
+        if (orders.length > 0) {
+          const last = orders[0] as Order;
+          onChange({
+            firstName: last.first_name || "",
+            lastName: last.last_name || "",
+            email: last.email || user.email || "",
+            phone: last.phone || "",
+            city: last.city || "",
+            placeName: last.place_name || "",
+            vanexCityId: last.vanex_city_id ?? null,
+            vanexSubCityId: last.vanex_sub_city_id ?? null,
+          });
+          setMode("card");
+          return;
+        }
+
+        // 3) No history — seed the account email so the order links to the account.
+        if (user.email) onChange({ ...EMPTY_SHIPPING, email: user.email });
       })
       .catch(() => {
         // Silent — fall back to empty form

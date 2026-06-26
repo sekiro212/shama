@@ -884,3 +884,24 @@ WHERE id = 'transfer-proofs';
 -- Link orders to authenticated users (My Orders matched by user_id, email fallback for guests)
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL;
 CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id);
+
+-- Saved checkout profile per user (auto-fills shipping fields on next checkout)
+CREATE TABLE IF NOT EXISTS public.user_profiles (
+  user_id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  first_name text,
+  last_name text,
+  phone text,
+  email text,
+  city text,
+  place_name text,
+  vanex_city_id integer,
+  vanex_sub_city_id integer,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can read own profile" ON public.user_profiles
+  FOR SELECT TO authenticated USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own profile" ON public.user_profiles
+  FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own profile" ON public.user_profiles
+  FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);

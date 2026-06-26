@@ -1,3 +1,13 @@
+/**
+ * ===================================================================
+ * صفحة إتمام الطلب (Checkout) — المسار: /checkout
+ * -------------------------------------------------------------------
+ * تجمع بيانات الشحن وطريقة الدفع، تتحقق من توفّر المخزون وصلاحية كود
+ * الخصم (promo)، ثم تُنشئ سجل الطلب في جدول orders بقاعدة Supabase
+ * وتوجّه المستخدم إلى صفحة نجاح الطلب. تُعاد التوجيه إلى /collection
+ * إذا كانت السلة فارغة. تدعم العربية والإنجليزية.
+ * ===================================================================
+ */
 import { useEffect, useState } from "react";
 import { useNavigate, Navigate } from "react-router-dom";
 import { CreditCard, Lock, ArrowLeft, Truck } from "lucide-react";
@@ -15,6 +25,7 @@ import {
   type PromoValidationError,
 } from "@/services/promoCodesService";
 import type { VanexSubCity } from "@/services/vanexService";
+import { upsertUserProfile } from "@/services/profileService";
 import OrderSummary from "@/pages/checkout/OrderSummary";
 import ShippingSection, {
   type ShippingFormData,
@@ -24,6 +35,7 @@ import PaymentSection, {
   type PaymentMethod,
 } from "@/pages/checkout/PaymentSection";
 
+// خريطة تربط كل نوع خطأ في كود الخصم بمفتاح الترجمة المناسب لعرضه للمستخدم
 const PROMO_ERROR_KEY: Record<PromoValidationError, string> = {
   INVALID_CODE: "cart.promoCode.errors.invalidCode",
   INACTIVE: "cart.promoCode.errors.inactive",
@@ -34,6 +46,10 @@ const PROMO_ERROR_KEY: Record<PromoValidationError, string> = {
   NOT_APPLICABLE: "cart.promoCode.errors.notApplicable",
 };
 
+/**
+ * المكوّن الرئيسي لصفحة إتمام الطلب.
+ * يدير حالة نموذج الشحن، طريقة الدفع، رسوم التوصيل، ومنطق إرسال الطلب.
+ */
 export default function CheckoutPage() {
   const navigate = useNavigate();
   const { items, getTotalPrice, clearCart, appliedPromo, applyPromo, clearPromo } =
@@ -49,8 +65,10 @@ export default function CheckoutPage() {
   const [subCity, setSubCity] = useState<VanexSubCity | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  // رسوم التوصيل تُؤخذ من المدينة الفرعية المختارة (Vanex)، وتساوي صفرًا قبل الاختيار
   const deliveryFee = subCity?.price ?? 0;
 
+  // أثر جانبي: عند تحميل الصفحة والسلة فارغة نعرض تنبيهًا للمستخدم
   // If cart is empty when page mounts, toast + redirect
   useEffect(() => {
     if (items.length === 0) {
@@ -58,10 +76,15 @@ export default function CheckoutPage() {
     }
   }, [items.length, t]);
 
+  // حماية: منع الوصول لصفحة الدفع بسلة فارغة عبر إعادة التوجيه للمجموعة
   if (items.length === 0) {
     return <Navigate to="/collection" replace />;
   }
 
+  /**
+   * تحويل خطأ كود الخصم إلى نص مترجم.
+   * في حالة "أقل من الحد الأدنى للطلب" تُدرج قيمة الحد الأدنى داخل النص.
+   */
   const translatePromoError = (
     error: PromoValidationError | undefined,
     context?: { minOrder?: number }
@@ -74,14 +97,22 @@ export default function CheckoutPage() {
     return translated;
   };
 
+  // يُعطّل زر الإرسال إذا كان نموذج الشحن غير صالح، أو اختير الحوالة المصرفية
+  // دون رفع إثبات التحويل، أو أثناء جاري الإرسال
   const submitDisabled =
     !shippingValid ||
     (paymentMethod === "bank_transfer" && !transferProofUrl) ||
     submitting;
 
+  /**
+   * معالج إرسال الطلب: يتحقق من المخزون، يعيد التحقق من كود الخصم، يحسب
+   * الإجمالي النهائي، يُنشئ سجل الطلب في Supabase، ثم يفرّغ السلة ويوجّه
+   * المستخدم إلى صفحة نجاح الطلب.
+   */
   const handleSubmit = async () => {
     if (submitDisabled) return;
 
+    // حارس المخزون: منع إتمام الطلب إذا تجاوزت كمية أي صنف المخزون المتاح
     // Stock guard
     const stockErrors = items.filter(
       (i) => i.stock_quantity !== undefined && i.quantity > i.stock_quantity
@@ -94,8 +125,11 @@ export default function CheckoutPage() {
     setSubmitting(true);
 
     try {
+      // المجموع الفرعي لحظة الإرسال (قبل الخصم والتوصيل)
       const subtotalAtSubmit = getTotalPrice();
 
+      // إعادة التحقق من كود الخصم مقابل السلة والبريد الحاليين لمنع التحايل
+      // (مثل تجاوز حد الاستخدام لكل مستخدم أو انتهاء الصلاحية أثناء الجلسة)
       // Re-validate promo against current cart + email (per-user limits etc.)
       let confirmedPromo = appliedPromo;
       if (appliedPromo?.promo) {
@@ -105,6 +139,7 @@ export default function CheckoutPage() {
           formData.email
         );
         if (!revalidated.valid) {
+          // الكود لم يعد صالحًا: نزيله ونوقف الإرسال مع رسالة خطأ مترجمة
           clearPromo();
           toast.error(
             translatePromoError(revalidated.error, revalidated.errorContext)
@@ -116,11 +151,13 @@ export default function CheckoutPage() {
         applyPromo(revalidated);
       }
 
+      // الإجمالي النهائي وقيمة الخصم: تُؤخذ من نتيجة التحقق إن كان الكود صالحًا
       const finalTotal = confirmedPromo?.valid
         ? confirmedPromo.finalTotal
         : subtotalAtSubmit;
       const discount = confirmedPromo?.valid ? confirmedPromo.discount : 0;
 
+      // تجهيز كائن الطلب الذي سيُحفظ في جدول orders (الأصناف تُخزَّن كـ JSONB)
       const orderData = {
         user_id: user?.id ?? null,
         first_name: formData.firstName,
@@ -144,6 +181,7 @@ export default function CheckoutPage() {
         items: items,
       };
 
+      // إدراج الطلب في قاعدة البيانات واسترجاع السجل المُنشأ (للحصول على معرّفه)
       const { data: inserted, error } = await supabase
         .from("orders")
         .insert([orderData])
@@ -157,12 +195,28 @@ export default function CheckoutPage() {
         return;
       }
 
+      // حفظ بيانات الشحن كملف افتراضي للمستخدم المسجَّل (غير حابس) لتُعبَّأ تلقائيًا لاحقًا
+      if (user?.id) {
+        upsertUserProfile(user.id, {
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          phone: formData.phone,
+          email: formData.email.trim().toLowerCase(),
+          city: formData.city,
+          place_name: formData.placeName,
+          vanex_city_id: formData.vanexCityId,
+          vanex_sub_city_id: formData.vanexSubCityId,
+        }).catch((err) => console.error("Failed to save user profile:", err));
+      }
+
+      // زيادة عدّاد استخدام كود الخصم (بشكل غير حابس؛ لا يُفشل الطلب إن أخفق)
       if (confirmedPromo?.promo) {
         incrementPromoCodeUsage(confirmedPromo.promo.id).catch((err) =>
           console.error("Failed to increment promo usage:", err)
         );
       }
 
+      // نجاح: تفريغ السلة والانتقال إلى صفحة تأكيد الطلب بمعرّف الطلب الجديد
       toast.success(t("cart.orderSuccess"));
       clearCart();
       navigate(`/order-success/${inserted.id}`);
@@ -236,6 +290,7 @@ export default function CheckoutPage() {
               onTransferProofChange={setTransferProofUrl}
             />
 
+            {/* تظهر رسوم التوصيل فقط بعد اختيار المدينة الفرعية (deliveryFee > 0) */}
             {/* Delivery fee hint when sub-city is picked */}
             {deliveryFee > 0 && (
               <div className="flex items-center gap-3 rounded-2xl border border-warm/30 bg-warm/5 px-5 py-4">
@@ -286,6 +341,10 @@ export default function CheckoutPage() {
   );
 }
 
+/**
+ * شريط خطوات إتمام الطلب (العنوان ثم الدفع ثم المراجعة).
+ * عنصر عرض فقط يُبرز الخطوة الأولى ويرسم فواصل بين الخطوات.
+ */
 function StepStrip() {
   const { t } = useLanguage();
   const steps = [
