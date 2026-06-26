@@ -1,3 +1,12 @@
+/**
+ * ===========================================================================
+ * ملف: ordersService.ts
+ * الغرض: خدمة إدارة الطلبات في Supabase (جدول orders).
+ * يغطّي: جلب الطلبات مع فلاتر، طلبات المستخدم، الإحصائيات، تحديث الحالة، الحذف،
+ * تتبّع الطلب، والتحليلات. كما يربط الطلب بشركة التوصيل Vanex (حفظ معلومات الشحنة ومزامنتها).
+ * حالة الطلب (status): pending → confirmed → processing → shipped → delivered (وقيم أخرى).
+ * ===========================================================================
+ */
 import { supabase } from "@/lib/supabase";
 
 export interface VanexOrderLog {
@@ -66,15 +75,20 @@ export interface OrderStats {
   recentOrders: Order[];
 }
 
-// Fetch all orders with optional filters
+/**
+ * جلب كل الطلبات مع إمكانية تطبيق فلاتر اختيارية.
+ * @param filters فلاتر اختيارية: مدى التاريخ، المدينة، مدى المبلغ، ونص بحث.
+ * @returns مصفوفة الطلبات مرتّبة من الأحدث، أو مصفوفة فارغة عند الخطأ.
+ */
 export const fetchOrders = async (filters?: OrderFilters): Promise<Order[]> => {
   try {
+    // بناء الاستعلام تدريجيًا: نبدأ بالأساس ثم نضيف الفلاتر المتوفّرة فقط
     let query = supabase
       .from("orders")
       .select("*")
       .order("order_date", { ascending: false });
 
-    // Apply filters if provided
+    // تطبيق الفلاتر إن وُجدت
     if (filters) {
       if (filters.startDate) {
         query = query.gte("order_date", filters.startDate);
@@ -92,6 +106,7 @@ export const fetchOrders = async (filters?: OrderFilters): Promise<Order[]> => {
         query = query.lte("total", filters.maxAmount);
       }
       if (filters.search) {
+        // بحث نصي غير حسّاس لحالة الأحرف (ilike) عبر عدة أعمدة بشرط OR: الاسم الأول/الأخير/البريد
         query = query.or(
           `first_name.ilike.%${filters.search}%,last_name.ilike.%${filters.search}%,email.ilike.%${filters.search}%`
         );
@@ -112,16 +127,39 @@ export const fetchOrders = async (filters?: OrderFilters): Promise<Order[]> => {
   }
 };
 
+/**
+ * جلب طلبات مستخدم معيّن لصفحة "طلباتي".
+ * المطابقة: عبر user_id، بالإضافة إلى الطلبات اليتيمة (user_id = NULL) التي يطابق
+ * بريدها بريد الحساب — لاسترجاع الطلبات التي أُنشئت كزائر قبل تسجيل الدخول.
+ * لا تُطابَق أبدًا طلبات يملكها مستخدم آخر (user_id مختلف).
+ * @param userId معرّف المستخدم.
+ * @param email بريد الحساب (اختياري) لاسترجاع طلبات الزائر اليتيمة.
+ * @returns طلبات المستخدم مرتّبة من الأحدث، أو مصفوفة فارغة عند الخطأ.
+ */
 // Fetch orders belonging to a user (for My Orders page).
-// Matches strictly by user_id — the checkout email is contact info only
-// and may differ from the account email.
-export const fetchMyOrders = async (userId: string): Promise<Order[]> => {
+// Matches by user_id, PLUS orphaned guest orders (user_id IS NULL) whose contact
+// email equals the account email — this recovers orders placed before logging in
+// or as a guest. It never matches an order owned by a different user_id.
+export const fetchMyOrders = async (
+  userId: string,
+  email?: string | null
+): Promise<Order[]> => {
   try {
-    const { data, error } = await supabase
-      .from("orders")
-      .select("*")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false });
+    const normalizedEmail = email?.trim().toLowerCase();
+
+    let query = supabase.from("orders").select("*");
+    if (normalizedEmail) {
+      // user_id == me  OR  (user_id is null AND email == account email)
+      query = query.or(
+        `user_id.eq.${userId},and(user_id.is.null,email.eq.${normalizedEmail})`
+      );
+    } else {
+      query = query.eq("user_id", userId);
+    }
+
+    const { data, error } = await query.order("created_at", {
+      ascending: false,
+    });
 
     if (error) {
       console.error("Error fetching user orders:", error);
@@ -135,6 +173,11 @@ export const fetchMyOrders = async (userId: string): Promise<Order[]> => {
   }
 };
 
+/**
+ * جلب طلب واحد عبر معرّفه.
+ * @param id معرّف الطلب.
+ * @returns كائن الطلب، أو null عند عدم وجوده أو حدوث خطأ.
+ */
 // Fetch single order by ID
 export const fetchOrderById = async (id: string): Promise<Order | null> => {
   try {
@@ -156,6 +199,11 @@ export const fetchOrderById = async (id: string): Promise<Order | null> => {
   }
 };
 
+/**
+ * حساب إحصائيات الطلبات للوحة المعلومات (Overview).
+ * يحسب إجمالي الطلبات والإيرادات ومتوسط قيمة الطلب وأعلى المدن وأحدث الطلبات.
+ * @returns كائن OrderStats يحتوي على القيم المحسوبة، أو قيمًا صفرية عند الخطأ.
+ */
 // Get order statistics
 export const getOrderStats = async (): Promise<OrderStats> => {
   try {
@@ -180,7 +228,7 @@ export const getOrderStats = async (): Promise<OrderStats> => {
       orders?.reduce((sum, order) => sum + order.total, 0) || 0;
     const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
-    // Calculate top cities
+    // تجميع الطلبات حسب المدينة لحساب عدد الطلبات والإيراد لكل مدينة (تراكم عبر reduce)
     const cityStats =
       orders?.reduce((acc, order) => {
         if (!acc[order.city]) {
@@ -191,6 +239,7 @@ export const getOrderStats = async (): Promise<OrderStats> => {
         return acc;
       }, {} as Record<string, { count: number; revenue: number }>) || {};
 
+    // ترتيب المدن تنازليًا حسب الإيراد وأخذ أعلى 5 فقط
     const topCities = Object.entries(cityStats)
       .map(([city, stats]) => ({
         city,
@@ -221,6 +270,11 @@ export const getOrderStats = async (): Promise<OrderStats> => {
   }
 };
 
+/**
+ * حذف طلب (للمسؤول فقط).
+ * @param id معرّف الطلب المراد حذفه.
+ * @returns true عند النجاح، أو false عند الفشل.
+ */
 // Delete order (admin only)
 export const deleteOrder = async (id: string): Promise<boolean> => {
   try {
@@ -238,6 +292,12 @@ export const deleteOrder = async (id: string): Promise<boolean> => {
   }
 };
 
+/**
+ * جلب الطلبات الواقعة ضمن مدى تاريخي محدّد.
+ * @param startDate تاريخ البداية (شامل).
+ * @param endDate تاريخ النهاية (شامل).
+ * @returns الطلبات ضمن المدى مرتّبة من الأحدث، أو مصفوفة فارغة عند الخطأ.
+ */
 // Get orders by date range
 export const getOrdersByDateRange = async (
   startDate: string,
@@ -263,6 +323,12 @@ export const getOrdersByDateRange = async (
   }
 };
 
+/**
+ * تحديث حالة الطلب (للمسؤول).
+ * @param id معرّف الطلب.
+ * @param status الحالة الجديدة.
+ * @returns true عند النجاح، أو false عند الفشل.
+ */
 // Update order status (admin)
 export const updateOrderStatus = async (
   id: string,
@@ -273,6 +339,7 @@ export const updateOrderStatus = async (
       .from("orders")
       .update({
         status,
+        // تسجيل وقت المعالجة عند أي حالة غير "pending"، وإفراغه إذا أُعيدت إلى "pending"
         processed_at: status !== "pending" ? new Date().toISOString() : null,
       })
       .eq("id", id);
@@ -289,13 +356,20 @@ export const updateOrderStatus = async (
   }
 };
 
+/**
+ * تتبّع طلب عبر معرّفه أو عبر البريد الإلكتروني.
+ * @param query معرّف الطلب أو البريد الإلكتروني (يُكتشف البريد بوجود الرمز @).
+ * @returns الطلب المطابق، أو null عند عدم وجوده أو الخطأ.
+ */
 // Track order by ID or email
 export const trackOrder = async (query: string): Promise<Order | null> => {
   try {
+    // إذا احتوى النص على "@" فهو بريد إلكتروني، وإلا فهو معرّف طلب
     const isEmail = query.includes("@");
 
     let result;
     if (isEmail) {
+      // البحث بالبريد: تطبيع النص (قص ومسافات وحروف صغيرة) وأخذ أحدث طلب فقط
       result = await supabase
         .from("orders")
         .select("*")
@@ -323,6 +397,10 @@ export const trackOrder = async (query: string): Promise<Order | null> => {
   }
 };
 
+/**
+ * حساب تحليلات الطلبات: الإجمالي، الإيراد، التوزيع حسب المدينة وحسب الشهر، ومتوسط قيمة الطلب.
+ * @returns كائن التحليلات، أو null عند الخطأ.
+ */
 // Get orders count by status/city
 export const getOrdersAnalytics = async () => {
   try {
@@ -341,6 +419,7 @@ export const getOrdersAnalytics = async () => {
           acc[order.city] = (acc[order.city] || 0) + 1;
           return acc;
         }, {} as Record<string, number>) || {},
+      // التوزيع حسب الشهر: تحويل تاريخ الطلب إلى مفتاح نصي مثل "Jan 2026" ثم عدّ الطلبات لكل شهر
       ordersByMonth:
         orders?.reduce((acc, order) => {
           const month = new Date(order.order_date).toLocaleDateString("en-US", {
@@ -363,6 +442,14 @@ export const getOrdersAnalytics = async () => {
 };
 
 /**
+ * حفظ رمز شحنة Vanex ومعرّفها الرقمي في الطلب وتعيين حالته إلى "shipped" (تم الشحن).
+ * المعرّف الرقمي (packageId) لازم لاحقًا لنقاط نهاية الإلغاء/الاسترجاع (cancel/recall).
+ * @param orderId معرّف الطلب.
+ * @param packageCode رمز شحنة Vanex النصي.
+ * @param packageId المعرّف الرقمي للشحنة (قد يكون null).
+ * @returns true عند النجاح، أو false عند الفشل.
+ */
+/**
  * Save Vanex package code + numeric id to an order and mark it as shipped.
  * The numeric id is required later for cancel/recall endpoints.
  */
@@ -377,6 +464,7 @@ export const saveVanexPackageInfo = async (
       .update({
         vanex_package_code: packageCode,
         vanex_package_id: packageId,
+        // حالة Vanex الأولية للشحنة الجديدة: "store_new" بالإنجليزية و"جديد" بالعربية للعرض
         vanex_status: "store_new",
         vanex_status_ar: "جديد",
         vanex_last_synced_at: new Date().toISOString(),
@@ -397,6 +485,12 @@ export const saveVanexPackageInfo = async (
 };
 
 /**
+ * تشغيل دالة Edge المسماة sync-vanex-packages لطلب واحد فقط لمزامنة حالته مع Vanex.
+ * تُحدّث الحقول vanex_status والسجلات (logs) وآخر وقت مزامنة (last_synced_at) لذلك الصف.
+ * @param orderId معرّف الطلب المراد مزامنته.
+ * @returns true عند النجاح، أو false عند الفشل.
+ */
+/**
  * Trigger the sync-vanex-packages edge function for a single order.
  * Updates vanex_status + logs + last_synced_at on that row.
  */
@@ -416,6 +510,11 @@ export const syncVanexOrder = async (orderId: string): Promise<boolean> => {
   }
 };
 
+/**
+ * تشغيل مزامنة جماعية لكل شحنات Vanex غير المنتهية (non-terminal).
+ * تستدعي الدالة بدون تمرير معرّف طلب فتعالج جميع الشحنات النشطة.
+ * @returns عدد المُزامَن (synced)، المُتخطّى (skipped)، وقائمة الأخطاء (errors)، أو null عند الفشل.
+ */
 /**
  * Trigger a bulk sync of all non-terminal Vanex packages.
  * Returns the counts reported by the edge function.

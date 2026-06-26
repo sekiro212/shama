@@ -1,3 +1,11 @@
+/**
+ * MyOrdersPage — سجلّ طلبات العميل المسجَّل (المسار: /my-orders).
+ *
+ * على خلاف OrderTrackingPage (استعلام عام برقم/بريد)، هذه الصفحة محميّة خلف
+ * مستخدم Supabase مسجَّل الدخول وتعرض كل طلب مرتبط بحسابه. التخطيط رئيسي/تفصيلي:
+ * شريط جانبي بالطلبات + لوحة تفاصيل على الشاشات الكبيرة؛ وعلى الجوال يتنقّل بين
+ * القائمة وطلب واحد في كل مرة.
+ */
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -14,6 +22,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { fetchMyOrders, type Order } from "@/services/ordersService";
 import OrderDetailView from "@/components/OrderDetailView";
 
+// يربط كل حالة طلب (status) بتنسيق "الشارة" الملوّنة المستخدمة في القائمة.
 const STATUS_PILL: Record<string, string> = {
   pending: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
   confirmed: "bg-sky-500/15 text-sky-600 dark:text-sky-400",
@@ -24,6 +33,10 @@ const STATUS_PILL: Record<string, string> = {
   returned: "bg-rose-500/15 text-rose-600 dark:text-rose-400",
 };
 
+/**
+ * يحمّل طلبات المستخدم المسجَّل ويختار الأحدث تلقائيًا، ويعيد توجيه الزوار غير
+ * المسجَّلين إلى /login.
+ */
 const MyOrdersPage = () => {
   const { t, language, isRTL } = useLanguage();
   const { user, loading: authLoading } = useAuth();
@@ -34,6 +47,8 @@ const MyOrdersPage = () => {
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
+  // ننتظر انتهاء تحميل حالة المصادقة أولًا؛ فإن لم يوجد مستخدم نعيد التوجيه إلى
+  // تسجيل الدخول (مع تذكّر وجهة العودة)، وإلا نجلب طلباته ونفتح الأحدث افتراضيًا.
   useEffect(() => {
     if (authLoading) return;
     if (!user) {
@@ -41,18 +56,20 @@ const MyOrdersPage = () => {
       return;
     }
     setLoading(true);
-    fetchMyOrders(user.id).then((data) => {
+    fetchMyOrders(user.id, user.email).then((data) => {
       setOrders(data);
       if (data.length > 0) setSelectedId(data[0].id);
       setLoading(false);
     });
   }, [user, authLoading, navigate]);
 
+  // الطلب المعروض حاليًا، محسوب من المعرّف المختار (useMemo لتفادي إعادة الحساب).
   const selected = useMemo(
     () => orders.find((o) => o.id === selectedId) ?? null,
     [orders, selectedId]
   );
 
+  // تنسيق تاريخ محلّي — لغة عربية ليبية في وضع RTL، وإنجليزية أمريكية خلاف ذلك.
   const formatDate = (value: string) =>
     new Date(value).toLocaleDateString(
       language === "ar" ? "ar-LY" : "en-US",

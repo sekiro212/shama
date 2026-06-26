@@ -1,3 +1,15 @@
+/**
+ * ====================================================================
+ * ShippingSection — قسم عنوان الشحن في صفحة إتمام الشراء (Checkout)
+ * --------------------------------------------------------------------
+ * يجمع بيانات المُستلِم (الاسم، البريد، الهاتف) وعنوان التوصيل المعتمِد على
+ * مدن ومناطق شركة Vanex. يدعم وضعين:
+ *   - "edit": نموذج تعبئة/تعديل البيانات.
+ *   - "card": بطاقة عرض مُلخّصة بعد الحفظ.
+ * يملأ الحقول مسبقًا من آخر طلب للمستخدم إن وُجد، ويُبلِغ الأب بصلاحية النموذج.
+ * يدعم اللغتين العربية والإنجليزية عبر useLanguage().
+ * ====================================================================
+ */
 import { useEffect, useState } from "react";
 import {
   User,
@@ -51,6 +63,13 @@ export const EMPTY_SHIPPING: ShippingFormData = {
   vanexSubCityId: null,
 };
 
+/**
+ * خصائص المكوّن:
+ * - formData: بيانات نموذج الشحن الحالية (مُدارة من الأب).
+ * - onChange: دالة تحديث بيانات النموذج.
+ * - onValidChange: تُبلِغ الأب بصلاحية النموذج (لتفعيل/تعطيل زر إتمام الطلب).
+ * - onSubCityChange: تُبلِغ الأب بالمنطقة المختارة (تُستخدم لحساب رسوم التوصيل).
+ */
 interface ShippingSectionProps {
   formData: ShippingFormData;
   onChange: (data: ShippingFormData) => void;
@@ -58,6 +77,9 @@ interface ShippingSectionProps {
   onSubCityChange: (sub: VanexSubCity | null) => void;
 }
 
+/**
+ * المكوّن الرئيسي لقسم عنوان الشحن وإدارة وضعي العرض والتعديل.
+ */
 export default function ShippingSection({
   formData,
   onChange,
@@ -68,6 +90,7 @@ export default function ShippingSection({
   const { t } = useLanguage();
   const shouldReduceMotion = useReducedMotion();
 
+  // وضع العرض: "edit" لتعبئة النموذج، و"card" لعرض البطاقة المُلخّصة بعد الحفظ
   const [mode, setMode] = useState<"card" | "edit">("edit");
   const [vanexCities, setVanexCities] = useState<VanexCity[]>([]);
   const [vanexSubCities, setVanexSubCities] = useState<VanexSubCity[]>([]);
@@ -76,6 +99,7 @@ export default function ShippingSection({
   const [touched, setTouched] = useState(false);
 
   // Load Vanex cities on mount
+  // تحميل قائمة مدن Vanex عند تركيب المكوّن مرة واحدة
   useEffect(() => {
     setCitiesLoading(true);
     fetchVanexCities()
@@ -85,13 +109,21 @@ export default function ShippingSection({
   }, []);
 
   // Pre-fill from user's last order (if any)
+  // تعبئة الحقول مسبقًا من آخر طلب للمستخدم (إن وُجد) ثم التحوّل إلى وضع البطاقة.
+  // يُستخدم العلم cancelled لتفادي تحديث الحالة بعد إزالة المكوّن.
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
     setPrefilling(true);
-    fetchMyOrders(user.id)
+    fetchMyOrders(user.id, user.email)
       .then((orders) => {
-        if (cancelled || orders.length === 0) return;
+        if (cancelled) return;
+        // No prior order — still seed the account email so this order links to
+        // the account (and is recoverable in "My Orders").
+        if (orders.length === 0) {
+          if (user.email) onChange({ ...EMPTY_SHIPPING, email: user.email });
+          return;
+        }
         const last = orders[0] as Order;
         const seeded: ShippingFormData = {
           firstName: last.first_name || "",
@@ -119,6 +151,8 @@ export default function ShippingSection({
   }, [user?.email]);
 
   // When city list loads and we have a vanexCityId from prefill, hydrate sub-cities
+  // عند توفّر قائمة المدن ووجود مدينة مُعبّأة مسبقًا، نُحمّل مناطقها الفرعية
+  // ونعيد ضبط المنطقة المختارة سابقًا لإكمال العنوان القادم من آخر طلب
   useEffect(() => {
     if (!formData.vanexCityId || vanexCities.length === 0) return;
     const city = vanexCities.find((c) => c.id === formData.vanexCityId);
@@ -135,6 +169,7 @@ export default function ShippingSection({
   }, [formData.vanexCityId, vanexCities]);
 
   // Validity calc — required fields + a sub-city (if any exist) or place name fallback
+  // حساب صلاحية النموذج: جميع الحقول المطلوبة + مدينة، مع منطقة فرعية أو اسم مكان بديل
   const isValid =
     !!formData.firstName.trim() &&
     !!formData.lastName.trim() &&
@@ -146,13 +181,20 @@ export default function ShippingSection({
   useEffect(() => {
     // Valid from the parent's perspective ONLY when in card mode (user confirmed).
     // That way the Place Order button can't fire while the user is still editing.
+    // يُعدّ النموذج صالحًا من منظور الأب فقط في وضع البطاقة (بعد تأكيد المستخدم)،
+    // كي لا يُفعَّل زر إتمام الطلب بينما لا يزال المستخدم يُعدّل بياناته.
     onValidChange(mode === "card" && isValid);
   }, [mode, isValid, onValidChange]);
 
+  // دالة مساعدة: تحدّث جزءًا من بيانات النموذج مع الحفاظ على بقية الحقول
   const update = (patch: Partial<ShippingFormData>) => {
     onChange({ ...formData, ...patch });
   };
 
+  /**
+   * عند اختيار مدينة: تُحمَّل مناطقها الفرعية، ويُعاد ضبط المنطقة واسم المكان
+   * لأنهما يعتمدان على المدينة الجديدة.
+   */
   const handleCitySelect = (cityId: string) => {
     const id = Number(cityId);
     const city = vanexCities.find((c) => c.id === id);
@@ -167,6 +209,9 @@ export default function ShippingSection({
     onSubCityChange(null);
   };
 
+  /**
+   * عند اختيار منطقة فرعية: تُخزَّن ويُبلَّغ الأب بها لأنها تحدّد رسوم التوصيل.
+   */
   const handleSubCitySelect = (subCityId: string) => {
     const id = Number(subCityId);
     const sub = vanexSubCities.find((s) => s.sub_city_id === id) ?? null;
@@ -177,6 +222,10 @@ export default function ShippingSection({
     onSubCityChange(sub);
   };
 
+  /**
+   * حفظ النموذج: يُفعّل علم "touched" لإظهار أخطاء الحقول، وإن كان صالحًا
+   * ينتقل إلى وضع البطاقة، وإلا يعرض إشعار خطأ.
+   */
   const handleSave = () => {
     setTouched(true);
     if (!isValid) {
@@ -186,6 +235,7 @@ export default function ShippingSection({
     setMode("card");
   };
 
+  // إعدادات الحركة عند تبديل العرض بين البطاقة والنموذج؛ تُبسَّط عند تقليل الحركة
   const initial = shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 };
   const animate = shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 };
 
@@ -204,6 +254,7 @@ export default function ShippingSection({
         </div>
       </header>
 
+      {/* التبديل بين بطاقة العنوان المُلخّصة (card) ونموذج التعبئة (edit) */}
       <AnimatePresence mode="wait">
         {mode === "card" ? (
           <motion.div
@@ -348,6 +399,8 @@ export default function ShippingSection({
             </div>
 
             {/* Sub-city (area) */}
+            {/* المنطقة الفرعية: تظهر بعد اختيار المدينة. إن وُجدت مناطق معرّفة
+                تُعرَض قائمة منسدلة، وإلا يُعرَض حقل نصّي لإدخال اسم المكان يدويًا */}
             {formData.vanexCityId && (
               <div className="space-y-1.5">
                 <Label
@@ -432,6 +485,7 @@ interface FieldProps {
 
 type FieldInputMode = "text" | "email" | "tel" | "numeric" | "decimal" | "search" | "url" | "none";
 
+// خريطة قيم autocomplete للمتصفّح بحسب معرّف الحقل (تحسّن الإكمال التلقائي)
 const AUTOCOMPLETE_BY_ID: Record<string, string> = {
   firstName: "given-name",
   lastName: "family-name",
@@ -443,12 +497,17 @@ const AUTOCOMPLETE_BY_ID: Record<string, string> = {
   postalCode: "postal-code",
 };
 
+// خريطة inputMode بحسب نوع الحقل (تُظهر لوحة مفاتيح ملائمة على الجوال)
 const INPUTMODE_BY_TYPE: Record<string, FieldInputMode> = {
   email: "email",
   tel: "tel",
   number: "numeric",
 };
 
+/**
+ * حقل إدخال موحّد مع تسمية وأيقونة اختيارية ودعم التحقّق:
+ * يعرض رسالة خطأ إذا كان الحقل مطلوبًا وفارغًا بعد لمسه (touched).
+ */
 function Field({
   id,
   label,
@@ -459,6 +518,7 @@ function Field({
   required,
   touched,
 }: FieldProps) {
+  // إظهار الخطأ فقط للحقول المطلوبة الفارغة التي تفاعل معها المستخدم
   const showError = required && touched && !value.trim();
   return (
     <div className="space-y-1.5">
