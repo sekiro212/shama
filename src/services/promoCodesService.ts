@@ -1,3 +1,17 @@
+/**
+ * promoCodesService.ts
+ * --------------------
+ * طبقة الخدمة الخاصة بأكواد الخصم/العروض (جدول `promo_codes`). تتولّى:
+ *  - عمليات CRUD للمسؤول (عرض، إنشاء، تحديث، حذف، تبديل التفعيل)
+ *  - التحقّق الموجّه للعميل من الكود مقابل سلة الشراء (المنطق الأساسي في
+ *    `validatePromoCode`)، مع حساب الخصم الفعلي والإجمالي النهائي
+ *  - زيادة عدّاد الاستخدام بأمان دون تجاوز الحدود المُهيّأة
+ *
+ * نموذج الخصم:
+ *  - `discount_type`: "fixed" (مبلغ ثابت مخصوم) أو "percentage" (نسبة مئوية، مع حدّ أقصى اختياري عبر `max_discount`)
+ *  - `scope`: "all_products" أو "specific_products" (المنتجات المُدرجة فقط مؤهَّلة)
+ *  - الحدود: حدّ عام `usage_limit`، إضافة إلى `usage_limit_per_user` (يُحسب عبر البريد الإلكتروني للطلبات السابقة)
+ */
 import { supabase } from "@/lib/supabase";
 import type { CartItem } from "@/contexts/CartContext";
 
@@ -58,14 +72,20 @@ export interface PromoValidationResult {
   finalTotal: number;
 }
 
+// تُخزَّن الأكواد وتُقارَن بأحرف كبيرة وبعد إزالة الفراغات حتى يساوي "  save10 " قيمة "SAVE10".
 function normalizeCode(code: string): string {
   return code.trim().toUpperCase();
 }
 
+// التقريب إلى منزلتين عشريتين لتجنّب أخطاء الأرقام العائمة في المبالغ (مثل 0.1+0.2).
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
+/**
+ * تُرجع true إذا كان للعرض تاريخ انتهاء أصبح الآن في الماضي.
+ * @param promo كائن يحتوي على الأقل `expires_at` (القيمة null تعني لا ينتهي أبدًا).
+ */
 export function isPromoExpired(
   promo: Pick<PromoCode, "expires_at">
 ): boolean {
@@ -74,6 +94,8 @@ export function isPromoExpired(
   );
 }
 
+// قد تصل scope_product_ids كمصفوفة حقيقية أو كنص JSON (حسب طريقة كتابة العمود)؛
+// نُطبّعها في الحالتين إلى string[]. وأي شيء آخر => [].
 function parseScopeIds(value: unknown): string[] {
   if (Array.isArray(value)) return value as string[];
   if (typeof value === "string") {
@@ -87,6 +109,8 @@ function parseScopeIds(value: unknown): string[] {
   return [];
 }
 
+// تحويل حقول الصف الخام من قاعدة البيانات إلى أنواعها الصحيحة وقت التشغيل (تعود
+// الأرقام كنصوص من بعض المُشغّلات، ومُعرّفات النطاق تحتاج تحليلًا) قبل استخدامها.
 function hydratePromo(row: Record<string, unknown>): PromoCode {
   return {
     ...(row as unknown as PromoCode),
@@ -100,6 +124,10 @@ function hydratePromo(row: Record<string, unknown>): PromoCode {
   };
 }
 
+/**
+ * للمسؤول: يجلب كل أكواد العروض، الأحدث أولًا.
+ * @returns أكواد العروض بعد التطبيع؛ [] عند حدوث خطأ.
+ */
 export async function fetchAllPromoCodes(): Promise<PromoCode[]> {
   try {
     const { data, error } = await supabase
@@ -118,6 +146,12 @@ export async function fetchAllPromoCodes(): Promise<PromoCode[]> {
   }
 }
 
+/**
+ * للمسؤول: يُنشئ كود عرض جديدًا (يُخزَّن الكود بعد التطبيع/التحويل لأحرف كبيرة).
+ * @param payload تعريف العرض الكامل.
+ * @returns كود العرض المُنشأ بعد التطبيع.
+ * @throws Error("DUPLICATE_CODE") إن كان الكود موجودًا مسبقًا؛ ويُعيد رمي الأخطاء الأخرى.
+ */
 export async function createPromoCode(
   payload: PromoCodePayload
 ): Promise<PromoCode> {
@@ -131,12 +165,20 @@ export async function createPromoCode(
     .single();
 
   if (error) {
+    // رمز Postgres 23505 = انتهاك قيد الفرادة → الكود `code` موجود مسبقًا.
     if (error.code === "23505") throw new Error("DUPLICATE_CODE");
     throw error;
   }
   return hydratePromo(data);
 }
 
+/**
+ * للمسؤول: يُحدّث كود عرض تحديثًا جزئيًا.
+ * @param id    مُعرّف العرض المراد تحديثه.
+ * @param patch مجموعة فرعية من الحقول المراد تغييرها.
+ * يُعيد تطبيع `code` فقط عندما يكون جزءًا من التعديل (حتى لا تمسّ تعديلات الحقول
+ * الأخرى الكود المُخزَّن). يرمي خطأ عند فشل قاعدة البيانات.
+ */
 export async function updatePromoCode(
   id: string,
   patch: Partial<PromoCodePayload>
@@ -145,6 +187,7 @@ export async function updatePromoCode(
     .from("promo_codes")
     .update({
       ...patch,
+      // إعادة تطبيع الكود بشكل شرطي فقط إذا كان المُستدعي يُغيّره.
       ...(patch.code !== undefined ? { code: normalizeCode(patch.code) } : {}),
     })
     .eq("id", id);
@@ -152,11 +195,16 @@ export async function updatePromoCode(
   if (error) throw error;
 }
 
+/** للمسؤول: يحذف كود عرض نهائيًا. يرمي خطأ عند فشل قاعدة البيانات. */
 export async function deletePromoCode(id: string): Promise<void> {
   const { error } = await supabase.from("promo_codes").delete().eq("id", id);
   if (error) throw error;
 }
 
+/**
+ * للمسؤول: يُفعّل/يُعطّل كود عرض دون حذفه.
+ * @param isActive حالة التفعيل الجديدة.
+ */
 export async function togglePromoCode(
   id: string,
   isActive: boolean
@@ -168,12 +216,15 @@ export async function togglePromoCode(
   if (error) throw error;
 }
 
+// يحسب كم طلبًا سابقًا قدّمه هذا البريد الإلكتروني مستخدمًا هذا العرض، لفرض حدّ
+// الاستخدام لكل مستخدم. يُرجع Infinity عند الفشل (انظر أدناه).
 async function fetchPerUserUsageCount(
   promoId: string,
   userEmail: string
 ): Promise<number> {
   if (!userEmail) return 0;
   try {
+    // عدّ بـ head+exact للطلبات المطابقة فقط — لا حاجة لبيانات الصفوف.
     const { count, error } = await supabase
       .from("orders")
       .select("id", { count: "exact", head: true })
@@ -192,15 +243,27 @@ async function fetchPerUserUsageCount(
   }
 }
 
+/**
+ * يتحقّق من كود عرض مقابل سلة الشراء ويحسب الخصم الناتج.
+ * يُجري الفحوصات بالترتيب — الوجود ← مُفعّل ← غير منتهٍ ← الحدّ العام ←
+ * الحدّ لكل مستخدم ← نطاق المنتجات ← الحدّ الأدنى للطلب ← حساب الخصم — ويُرجع
+ * أول فشل كـ `error` ذي نوع، أو نتيجة `valid: true` مع الإجماليات.
+ * @param code      الكود الخام كما كتبه المستخدم (يُطبَّع داخليًا).
+ * @param items     عناصر السلة (id، price، quantity).
+ * @param userEmail بريد المشتري، يُستخدم لحدّ الاستخدام لكل مستخدم.
+ * @returns كائن `PromoValidationResult` يحتوي subtotal وeligibleSubtotal وdiscount وfinalTotal.
+ */
 export async function validatePromoCode(
   code: string,
   items: PromoCartItem[],
   userEmail: string
 ): Promise<PromoValidationResult> {
+  // مجموع السلة الكامل (كل العناصر)، بغضّ النظر عن العناصر التي يغطّيها العرض.
   const subtotal = round2(
     items.reduce((sum, i) => sum + i.price * i.quantity, 0)
   );
 
+  // النتيجة المبدئية "لم يُطبَّق خصم"، تُنشر في كل خروج مبكّر.
   const emptyResult: PromoValidationResult = {
     valid: false,
     subtotal,
@@ -212,6 +275,7 @@ export async function validatePromoCode(
   const normalized = normalizeCode(code);
   if (!normalized) return { ...emptyResult, error: "INVALID_CODE" };
 
+  // تُرجع maybeSingle() القيمة null (وليس خطأ) عندما لا يطابق أي كود.
   const { data, error } = await supabase
     .from("promo_codes")
     .select("*")
@@ -224,18 +288,22 @@ export async function validatePromoCode(
 
   const promo = hydratePromo(data);
 
+  // البوّابة 1: الكود مُعطَّل من قِبل المسؤول.
   if (!promo.is_active) {
     return { ...emptyResult, error: "INACTIVE", promo };
   }
 
+  // البوّابة 2: تجاوز تاريخ الانتهاء.
   if (isPromoExpired(promo)) {
     return { ...emptyResult, error: "EXPIRED", promo };
   }
 
+  // البوّابة 3: بلوغ الحدّ العام للاستخدام (الحدّ null يعني غير محدود).
   if (promo.usage_limit !== null && promo.usage_count >= promo.usage_limit) {
     return { ...emptyResult, error: "USAGE_LIMIT_REACHED", promo };
   }
 
+  // البوّابة 4: هذا المشتري استخدم الكود بالفعل بالعدد المسموح به.
   if (promo.usage_limit_per_user !== null && userEmail) {
     const used = await fetchPerUserUsageCount(promo.id, userEmail);
     if (used >= promo.usage_limit_per_user) {
@@ -243,15 +311,19 @@ export async function validatePromoCode(
     }
   }
 
+  // في نطاق "specific_products" نَعُدّ فقط عناصر السلة التي يوجد مُعرّفها في قائمة
+  // السماح الخاصة بالعرض؛ أما نطاق "all_products" فيَعُدّ السلة كاملة.
   const eligibleItems =
     promo.scope === "specific_products"
       ? items.filter((i) => promo.scope_product_ids.includes(i.id))
       : items;
 
+  // مجموع العناصر المؤهَّلة للخصم فقط (أساس احتساب الخصم).
   const eligibleSubtotal = round2(
     eligibleItems.reduce((sum, i) => sum + i.price * i.quantity, 0)
   );
 
+  // البوّابة 5: عرض مُقيّد بنطاق لكن لا يتأهّل أيّ من عناصر السلة.
   if (promo.scope === "specific_products" && eligibleSubtotal <= 0) {
     return {
       ...emptyResult,
@@ -261,6 +333,7 @@ export async function validatePromoCode(
     };
   }
 
+  // البوّابة 6: الإنفاق المؤهَّل أقل من عتبة الحدّ الأدنى للطلب الخاصة بالكود.
   if (eligibleSubtotal < promo.min_order_total) {
     return {
       ...emptyResult,
@@ -271,16 +344,21 @@ export async function validatePromoCode(
     };
   }
 
+  // حساب الخصم: مُقيّد بحيث لا يتجاوز أبدًا مجموع العناصر المؤهَّلة.
   let rawDiscount: number;
   if (promo.discount_type === "fixed") {
+    // مبلغ ثابت مخصوم، لكن لا يزيد أبدًا عن تكلفة العناصر المؤهَّلة.
     rawDiscount = Math.min(promo.discount_value, eligibleSubtotal);
   } else {
+    // نسبة مئوية من المجموع المؤهَّل، مُقيّدة بـ max_discount (إن وُجد) ثم بمجموع
+    // العناصر المؤهَّلة نفسه.
     const pct = (eligibleSubtotal * promo.discount_value) / 100;
     const cap = promo.max_discount ?? Number.POSITIVE_INFINITY;
     rawDiscount = Math.min(pct, cap, eligibleSubtotal);
   }
 
   const discount = round2(Math.max(0, rawDiscount));
+  // يُخصم الخصم من المجموع الكامل (وليس المؤهَّل فقط) للحصول على الإجمالي المُستحق للدفع.
   const finalTotal = round2(Math.max(0, subtotal - discount));
 
   return {
@@ -293,6 +371,12 @@ export async function validatePromoCode(
   };
 }
 
+/**
+ * Atomically-ish increments a promo's usage count after a successful order,
+ * without ever pushing it past `usage_limit`.
+ * @param id Promo id to increment.
+ * @throws Rethrows DB errors; callers typically fire-and-forget and just log.
+ */
 export async function incrementPromoCodeUsage(id: string): Promise<void> {
   // Re-read current usage_count + usage_limit, then conditionally update so
   // we never exceed the limit even under a race. Best-effort; callers

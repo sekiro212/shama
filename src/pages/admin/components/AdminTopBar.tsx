@@ -1,3 +1,9 @@
+/**
+ * AdminTopBar — مكوّن واجهة مشترك في لوحة الإدارة.
+ *
+ * الشريط العلوي الثابت للوحة الإدارة. يعرض زر فتح القائمة الجانبية على
+ * الشاشات الصغيرة، وعنوان الصفحة الحالية المشتقّ من مسار التنقّل (route).
+ */
 import { useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
@@ -7,6 +13,7 @@ interface AdminTopBarProps {
   onMobileMenuToggle: () => void;
 }
 
+// خريطة من مسار الصفحة إلى مفتاح الترجمة لعنوانها.
 const PAGE_TITLE_MAP: Record<string, string> = {
   "/": "admin.nav.overview",
   "/orders": "admin.nav.orders",
@@ -17,6 +24,7 @@ const PAGE_TITLE_MAP: Record<string, string> = {
   "/coupons": "admin.nav.coupons",
 };
 
+// عناوين احتياطية تُستخدم عندما لا تتوفّر ترجمة للمفتاح.
 const FALLBACK_TITLES: Record<string, string> = {
   "/": "Overview",
   "/orders": "Orders",
@@ -27,10 +35,17 @@ const FALLBACK_TITLES: Record<string, string> = {
   "/coupons": "Coupons",
 };
 
+/**
+ * يعرض الشريط العلوي للوحة الإدارة مع عنوان الصفحة الحالية.
+ *
+ * @param onMobileMenuToggle - دالة تُستدعى لفتح/إغلاق القائمة الجانبية للجوال.
+ */
 export function AdminTopBar({ onMobileMenuToggle }: AdminTopBarProps) {
   const { pathname } = useLocation();
   const { t } = useLanguage();
 
+  // اشتقاق عنوان الصفحة من المسار الحالي: نحاول الترجمة أولًا، فإن لم تتوفّر
+  // (أي أعادت t نفس المفتاح) نستخدم العنوان الاحتياطي الإنجليزي.
   const translationKey = PAGE_TITLE_MAP[pathname];
   const fallback = FALLBACK_TITLES[pathname] || "Admin";
   const pageTitle = translationKey

@@ -1,3 +1,13 @@
+/**
+ * ===================================================================
+ * صفحة تفضيلات البريد الإلكتروني (Email Preferences) — المسار: /settings/email
+ * -------------------------------------------------------------------
+ * تتيح للمستخدم المسجّل التحكّم بأنواع الرسائل التي يستقبلها (تنبيهات
+ * المنتجات الجديدة، الملخّصات الأسبوعية/الشهرية، إعادة التفاعل) وتفعيل/
+ * تعطيل البريد كليًا، واختيار لغة الرسائل. تُحفظ التفضيلات في جدول
+ * email_preferences بـ Supabase. تتطلّب تسجيل الدخول.
+ * ===================================================================
+ */
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Mail, Bell, BellOff, Globe, Loader2 } from "lucide-react";
@@ -10,6 +20,7 @@ import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
 
+// شكل تفضيلات البريد كما هي مخزّنة في جدول email_preferences
 interface EmailPrefs {
   email_enabled: boolean;
   new_product_alerts: boolean;
@@ -19,6 +30,7 @@ interface EmailPrefs {
   language_pref: "en" | "ar";
 }
 
+// القيم الافتراضية المستخدمة عند إنشاء صف تفضيلات جديد لأول مرة
 const defaultPrefs: EmailPrefs = {
   email_enabled: true,
   new_product_alerts: true,
@@ -28,6 +40,11 @@ const defaultPrefs: EmailPrefs = {
   language_pref: "en",
 };
 
+/**
+ * المكوّن الرئيسي لصفحة تفضيلات البريد.
+ * يحمّل تفضيلات المستخدم الحالية أو يُنشئ افتراضية عند أول زيارة،
+ * ويحفظ كل تغيير فور حدوثه في قاعدة البيانات.
+ */
 export default function EmailPreferencesPage() {
   const { user } = useAuth();
   const { t, language } = useLanguage();
@@ -35,6 +52,7 @@ export default function EmailPreferencesPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
+  // أثر جانبي: تحميل تفضيلات المستخدم عند توفّره؛ يُتخطّى إن لم يكن مسجّلًا
   useEffect(() => {
     if (!user) {
       setLoading(false);
@@ -49,8 +67,10 @@ export default function EmailPreferencesPage() {
           .eq("user_id", user.id)
           .single();
 
+        // الرمز PGRST116 يعني عدم وجود صف بعد: نُنشئ صفًا بالقيم الافتراضية
+        // No row yet — upsert defaults
         if (error && error.code === "PGRST116") {
-          // No row yet — upsert defaults
+          // ضبط لغة الرسائل الأولية حسب لغة الواجهة الحالية
           const langPref = language === "ar" ? "ar" : "en";
           await supabase.from("email_preferences").upsert({
             user_id: user.id,
@@ -73,9 +93,14 @@ export default function EmailPreferencesPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
+  /**
+   * تحديث تفضيل واحد وحفظه فورًا في قاعدة البيانات.
+   * يطبّق تحديثًا متفائلًا على الواجهة، فإن فشل الحفظ يُعيد القيمة السابقة.
+   */
   const updatePref = async (key: keyof EmailPrefs, value: boolean | string) => {
     if (!user) return;
 
+    // تحديث متفائل: نعكس التغيير في الواجهة قبل تأكيد الحفظ
     const newPrefs = { ...prefs, [key]: value };
     setPrefs(newPrefs);
     setSaving(true);
@@ -89,6 +114,7 @@ export default function EmailPreferencesPage() {
       if (error) throw error;
       toast.success(t("settings.saved"));
     } catch {
+      // فشل الحفظ: التراجع وإعادة القيمة السابقة
       setPrefs(prefs); // revert
       toast.error(t("settings.error"));
     } finally {
@@ -96,6 +122,7 @@ export default function EmailPreferencesPage() {
     }
   };
 
+  // حالة عدم تسجيل الدخول: عرض دعوة لتسجيل الدخول بدل التفضيلات
   if (!user) {
     return (
       <div className="min-h-screen pt-20 md:pt-24 pb-12 sm:pb-16 px-3 sm:px-4">
@@ -123,6 +150,7 @@ export default function EmailPreferencesPage() {
     );
   }
 
+  // تعريف مفاتيح التبديل الفرعية (نوع رسالة لكل عنصر) لعرضها بشكل موحّد
   const toggleItems = [
     { key: "new_product_alerts" as const, label: t("settings.newProducts"), desc: t("settings.newProductsDesc"), icon: Bell },
     { key: "weekly_digest" as const, label: t("settings.weeklyDigest"), desc: t("settings.weeklyDigestDesc"), icon: Mail },
@@ -156,6 +184,7 @@ export default function EmailPreferencesPage() {
           transition={{ delay: 0.2 }}
           className="space-y-3 sm:space-y-4"
         >
+          {/* المفتاح الرئيسي: تعطيله يُعطّل كل المفاتيح الفرعية بصريًا ومنطقيًا */}
           {/* Master toggle */}
           <div className="glass-card p-4 sm:p-6 rounded-2xl">
             <div className="flex items-center justify-between">

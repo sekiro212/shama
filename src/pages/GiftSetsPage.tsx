@@ -1,3 +1,13 @@
+/**
+ * ===================================================================
+ * صفحة أطقم الهدايا (Gift Sets) — المسار: /gift-sets
+ * -------------------------------------------------------------------
+ * تعرض المنتجات من نوع "هدية" (gift) مع تصفية حسب المناسبة (ميلاد،
+ * ذكرى، عيد، زفاف...) والجنس، إضافةً إلى معالج بناء هدية مخصّصة
+ * (GiftWizard). تجلب البيانات من خدمة productsService. تدعم العربية
+ * والإنجليزية.
+ * ===================================================================
+ */
 import { useState, useEffect, useMemo } from "react";
 import { Gift, Filter, Sparkles } from "lucide-react";
 import {
@@ -12,8 +22,11 @@ import { filterProducts, Product } from "@/services/productsService";
 import { useLanguage } from "@/contexts/LanguageContext";
 import GiftWizard from "@/components/gift-builder/GiftWizard";
 
+// المناسبات المتاحة للتصفية
 type Occasion = "all" | "birthday" | "anniversary" | "eid" | "valentine" | "wedding" | "justBecause";
 
+// إعداد كل مناسبة: مفتاح الترجمة (labelKey) وكلمات مفتاحية (tokens) بالعربية
+// والإنجليزية تُستخدم لمطابقة اسم/وصف المنتج بالمناسبة
 const OCCASIONS: { key: Occasion; labelKey: string; tokens: string[] }[] = [
   { key: "all", labelKey: "giftSets.filterAll", tokens: [] },
   { key: "birthday", labelKey: "giftBuilder.occasionBirthday", tokens: ["birthday", "ميلاد"] },
@@ -23,10 +36,16 @@ const OCCASIONS: { key: Occasion; labelKey: string; tokens: string[] }[] = [
   { key: "justBecause", labelKey: "giftBuilder.occasionJustBecause", tokens: ["gift", "هدية"] },
 ];
 
+/**
+ * تحدّد ما إذا كان المنتج يطابق المناسبة المختارة، عبر البحث عن أيٍّ من
+ * كلمات المناسبة المفتاحية داخل اسم المنتج ووصفه (بالعربية والإنجليزية).
+ * تُرجع true دائمًا لمناسبة "الكل" أو عند غياب كلمات مفتاحية.
+ */
 function matchesOccasion(product: Product, occasion: Occasion): boolean {
   if (occasion === "all") return true;
   const config = OCCASIONS.find((o) => o.key === occasion);
   if (!config || config.tokens.length === 0) return true;
+  // تجميع نصوص المنتج في سلسلة واحدة للبحث فيها عن الكلمات المفتاحية
   const haystack = [
     product.name,
     product.name_ar,
@@ -39,6 +58,10 @@ function matchesOccasion(product: Product, occasion: Occasion): boolean {
   return config.tokens.some((tok) => haystack.includes(tok.toLowerCase()));
 }
 
+/**
+ * المكوّن الرئيسي لصفحة أطقم الهدايا.
+ * يدير تصفية الجنس والمناسبة، يجلب منتجات الهدايا، ويعرض معالج بناء الهدية.
+ */
 export default function GiftSetsPage() {
   const { t } = useLanguage();
   const [genderFilter, setGenderFilter] = useState("all");
@@ -47,6 +70,7 @@ export default function GiftSetsPage() {
   const [loading, setLoading] = useState(true);
   const [showWizard, setShowWizard] = useState(false);
 
+  // أثر جانبي: جلب منتجات الهدايا من قاعدة البيانات؛ يُعاد عند تغيّر تصفية الجنس
   useEffect(() => {
     const loadGiftSets = async () => {
       try {
@@ -69,11 +93,14 @@ export default function GiftSetsPage() {
     loadGiftSets();
   }, [genderFilter]);
 
+  // تطبيق تصفية الجنس ثم المناسبة على المنتجات (محسوب بـ useMemo لتفادي إعادة الحساب)
   const filteredGiftSets = useMemo(() => {
     const byGender = products.filter(
       (product) => genderFilter === "all" || product.gender === genderFilter,
     );
     const byOccasion = byGender.filter((p) => matchesOccasion(p, occasionFilter));
+    // احتياط: إن لم تُرجع تصفية المناسبة أي نتيجة بينما توجد نتائج مطابقة للجنس،
+    // نعرض كل نتائج الجنس بدل شبكة فارغة (تحسينًا لتجربة المستخدم).
     // Safety fallback: if occasion filter returns zero but gender matches exist,
     // show everything rather than an empty grid (user feedback best-practice).
     return byOccasion.length > 0 || occasionFilter === "all" ? byOccasion : byGender;
@@ -213,6 +240,7 @@ export default function GiftSetsPage() {
           </div>
         )}
       </div>
+      {/* معالج بناء الهدية المخصّصة؛ يظهر كنافذة عند تفعيل showWizard */}
       {showWizard && <GiftWizard onClose={() => setShowWizard(false)} />}
     </div>
   );

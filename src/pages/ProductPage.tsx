@@ -1,3 +1,20 @@
+/**
+ * ProductPage.tsx
+ * -----------------------------------------------------------------------------
+ * صفحة تفاصيل منتج واحد — مركّبة على "/product/:id".
+ * تقرأ معرّف المنتج (id) من الرابط، وتجلب المنتج الكامل (مع معرض صوره
+ * وأحجام العيّنات وأحجام الزجاجات) من Supabase، وتتيح للمستخدم:
+ *   - تصفّح معرض الصور (أسهم + تنقّل عبر لوحة المفاتيح)،
+ *   - اختيار نسخة (عيّنة مقابل زجاجة كاملة وحجم محدّد)،
+ *   - اختيار كمية وإضافتها إلى السلة،
+ *   - إضافة المنتج إلى قائمة أمنياته،
+ *   - قراءة مكوّنات العطر / التفاصيل / الخط الزمني لـ "رحلة" العطر،
+ *   - قراءة مراجعة — وكتابتها إن كان مسجّل الدخول — تُشرف عليها الـ AI.
+ *
+ * ثنائي اللغة: لاسم/وصف/مكوّنات المنتج نسخ عربية
+ * (`name_ar`، `description_ar`، `fragranceNotes_ar`) تُختار عندما تكون اللغة
+ * النشطة `language` هي العربية؛ ويقلب `isRTL` اتجاه التخطيط عند الحاجة.
+ */
 import { useParams, Link, useLocation } from "react-router-dom";
 import {
   ShoppingBag,
@@ -41,6 +58,13 @@ import StickyBuyBar from "@/components/StickyBuyBar";
 import { anonymizeEmail, formatReviewDate } from "@/lib/reviewUtils";
 import { trackEvent } from "@/services/trackingService";
 
+/**
+ * ProductPage — المكوّن الأعلى مستوى للمسار "/product/:id".
+ * يملك كل حالة التفاعل للصفحة: أي صورة من المعرض تُعرض، والكمية المختارة،
+ * والتبويب النشط، والنسخة المحدّدة حاليًا. تُنمذَج عملية اختيار النسخة
+ * كمعرّفين متعارضين متبادلين (`selectedSample` / `selectedBottleSize`)
+ * إضافةً إلى مبدّل `activeMode` ("sample" | "bottle").
+ */
 export default function ProductPage() {
   const { id } = useParams<{ id: string }>();
   const { addToCart } = useCart();
@@ -62,27 +86,29 @@ export default function ProductPage() {
   );
   const [activeMode, setActiveMode] = useState<"sample" | "bottle">("bottle");
 
-  // Get product images from the database
+  // الحصول على صور المنتج من قاعدة البيانات
   const productImages = product?.images?.length
     ? product.images.map((img) => img.image_url)
     : [PLACEHOLDER_IMAGE_URL];
 
-  // Language-aware content
+  // محتوى مدرك للّغة
   const productName = product ? (language === "ar" && product.name_ar ? product.name_ar : product.name) : "";
   const productDescription = product ? (language === "ar" && product.description_ar ? product.description_ar : product.description) : "";
   const productNotes = product ? (language === "ar" && product.fragranceNotes_ar?.top?.length ? product.fragranceNotes_ar : product.fragranceNotes) : { top: [], middle: [], base: [] };
 
+  // إعادة ضبط علم "loaded" كلما تغيّرت الصورة المرئية بحيث يظهر العنصر
+  // النائب الوامض مجددًا حتى يُطلق onLoad للصورة الجديدة.
   useEffect(() => {
     setIsImageLoaded(false);
   }, [selectedImage]);
 
-  // On mount, check for ?size= in URL and auto-select variant
+  // عند التركيب، التحقّق من ?size= في الرابط واختيار النسخة تلقائيًا
   useEffect(() => {
     if (!product) return;
     const params = new URLSearchParams(location.search);
     const sizeParam = params.get("size");
     if (sizeParam) {
-      // Try to match sample first
+      // محاولة مطابقة عيّنة أولًا
       const sample = product.samples?.find((s) => s.size === sizeParam);
       if (sample) {
         setActiveMode("sample");
@@ -90,7 +116,7 @@ export default function ProductPage() {
         setSelectedBottleSize(null);
         return;
       }
-      // Try to match bottle size
+      // محاولة مطابقة حجم زجاجة
       const bottle = product.bottle_sizes?.find((b) => b.size === sizeParam);
       if (bottle) {
         setActiveMode("bottle");
@@ -98,12 +124,15 @@ export default function ProductPage() {
         setSelectedSample(null);
         return;
       }
-      // If not found, reset to default
+      // إن لم يُعثر عليه، إعادة الضبط إلى الافتراضي
       setSelectedSample(null);
       setSelectedBottleSize(null);
     }
   }, [product, location.search]);
 
+  // جلب البيانات: تحميل المنتج كلما تغيّر معرّف الرابط. عند النجاح نسجّله
+  // أيضًا في "المُشاهَدة مؤخرًا" (localStorage) ونُطلق حدث تحليلات
+  // "product_view".
   useEffect(() => {
     const loadData = async () => {
       if (!id) return;
@@ -112,7 +141,7 @@ export default function ProductPage() {
         setLoading(true);
         const productData = await fetchProductById(id);
         setProduct(productData);
-        // Track recently viewed
+        // تتبّع المُشاهَدة مؤخرًا
         if (productData) {
           addRecentlyViewed({
             id: productData.id,
@@ -137,10 +166,13 @@ export default function ProductPage() {
     loadData();
   }, [id, addRecentlyViewed]);
 
-  // Keyboard navigation for images
+  // أثر جانبي: ربط مستمع keydown عام بحيث ينقل سهما اليسار/اليمين بين صفحات
+  // المعرض. تزيله دالة التنظيف عند إلغاء التركيب / إعادة الربط لتجنّب
+  // المستمعين المكرّرين والإغلاقات (closures) القديمة.
+  // التنقّل عبر لوحة المفاتيح للصور
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Image navigation
+      // التنقّل بين الصور
       if (productImages.length <= 1) return;
 
       if (e.key === "ArrowLeft") {
@@ -162,6 +194,7 @@ export default function ProductPage() {
     setSelectedImage(Math.max(0, selectedImage - 1));
   };
 
+  // إرجاع مبكر: حالة التحميل أثناء جلب المنتج.
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-20 text-center bg-[#F8F9FB] dark:bg-[#1a2235] min-h-screen flex items-center justify-center animate-fade-in">
@@ -174,6 +207,7 @@ export default function ProductPage() {
     );
   }
 
+  // إرجاع مبكر: كان معرّف المنتج غير صالح أو غير موجود في قاعدة البيانات.
   if (!product) {
     return (
       <div className="container mx-auto px-4 py-20 text-center bg-[#F8F9FB] dark:bg-[#1a2235] min-h-screen flex items-center justify-center animate-fade-in">
@@ -199,13 +233,18 @@ export default function ProductPage() {
     );
   }
 
+  /**
+   * إضافة النسخة المختارة إلى السلة.
+   * تحلّ العيّنة/الزجاجة المحدّدة من معرّفها المخزّن، وتتحقّق من اختيار
+   * الحجم المطلوب فعلًا، ثم تدفع سطر سلة واحدًا لكل وحدة من `quantity`
+   * وتعرض إشعار نجاح (toast).
+   */
   const handleAddToCart = () => {
-    // Resolve the selected variant directly from the stored id regardless of
-    // activeMode — the UI already makes the two selections mutually exclusive
-    // (picking a sample clears the bottle selection and vice versa), so we
-    // trust the currently-set id. Gating this on activeMode caused samples-
-    // only products (which default to activeMode="bottle") to silently fall
-    // back to the full-bottle price.
+    // حلّ النسخة المحدّدة مباشرة من المعرّف المخزّن بغضّ النظر عن activeMode —
+    // فواجهة المستخدم تجعل الاختيارين متعارضين متبادلين أصلًا (اختيار عيّنة
+    // يمسح اختيار الزجاجة والعكس)، لذا نثق بالمعرّف المضبوط حاليًا. كان
+    // إخضاع هذا لـ activeMode يجعل المنتجات ذات العيّنات فقط (التي افتراضها
+    // activeMode="bottle") تلجأ بصمت إلى سعر الزجاجة الكاملة.
     const selectedSampleData = selectedSample
       ? product.samples?.find((s) => s.id === selectedSample)
       : null;
@@ -213,7 +252,7 @@ export default function ProductPage() {
       ? product.bottle_sizes?.find((b) => b.id === selectedBottleSize)
       : null;
 
-    // Only block add-to-cart if a selection is required and not made, but not when Default is selected
+    // منع الإضافة إلى السلة فقط إذا كان الاختيار مطلوبًا ولم يُتّخذ، لكن ليس عند اختيار الافتراضي
     if (
       (activeMode === "sample" &&
         product.samples &&
@@ -232,6 +271,8 @@ export default function ProductPage() {
       return;
     }
 
+    // إضافة مُدخل سلة واحد لكل وحدة؛ تعكس id/price/size كلها النسخة
+    // المختارة، مع اللجوء إلى المنتج الأساسي عند اختيار "الافتراضي".
     for (let i = 0; i < quantity; i++) {
       addToCart({
         id: selectedSampleData
@@ -273,7 +314,7 @@ export default function ProductPage() {
 
   return (
     <div className="bg-[#F8F9FB] dark:bg-[#1a2235] min-h-screen w-full relative overflow-hidden">
-      {/* Animated Background Elements */}
+      {/* عناصر خلفية متحرّكة */}
       <div className="fixed inset-0 z-0">
         <div className="absolute top-20 right-10 w-32 h-32 bg-gradient-to-r from-[#5B8DD9]/10 to-[#3E6BB5]/10 rounded-full blur-xl animate-float" />
         <div
@@ -283,7 +324,7 @@ export default function ProductPage() {
       </div>
 
       <div className="container mx-auto px-3 sm:px-4 pt-20 md:pt-24 pb-8 relative z-10">
-        {/* Breadcrumb */}
+        {/* مسار التنقّل (Breadcrumb) */}
         <div className="flex items-center space-x-2 sm:space-x-4 rtl:space-x-reverse mb-4 sm:mb-8 mt-2 sm:mt-6 animate-slide-up relative z-50 text-sm flex-wrap">
           <Link
             to="/collection"
@@ -299,9 +340,9 @@ export default function ProductPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-10 lg:gap-16">
-          {/* Product Images */}
+          {/* صور المنتج */}
           <div className="space-y-4 sm:space-y-6 animate-scale-in">
-            {/* Main Image */}
+            {/* الصورة الرئيسية */}
             <div className="relative group">
               <div className="glass-card rounded-2xl overflow-hidden p-3 sm:p-4">
                 <div className="relative aspect-square rounded-xl overflow-hidden">
@@ -314,13 +355,13 @@ export default function ProductPage() {
                     }`}
                     onLoad={() => setIsImageLoaded(true)}
                   />
-                  {/* Loading Placeholder — branded shimmer */}
+                  {/* عنصر نائب للتحميل — وميض بهوية العلامة */}
                   {!isImageLoaded && (
                     <div className="absolute inset-0 shama-skeleton flex items-center justify-center">
                       <Sparkles className="w-12 h-12 text-warm/70" />
                     </div>
                   )}
-                  {/* Overlay Actions */}
+                  {/* إجراءات التراكب (Overlay) */}
                   {/* <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     <div className="absolute bottom-4 right-4 flex space-x-2">
                       <Button
@@ -337,7 +378,7 @@ export default function ProductPage() {
                       </Button>
                     </div>
                   </div> */}
-                  {/* Image Navigation Arrows */}
+                  {/* أسهم التنقّل بين الصور */}
                   {productImages.length > 1 && (
                     <>
                       <Button
@@ -362,7 +403,7 @@ export default function ProductPage() {
                   )}
                 </div>
 
-                {/* Product Type Badge */}
+                {/* شارة نوع المنتج */}
                 <div className="absolute top-3 left-3 sm:top-4 sm:left-4">
                   <div className="flex items-center space-x-2 rtl:space-x-reverse bg-black/70 backdrop-blur-md rounded-full px-3 py-1.5 shadow-md hover:bg-black/80 transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#5B8DD9]/50">
                     {product.type === "sample" ? (
@@ -377,7 +418,7 @@ export default function ProductPage() {
                   </div>
                 </div>
 
-                {/* Premium Badge */}
+                {/* شارة بريميوم */}
                 {product.rating >= 4.5 && (
                   <div className="absolute top-3 right-3 sm:top-4 sm:right-4">
                     <div className="flex items-center space-x-2 rtl:space-x-reverse bg-[#5B8DD9] backdrop-blur-md rounded-full px-3 py-1.5 shadow-md hover:bg-[#3E6BB5] transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#5B8DD9]/50">
@@ -391,7 +432,7 @@ export default function ProductPage() {
               </div>
             </div>
 
-            {/* Thumbnail Images */}
+            {/* الصور المصغّرة */}
             <div className="flex space-x-4 rtl:space-x-reverse overflow-x-auto scrollbar-hide">
               {productImages.map((image, index) => (
                 <Button
@@ -411,7 +452,7 @@ export default function ProductPage() {
                     loading="lazy"
                     className="w-full h-full object-cover"
                   />
-                  {/* Active Indicator */}
+                  {/* مؤشّر النشاط */}
                   {/* {selectedImage === index && (
                     <div className="absolute inset-0 bg-[#5B8DD9]/20 flex items-center justify-center">
                       <div className="w-6 h-6 bg-[#5B8DD9] rounded-full flex items-center justify-center">
@@ -423,7 +464,7 @@ export default function ProductPage() {
               ))}
             </div>
 
-            {/* Image Navigation Info */}
+            {/* معلومات التنقّل بين الصور */}
             {productImages.length > 1 && (
               <div className="flex items-center justify-between text-sm dark:text-white/60 text-[#6B7B8D]">
                 <span>
@@ -453,12 +494,12 @@ export default function ProductPage() {
             )}
           </div>
 
-          {/* Product Details */}
+          {/* تفاصيل المنتج */}
           <div
             className="space-y-8 animate-slide-up"
             style={{ animationDelay: "0.2s" }}
           >
-            {/* Product Header */}
+            {/* ترويسة المنتج */}
             <div className="space-y-3 sm:space-y-4">
               <div className="space-y-2">
                 <p className="font-display text-[11px] tracking-[0.3em] uppercase text-warm">
@@ -477,9 +518,9 @@ export default function ProductPage() {
               </div>
             </div>
 
-            {/* Price and Quantity */}
+            {/* السعر والكمية */}
             <div className="glass-card p-4 sm:p-5 md:p-6 rounded-2xl space-y-4 sm:space-y-6">
-              {/* Mode Toggle - Only show if product has both samples and bottle sizes */}
+              {/* مبدّل الوضع - يُعرض فقط إذا كان للمنتج عيّنات وأحجام زجاجات معًا */}
               {(() => {
                 const hasSamples =
                   product.has_samples &&
@@ -532,7 +573,7 @@ export default function ProductPage() {
                 </div>
               )}
 
-              {/* Sample Selection - Show if activeMode is 'sample' OR if no bottle sizes available */}
+              {/* اختيار العيّنة - يُعرض إذا كان activeMode هو 'sample' أو إذا لم تتوفّر أحجام زجاجات */}
               {(() => {
                 const hasSamples =
                   product.has_samples &&
@@ -551,7 +592,7 @@ export default function ProductPage() {
                     {t("product.chooseSampleSize")}
                   </Label>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {/* Default Button */}
+                    {/* الزر الافتراضي */}
                     <Button
                       variant={selectedSample === null ? "default" : "outline"}
                       onClick={() => {
@@ -574,7 +615,7 @@ export default function ProductPage() {
                         {t("product.stock")}: {product.stock_quantity ?? "-"}
                       </span>
                     </Button>
-                    {/* Sample Buttons */}
+                    {/* أزرار العيّنات */}
                     {product.samples?.map((sample) => (
                       <Button
                         key={sample.id}
@@ -608,7 +649,7 @@ export default function ProductPage() {
                 </div>
               )}
 
-              {/* Bottle Size Selection - Show if activeMode is 'bottle' OR if no samples available */}
+              {/* اختيار حجم الزجاجة - يُعرض إذا كان activeMode هو 'bottle' أو إذا لم تتوفّر عيّنات */}
               {(() => {
                 const hasSamples =
                   product.has_samples &&
@@ -628,7 +669,7 @@ export default function ProductPage() {
                   </Label>
 
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {/* Default Button */}
+                    {/* الزر الافتراضي */}
                     <Button
                       variant={
                         selectedBottleSize === null ? "default" : "outline"
@@ -653,7 +694,7 @@ export default function ProductPage() {
                         {t("product.stock")}: {product.stock_quantity ?? "-"}
                       </span>
                     </Button>
-                    {/* Bottle Size Buttons */}
+                    {/* أزرار أحجام الزجاجات */}
                     {product.bottle_sizes?.map((bottleSize) => (
                       <Button
                         key={bottleSize.id}
@@ -693,6 +734,9 @@ export default function ProductPage() {
 
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="space-y-2">
+                  {/* السعر الحيّ: مشتقّ من النسخة النشطة. يعالج الأشكال الثلاثة
+                      للكتالوج — عيّنات فقط، أو زجاجات فقط، أو كليهما
+                      (حيث يقرّر activeMode أيّ اختيار يُحتسب). */}
                   <div className="font-display text-3xl sm:text-4xl md:text-5xl font-semibold text-[#1E2A3D] dark:text-[#F5F5F5] tabular-nums tracking-tight leading-none">
                     {(() => {
                       const hasSamples =
@@ -703,7 +747,7 @@ export default function ProductPage() {
                         product.has_bottle_sizes &&
                         product.bottle_sizes &&
                         product.bottle_sizes.length > 0;
-                      // Only samples
+                      // عيّنات فقط
                       if (hasSamples && !hasBottleSizes) {
                         if (selectedSample) {
                           return (
@@ -715,7 +759,7 @@ export default function ProductPage() {
                           return product.price;
                         }
                       }
-                      // Only bottle sizes
+                      // أحجام زجاجات فقط
                       if (!hasSamples && hasBottleSizes) {
                         if (selectedBottleSize) {
                           return (
@@ -727,7 +771,7 @@ export default function ProductPage() {
                           return product.price;
                         }
                       }
-                      // Both
+                      // كليهما
                       if (activeMode === "sample" && selectedSample) {
                         return (
                           product.samples?.find((s) => s.id === selectedSample)
@@ -758,7 +802,7 @@ export default function ProductPage() {
                         product.has_bottle_sizes &&
                         product.bottle_sizes &&
                         product.bottle_sizes.length > 0;
-                      // Only samples
+                      // عيّنات فقط
                       if (hasSamples && !hasBottleSizes) {
                         if (selectedSample) {
                           const sample = product.samples?.find(
@@ -783,7 +827,7 @@ export default function ProductPage() {
                           );
                         }
                       }
-                      // Only bottle sizes
+                      // أحجام زجاجات فقط
                       if (!hasSamples && hasBottleSizes) {
                         if (selectedBottleSize) {
                           const bottleSize = product.bottle_sizes?.find(
@@ -808,7 +852,7 @@ export default function ProductPage() {
                           );
                         }
                       }
-                      // Both
+                      // كليهما
                       if (activeMode === "sample" && selectedSample) {
                         const sample = product.samples?.find(
                           (s) => s.id === selectedSample
@@ -859,11 +903,11 @@ export default function ProductPage() {
                       product.has_bottle_sizes &&
                       product.bottle_sizes &&
                       product.bottle_sizes.length > 0;
-                    // Only samples
+                    // عيّنات فقط
                     if (hasSamples && !hasBottleSizes) return null;
-                    // Only bottle sizes
+                    // أحجام زجاجات فقط
                     if (!hasSamples && hasBottleSizes) return null;
-                    // Both
+                    // كليهما
                     if (activeMode === "sample" && hasBottleSizes) {
                       return (
                         <div className="dark:text-white/40 text-[#6B7B8D] dark:text-[#D6D6D6] text-xs">
@@ -912,6 +956,8 @@ export default function ProductPage() {
               </div>
 
               <div className="flex gap-3">
+              {/* مبدّل قائمة الأمنيات — يضيف هذا المنتج أو يزيله من
+                  WishlistContext (المحفوظ) حسب الحالة الحالية. */}
               <Button
                 onClick={() => {
                   if (!product) return;
@@ -947,7 +993,7 @@ export default function ProductPage() {
                 onClick={handleAddToCart}
                 className="flex-1 glass bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] hover:from-[#3E6BB5] hover:to-[#5B8DD9] text-white border-0 py-3 sm:py-4 rounded-xl font-semibold text-base sm:text-lg transition-all duration-300 hover:scale-105 glow-warm-hover"
                 disabled={
-                  // Only disable if a selection is required and not made, but not when Default is selected
+                  // التعطيل فقط إذا كان الاختيار مطلوبًا ولم يُتّخذ، لكن ليس عند اختيار الافتراضي
                   (activeMode === "sample" &&
                     product.samples &&
                     product.samples.length > 0 &&
@@ -966,9 +1012,9 @@ export default function ProductPage() {
               </div>
             </div>
 
-            {/* Product Tabs */}
+            {/* تبويبات المنتج */}
             <div className="space-y-6">
-              {/* Tab Navigation — amber underline editorial */}
+              {/* تنقّل التبويبات — تسطير كهرماني بأسلوب تحريري */}
               <div className="flex gap-1 rtl:space-x-reverse border-b border-[#323D50]/10 dark:border-white/10">
                 {tabs.map((tab) => (
                   <button
@@ -989,7 +1035,7 @@ export default function ProductPage() {
                 ))}
               </div>
 
-              {/* Tab Content */}
+              {/* محتوى التبويب — يصيّر لوحًا واحدًا memoized بناءً على activeTab */}
               <div className="glass-card p-6 rounded-2xl">
                 {activeTab === "details" && <DetailsTab product={product} t={t} language={language} />}
                 {activeTab === "notes" && <NotesTab product={product} t={t} language={language} />}
@@ -1005,17 +1051,17 @@ export default function ProductPage() {
           </div>
         </div>
 
-        {/* Related Products */}
+        {/* المنتجات ذات الصلة */}
         <div className="col-span-1 lg:col-span-2">
           <RelatedProducts currentProduct={product} />
         </div>
 
-        {/* Recently Viewed */}
+        {/* المُشاهَدة مؤخرًا */}
         <div className="col-span-1 lg:col-span-2">
           <RecentlyViewed />
         </div>
 
-        {/* Reviews */}
+        {/* المراجعات */}
         <div className="col-span-1 lg:col-span-2">
           <ReviewSection
             productId={product.id}
@@ -1027,7 +1073,8 @@ export default function ProductPage() {
         </div>
       </div>
 
-      {/* Mobile sticky buy bar */}
+      {/* شريط الشراء الملتصق للجوال — يعيد احتساب السعر/الحجم/حالة النفاد
+          الفعلية من الاختيار الحالي ويعيد استخدام handleAddToCart. */}
       {(() => {
         const selectedSampleObj = product.samples?.find((s) => s.id === selectedSample);
         const selectedBottleObj = product.bottle_sizes?.find((b) => b.id === selectedBottleSize);
@@ -1047,6 +1094,7 @@ export default function ProductPage() {
   );
 }
 
+/** إخفاء معظم بريد المراجِع الإلكتروني للخصوصية عند عرضه علنًا. */
 function maskEmail(email: string): string {
   return anonymizeEmail(email);
 }
@@ -1059,6 +1107,14 @@ interface ReviewSectionProps {
   isRTL: boolean;
 }
 
+/**
+ * ReviewSection — كتلة المراجعات لمنتج (مغلّفة بـ React.memo بحيث لا
+ * يُعاد تصييرها عند تغيّر حالة ProductPage غير المرتبطة).
+ * تحمّل المراجعات المعتمدة إضافةً إلى مراجعة المستخدم المسجّل، وتصيّر
+ * نموذج كتابة المراجعة. تمرّ المُرسَلات عبر إشراف الـ AI قبل تخزينها،
+ * لذا قد تظهر مراجعة جديدة فورًا ("approved") أو تُحتجَز ("pending").
+ * يُسمح بمراجعة واحدة فقط لكل مستخدم/منتج.
+ */
 const ReviewSection = React.memo(
   ({ productId, productName, user, t, isRTL }: ReviewSectionProps) => {
     const [reviews, setReviews] = useState<Review[]>([]);
@@ -1071,6 +1127,9 @@ const ReviewSection = React.memo(
     const [submitting, setSubmitting] = useState(false);
     const [loading, setLoading] = useState(true);
 
+    // تحميل المراجعات عند تغيّر المنتج أو المستخدم المسجّل. يُشغَّل الاستعلامان
+    // بالتوازي عبر Promise.allSettled بحيث لا يُعطّل فشلُ أحدهما الآخر.
+    // يحمي علم `cancelled` من ضبط الحالة بعد إلغاء التركيب (unmount).
     useEffect(() => {
       let cancelled = false;
       async function load() {
@@ -1090,6 +1149,11 @@ const ReviewSection = React.memo(
       };
     }, [productId, user]);
 
+    /**
+     * التحقّق من المراجعة، إخضاعها لإشراف الـ AI، وإرسالها.
+     * تُعيد `evaluateReview` (OpenRouter) "approved" أو "pending"؛ تُعرض
+     * المراجعة المعتمدة فورًا، وتُحتجَز المعلّقة للإشراف اليدوي.
+     */
     const handleSubmit = async () => {
       if (rating === 0) {
         toast.error(t("reviews.selectRating"));
@@ -1103,6 +1167,7 @@ const ReviewSection = React.memo(
 
       setSubmitting(true);
       try {
+        // بوابة إشراف الـ AI — تقرّر approved مقابل pending قبل تخزينها.
         const evaluation = await evaluateReview(rating, comment.trim(), productName);
         const submitted = await submitReview({
           perfume_id: productId,
@@ -1114,6 +1179,7 @@ const ReviewSection = React.memo(
           ai_reason: evaluation.reason,
         });
         setUserReview(submitted);
+        // الحقن في القائمة المرئية فقط إذا اعتمدتها الـ AI مباشرةً.
         if (evaluation.decision === "approved") {
           setReviews((prev) => [submitted, ...prev]);
           toast.success(t("reviews.toast.approved"));
@@ -1123,6 +1189,7 @@ const ReviewSection = React.memo(
         setRating(0);
         setComment("");
       } catch (err: any) {
+        // يظهر قيد (perfume_id, user_id) الفريد على شكل ALREADY_REVIEWED.
         if (err?.message === "ALREADY_REVIEWED") {
           toast.error(t("reviews.toast.alreadyReviewed"));
         } else {
@@ -1133,6 +1200,8 @@ const ReviewSection = React.memo(
       }
     };
 
+    // تتبع النجوم القيمة الممرَّر عليها أثناء وجود المؤشّر فوقها، وإلا
+    // فالتقييم المثبَّت — يمنح التغذية الراجعة المعتادة لمنتقي النجوم التفاعلي.
     const starDisplay = hoveredRating || rating;
 
     return (
@@ -1149,7 +1218,7 @@ const ReviewSection = React.memo(
           </h2>
         </div>
 
-        {/* Review Form */}
+        {/* نموذج المراجعة */}
         <div className="glass-card p-6 rounded-2xl space-y-5">
           {!user ? (
             <div className="text-center py-4">
@@ -1194,7 +1263,7 @@ const ReviewSection = React.memo(
                 {t("reviews.writeReview")}
               </h3>
 
-              {/* Star Rating */}
+              {/* تقييم النجوم */}
               <div className="space-y-2">
                 <Label className="dark:text-white/70 text-[#6B7B8D] text-sm">
                   {t("reviews.yourRating")}
@@ -1221,7 +1290,7 @@ const ReviewSection = React.memo(
                 </div>
               </div>
 
-              {/* Comment */}
+              {/* التعليق */}
               <div className="space-y-2">
                 <Label className="dark:text-white/70 text-[#6B7B8D] text-sm">
                   {t("reviews.yourComment")}
@@ -1252,7 +1321,7 @@ const ReviewSection = React.memo(
           )}
         </div>
 
-        {/* Reviews List */}
+        {/* قائمة المراجعات */}
         {reviews.length === 0 ? (
           <div className="text-center py-8 dark:text-white/40 text-[#6B7B8D]">
             {t("reviews.noReviews")}
@@ -1300,6 +1369,11 @@ const ReviewSection = React.memo(
   }
 );
 
+/**
+ * DetailsTab — لوح "التفاصيل": النوع والحجم والتقييم والوصف.
+ * memoized بحيث يُعاد تصييره فقط عند تغيّر props الخاصة به. يختار الوصف
+ * العربي عندما تكون اللغة النشطة هي العربية ويوجد وصف عربي.
+ */
 const DetailsTab = React.memo(({ product, t, language }: { product: Product; t: (key: string) => string; language: string }) => {
   const productDescription = language === "ar" && product.description_ar ? product.description_ar : product.description;
   return (

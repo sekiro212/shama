@@ -1,3 +1,14 @@
+/**
+ * ====================================================================
+ * QuizResults — صفحة نتائج اختبار العطور (Scent Quiz)
+ * --------------------------------------------------------------------
+ * تعرض التوصيات التي ولّدها الذكاء الاصطناعي بناءً على إجابات المستخدم،
+ * بعد مطابقتها بمنتجات حقيقية من قاعدة البيانات، إلى جانب نسبة التطابق
+ * وسبب الترشيح. كما تعرض «بطاقة الهوية العطرية» (Scent DNA Card) القابلة
+ * للتنزيل والمشاركة.
+ * تدعم اللغتين العربية والإنجليزية مع اتجاه RTL عبر useLanguage().
+ * ====================================================================
+ */
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -10,6 +21,13 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { ScentDNACard } from "@/services/aiService";
 import { PLACEHOLDER_IMAGE_URL } from "@/lib/productImage";
 
+/**
+ * خصائص المكوّن:
+ * - recommendations: توصيات AI (الاسم، نسبة التطابق، سبب الترشيح).
+ * - isLoading: مؤشّر انشغال أثناء توليد التوصيات.
+ * - dnaCard: بيانات بطاقة الهوية العطرية (اختيارية).
+ * - quizAnswers: إجابات الاختبار؛ تُستخدم لتحديد عرض العيّنات/الزجاجة الكاملة.
+ */
 interface QuizResultsProps {
   recommendations: { name: string; matchScore: number; reason: string }[];
   isLoading: boolean;
@@ -17,6 +35,7 @@ interface QuizResultsProps {
   quizAnswers?: Record<string, string>;
 }
 
+// إعدادات حركة الحاوية (framer-motion): تُظهر البطاقات تباعًا بتأخّر متدرّج (stagger)
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -38,6 +57,9 @@ const cardVariants = {
   },
 };
 
+/**
+ * المكوّن الرئيسي لعرض نتائج اختبار العطور وبطاقة الهوية العطرية.
+ */
 export default function QuizResults({
   recommendations,
   isLoading,
@@ -69,6 +91,11 @@ export default function QuizResults({
   }, [recommendations]);
 
   // Match recommendation name to actual product
+  /**
+   * تطابق اسم العطر الذي اقترحه الذكاء الاصطناعي مع منتج حقيقي في القائمة.
+   * تعتمد مطابقة مرنة (تساوٍ كامل أو احتواء جزئي في الاتجاهين) لأن أسماء AI
+   * قد تختلف قليلًا عن الأسماء المخزّنة في قاعدة البيانات.
+   */
   const findProduct = (name: string): Product | undefined => {
     return products.find(
       (p) =>
@@ -116,6 +143,10 @@ export default function QuizResults({
     });
   };
 
+  /**
+   * تحوّل بطاقة الهوية العطرية إلى صورة PNG عبر html-to-image وتنزّلها للجهاز.
+   * تُستورَد مكتبة التحويل عند الطلب (dynamic import) لتقليل حجم الحزمة الأولية.
+   */
   const handleDownloadCard = async () => {
     const el = document.getElementById("scent-dna-card");
     if (!el) return;
@@ -131,25 +162,34 @@ export default function QuizResults({
     }
   };
 
+  /**
+   * تشارك بطاقة الهوية العطرية كصورة عبر واجهة المشاركة الأصلية (Web Share API).
+   * تختار نص التعليق حسب اللغة (عربي/إنجليزي)، وإذا لم يدعم المتصفّح مشاركة
+   * الملفات تنسخ التعليق إلى الحافظة كحل بديل. يتجاهل إلغاء المستخدم (AbortError).
+   */
   const handleShareCard = async () => {
     const el = document.getElementById("scent-dna-card");
     if (!el || !dnaCard) return;
     try {
       const { toPng } = await import("html-to-image");
       const dataUrl = await toPng(el, { quality: 0.95, pixelRatio: 2 });
+      // اختيار نص التعليق المرفق بالصورة حسب لغة الواجهة الحالية
       const caption = isRTL
         ? `هويتي العطرية على شمة: "${dnaCard.archetypeAr}" 🌸✨ @shama_luxury`
         : `My Shama Fragrance Identity: "${dnaCard.archetype}" 🌸✨ @shama_luxury`;
       const res = await fetch(dataUrl);
       const blob = await res.blob();
       const file = new File([blob], "shama-scent-dna.png", { type: "image/png" });
+      // المسار المفضّل: مشاركة الصورة مباشرة إن دعم المتصفّح ذلك
       if (navigator.canShare?.({ files: [file] })) {
         await navigator.share({ title: "My Shama Fragrance Identity", text: caption, files: [file] });
       } else {
+        // الحل البديل: نسخ نص التعليق إلى الحافظة
         await navigator.clipboard.writeText(caption);
         toast.success(t("quiz.dna.copiedCaption"));
       }
     } catch (err) {
+      // تجاهل حالة إلغاء المستخدم لنافذة المشاركة دون إظهار خطأ
       if (err instanceof Error && err.name === "AbortError") return;
       toast.error(t("quiz.dna.shareError"));
     }
@@ -207,7 +247,10 @@ export default function QuizResults({
     );
   }
 
+  // تحديد ما يُعرَض من خيارات الشراء بحسب تفضيل المستخدم في إجابة "format":
+  // العيّنات تظهر إن لم يُحدّد تفضيل، أو اختار "sample" أو "both"
   const showSamples = !quizAnswers?.format || quizAnswers.format === "sample" || quizAnswers.format === "both";
+  // والزجاجة الكاملة تظهر إن لم يُحدّد تفضيل، أو اختار "full_bottle" أو "both"
   const showBottle  = !quizAnswers?.format || quizAnswers.format === "full_bottle" || quizAnswers.format === "both";
 
   return (
@@ -230,6 +273,7 @@ export default function QuizResults({
         className="space-y-4 sm:space-y-6"
       >
         {recommendations.map((rec, index) => {
+          // مطابقة كل توصية بمنتج فعلي لجلب صورته وسعره وحالة توفّره
           const product = findProduct(rec.name);
           const imageUrl =
             product?.images?.[0]?.image_url || PLACEHOLDER_IMAGE_URL;
@@ -288,6 +332,9 @@ export default function QuizResults({
                       </div>
 
                       {/* Match Score Badge */}
+                      {/* شارة نسبة التطابق: حلقة تقدّم دائرية يُرسَم جزؤها الملوّن
+                          بمقدار النسبة المئوية. القيمة 175.9 هي محيط الدائرة (2πr، r=28)،
+                          وطول الجزء الملوّن في strokeDasharray = النسبة × المحيط */}
                       <div className="flex-shrink-0">
                         <div className="relative w-12 h-12 sm:w-16 sm:h-16">
                           {/* Circular progress background */}
@@ -339,6 +386,8 @@ export default function QuizResults({
                     </p>
 
                     {/* Sample chips */}
+                    {/* رقائق العيّنات: تظهر فقط إذا سمح تفضيل المستخدم (showSamples)
+                        ووُجدت عيّنات مفعّلة؛ كل عيّنة غير متوفّرة تُعطَّل */}
                     {(() => {
                       const activeSamples = product?.samples?.filter(s => s.is_active) ?? [];
                       return showSamples && activeSamples.length > 0 && (

@@ -634,6 +634,11 @@
     "yourOrderId": "Your order ID:",
     "trackOrder": "Track Order",
     "continueShopping": "Continue Shopping",
+    "removeItem": "Remove item",
+    "increaseQty": "Increase quantity",
+    "decreaseQty": "Decrease quantity",
+    "itemRemoved": "Item removed",
+    "fieldRequired": "{field} is required",
     "orderSummary": "Order Summary",
     "total": "Total:",
     "totalLabel": "Total",
@@ -683,6 +688,7 @@
     "accountNumber": "Account Number (LYD)",
     "iban": "IBAN",
     "copied": "Copied!",
+    "copyFailed": "Couldn't copy",
     "transferProof": "Transfer Screenshot",
     "uploadProof": "Upload transfer screenshot",
     "uploadProofDesc": "Upload a screenshot of your bank transfer as proof of payment",
@@ -740,7 +746,41 @@
       "transferSub": "Transfer to our bank account and upload the receipt",
       "uploadHeading": "Upload your transfer receipt",
       "uploadHint": "JPEG, PNG or WebP — up to 5 MB",
-      "uploadChange": "Change file"
+      "uploadChange": "Change file",
+      "onlineHeading": "Pay online",
+      "edfali": "Adfali",
+      "edfaliSub": "Mobile wallet — confirm with an OTP code",
+      "sadad": "Sadad",
+      "sadadSub": "Mobile wallet — confirm with an OTP code",
+      "localcards": "Local bank cards",
+      "localcardsSub": "Pay with a Libyan bank card",
+      "tlync": "T-Lync",
+      "tlyncSub": "Pay via the T-Lync gateway",
+      "mpgs": "Visa / Mastercard",
+      "mpgsSub": "Pay with an international card"
+    },
+    "plutu": {
+      "step1Hint": "Enter your mobile number to receive a one-time code.",
+      "step2Hint": "Enter the code sent to your phone to confirm payment.",
+      "mobileLabel": "Mobile number",
+      "birthYearLabel": "Year of birth",
+      "codeLabel": "Verification code",
+      "sendOtp": "Send code",
+      "sending": "Sending…",
+      "confirmPay": "Confirm payment",
+      "confirming": "Confirming…",
+      "resend": "Change number / resend code",
+      "otpSent": "A code was sent to your phone",
+      "invalidMobile": "Enter a valid mobile number (09XXXXXXXX)",
+      "invalidBirthYear": "Enter a valid 4-digit year of birth",
+      "enterCode": "Enter the verification code",
+      "sendFailed": "Could not send the code. Try again.",
+      "confirmFailed": "Payment could not be confirmed. Check the code and try again.",
+      "status": {
+        "verifying": "Verifying payment…",
+        "paid": "Payment confirmed",
+        "failed": "Payment not completed"
+      }
     },
     "summary": {
       "heading": "Your order",
@@ -763,6 +803,8 @@
     "success": {
       "title": "Thank you for your order",
       "subtitle": "We'll be in touch shortly. Your order number is below — keep it to track your delivery.",
+      "failedTitle": "Payment not completed",
+      "failedSubtitle": "Your order was saved but payment didn't go through. You can retry payment from your orders, or contact us for help.",
       "viewDetails": "View order details",
       "continueShopping": "Continue shopping"
     }

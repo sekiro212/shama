@@ -1,9 +1,26 @@
+/**
+ * ====================================================================
+ * GiftStep4Preview — الخطوة الرابعة (الأخيرة) من معالج بناء الهدية
+ * --------------------------------------------------------------------
+ * تعرض المعاينة النهائية للهدية: صورة الهدية المولَّدة بالذكاء الاصطناعي،
+ * شبكة صور العطور المختارة، وأزرار الإجراء (الإضافة إلى السلة أو تأكيد الطلب).
+ * تدعم اللغتين العربية والإنجليزية مع اتجاه RTL عبر useLanguage().
+ * ====================================================================
+ */
 import { ChevronLeft, ShoppingCart, Package } from "lucide-react";
 import { Product } from "@/services/productsService";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useCart } from "@/contexts/CartContext";
 import { toast } from "sonner";
 
+/**
+ * خصائص المكوّن:
+ * - onPlaceOrder: دالة تأكيد طلب الهدية المخصّصة.
+ * - onBack: العودة إلى خطوة التخصيص.
+ * - selectedProducts: العطور المختارة لعرضها في المعاينة.
+ * - isPlacingOrder: مؤشّر انشغال أثناء إرسال الطلب.
+ * - generatedImageUrl: رابط صورة الهدية المولَّدة بالذكاء الاصطناعي (اختياري).
+ */
 interface Props {
   onPlaceOrder: () => void;
   onBack: () => void;
@@ -12,6 +29,9 @@ interface Props {
   generatedImageUrl?: string;
 }
 
+/**
+ * المكوّن الرئيسي لخطوة معاينة الهدية وتأكيد الطلب.
+ */
 export default function GiftStep4Preview({
   onPlaceOrder,
   onBack,
@@ -22,6 +42,10 @@ export default function GiftStep4Preview({
   const { t, isRTL } = useLanguage();
   const { addToCart } = useCart();
 
+  /**
+   * تضيف جميع العطور المختارة إلى سلة التسوّق دفعةً واحدة، ثم تُظهر إشعار نجاح.
+   * تُستخدم كبديل عن تأكيد طلب الهدية المخصّصة مباشرة.
+   */
   const handleAddToCart = () => {
     selectedProducts.forEach((p) => {
       addToCart({
@@ -60,6 +84,7 @@ export default function GiftStep4Preview({
       )}
 
       {/* Product image grid */}
+      {/* شبكة صور العطور المختارة: عمود واحد عند اختيار عطر واحد، وعمودان لما زاد */}
       <div className={`grid ${selectedProducts.length === 1 ? "grid-cols-1" : "grid-cols-2"} gap-3`}>
         {selectedProducts.map((product) => (
           <div
@@ -100,6 +125,7 @@ export default function GiftStep4Preview({
         {t("giftBuilder.addToCart")}
       </button>
 
+      {/* زر تأكيد طلب الهدية المخصّصة؛ يُعطَّل ويُظهر مؤشّر تحميل أثناء الإرسال */}
       <button
         onClick={onPlaceOrder}
         disabled={isPlacingOrder}

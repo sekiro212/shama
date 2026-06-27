@@ -1,3 +1,9 @@
+/**
+ * EmptyState — مكوّن واجهة مشترك في لوحة الإدارة.
+ *
+ * بطاقة بديلة تُعرض عندما لا تحتوي القائمة/الجدول على أي صفوف. تعرض أيقونة
+ * وعنوانًا ونصًا فرعيًا اختياريًا وزر إجراء اختياري.
+ */
 import { Button } from "@/components/ui/button";
 import type { LucideIcon } from "lucide-react";
 
@@ -8,6 +14,14 @@ interface EmptyStateProps {
   action?: { label: string; onClick: () => void };
 }
 
+/**
+ * يعرض بطاقة حالة فارغة موسّطة.
+ *
+ * @param icon     - مكوّن أيقونة Lucide يُعرض فوق العنوان.
+ * @param title    - الرسالة الرئيسية (مثل "لا توجد طلبات بعد").
+ * @param subtitle - سطر داعم اختياري.
+ * @param action   - كائن اختياري `{ label, onClick }` لعرض زر إجراء.
+ */
 export function EmptyState({ icon: Icon, title, subtitle, action }: EmptyStateProps) {
   return (
     <div className="glass-card border border-[#323D50]/10 dark:border-white/10 rounded-2xl p-12 flex flex-col items-center justify-center text-center">

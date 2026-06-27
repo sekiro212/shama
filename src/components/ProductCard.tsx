@@ -1,3 +1,16 @@
+/**
+ * ===============================================================
+ * ProductCard.tsx — بطاقة عرض منتَج (عطر) واحد
+ * ---------------------------------------------------------------
+ * بطاقة تحريرية بأسلوب راقٍ تعرض صورة المنتَج (مع تحوّل سلِس إلى
+ * صورة ثانية عند التمرير)، الاسم، السعر، وأزرار الإضافة للسلّة
+ * والمفضّلة. تتعامل مع حالة "نفاد المخزون".
+ *
+ * مكان الاستخدام: داخل شبكات المنتجات في صفحات المجموعة، الرئيسية،
+ * نتائج البحث، والمنتجات المقترحة.
+ * مُغلَّفة بـ React.memo لتفادي إعادة الرسم غير الضرورية ضمن القوائم.
+ * ===============================================================
+ */
 import { Link } from "react-router-dom";
 import { ShoppingBag, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -24,12 +37,18 @@ interface ProductCardProps {
  * serif name + price; add-to-cart + wishlist reveal on hover (desktop) and
  * stay visible on touch. Built for an edge-to-edge hairline grid.
  */
+/**
+ * المكوّن الداخلي للبطاقة (يُصدَّر مُغلَّفًا بـ React.memo في الأسفل).
+ * @param product بيانات المنتَج (العطر) المراد عرضه.
+ */
 const ProductCardComponent = ({ product }: ProductCardProps) => {
+  // سياقات السلّة والمفضّلة: دوال الإضافة/الحذف وفحص وجود المنتَج في المفضّلة
   const { addToCart } = useCart();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const { t, language, isRTL } = useLanguage();
   const [primaryLoaded, setPrimaryLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
+  // هل المنتَج موجود حاليًا في قائمة المفضّلة؟ يُستخدم لتلوين أيقونة القلب
   const wishlisted = isInWishlist(product.id);
 
   // Language-aware name only — minimal card shows nothing else
@@ -44,11 +63,13 @@ const ProductCardComponent = ({ product }: ProductCardProps) => {
   const hoverImage = productImages[1]; // second image → hover crossfade target
   const hasHoverImage = Boolean(hoverImage);
 
+  // المنتَج يُعدّ نافدًا إذا كان غير مُفعَّل أو كانت كمية المخزون صفرًا
   const isSoldOut = !product.is_active || product.stock_quantity === 0;
 
   // Latin text gets editorial uppercase + tracking; Arabic must not (breaks shaping)
   const latinDisplay = isRTL ? "" : "uppercase";
 
+  // إضافة المنتَج للسلّة؛ preventDefault/stopPropagation لمنع تفعيل رابط الانتقال لصفحة المنتَج المحيط بالبطاقة
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -69,6 +90,7 @@ const ProductCardComponent = ({ product }: ProductCardProps) => {
     });
   };
 
+  // تبديل حالة المفضّلة: إزالة إن كان موجودًا، وإلا إضافته (مع منع تفعيل الرابط المحيط)
   const toggleWishlist = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -118,6 +140,7 @@ const ProductCardComponent = ({ product }: ProductCardProps) => {
                 }`}
               />
 
+              {/* الصورة الثانية — تظهر تدريجيًا عند تمرير المؤشّر فوق البطاقة (تأثير التحوّل البصري) */}
               {/* Secondary image — fades in on hover */}
               {hasHoverImage && (
                 <img
@@ -222,4 +245,5 @@ const ProductCardComponent = ({ product }: ProductCardProps) => {
   );
 };
 
+// React.memo: يمنع إعادة رسم البطاقة ما لم تتغيّر خاصية product، لتحسين أداء القوائم الطويلة
 export default React.memo(ProductCardComponent);

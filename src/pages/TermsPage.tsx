@@ -1,6 +1,16 @@
+/**
+ * ============================================================================
+ * صفحة "الشروط والأحكام" (Terms) — المسار: /terms
+ * ----------------------------------------------------------------------------
+ * صفحة ثابتة قانونية تعرض بنود استخدام المتجر (القبول، المنتجات، التسعير،
+ * الطلبات، الدفع، الملكية الفكرية، المسؤولية، القانون الحاكم) كأقسام مرقّمة.
+ * النصوص ثنائية اللغة عبر دالة الترجمة t().
+ * ============================================================================
+ */
 import { motion, useReducedMotion } from "framer-motion";
 import { useLanguage } from "@/contexts/LanguageContext";
 
+// مفاتيح بنود الشروط بالترتيب؛ تُستخدم لبناء مفاتيح الترجمة (terms.<key>.heading/body)
 const SECTIONS = [
   "acceptance",
   "products",
@@ -12,6 +22,9 @@ const SECTIONS = [
   "law",
 ] as const;
 
+/**
+ * المكوّن الرئيسي لصفحة الشروط والأحكام.
+ */
 export default function TermsPage() {
   const { t } = useLanguage();
   const reduce = useReducedMotion();
@@ -39,6 +52,7 @@ export default function TermsPage() {
           </p>
         </motion.header>
 
+        {/* تكرار بنود الشروط مع ترقيم تسلسلي (01، 02، ...) وعنوان وفقرة لكلٍّ منها */}
         <article className="glass-card rounded-3xl p-6 md:p-10 space-y-8 prose-shama">
           {SECTIONS.map((key, idx) => (
             <section key={key}>

@@ -1,3 +1,16 @@
+/**
+ * productsService.ts
+ * -------------------
+ * طبقة الخدمة الخاصة بكتالوج العطور. كل استعلامات Supabase على جداول
+ * `perfumes` و`perfume_samples` و`perfume_bottle_sizes` موجودة هنا حتى لا
+ * تتعامل مكوّنات React مع قاعدة البيانات مباشرة.
+ *
+ * المسؤوليات:
+ *  - جلب المنتجات (قائمة مقسّمة إلى صفحات، منتج واحد، بحث، تصفية)
+ *  - جلب متغيّرات أحجام العيّنات وأحجام القوارير لكل منتج
+ *  - تحويل صفوف قاعدة البيانات بصيغة snake_case إلى شكل `Product` بصيغة camelCase الذي يستخدمه التطبيق
+ *  - دوال تصفية نقية تعمل في الذاكرة (حسب النوع / الجنس / حجم العيّنة)
+ */
 import { supabase } from "@/lib/supabase";
 import { getPerfumeImages, PerfumeImage } from "./imageService";
 
@@ -48,8 +61,18 @@ export interface Product {
 }
 
 // Transform database product to Product interface
+// كائن ملاحظات فارغ يُعاد استخدامه كقيمة احتياطية حتى لا تضطر الواجهة للتحقق من null.
 const defaultNotes = { top: [], middle: [], base: [] };
 
+/**
+ * يحوّل صفًّا خامًا من قاعدة البيانات بصيغة snake_case إلى شكل `Product` بصيغة
+ * camelCase الذي يستهلكه التطبيق، مع إرفاق الصور والعيّنات وأحجام القوارير المُحمّلة منفصلة.
+ * @param dbProduct  الصف الخام من جدول `perfumes`.
+ * @param images     صور المعرض المُحمّلة مسبقًا (اختياري، الافتراضي []).
+ * @param samples    متغيّرات أحجام العيّنات المُحمّلة مسبقًا (اختياري، الافتراضي []).
+ * @param bottleSizes متغيّرات أحجام القوارير المُحمّلة مسبقًا (اختياري، الافتراضي []).
+ * @returns كائن `Product` بعد التطبيع.
+ */
 const transformDatabaseProduct = (
   dbProduct: any,
   images?: PerfumeImage[],
@@ -58,11 +81,13 @@ const transformDatabaseProduct = (
 ): Product => ({
   id: dbProduct.id,
   name: dbProduct.name,
+  // الحقول العربية ترجع إلى القيمة الإنجليزية عند عدم وجود ترجمة بعد.
   name_ar: dbProduct.name_ar || dbProduct.name,
   price: dbProduct.price,
   description: dbProduct.description,
   description_ar: dbProduct.description_ar || dbProduct.description,
   fragranceNotes: dbProduct.fragrance_notes || defaultNotes,
+  // الملاحظات العربية ترجع إلى الملاحظات الإنجليزية ثم إلى القيم الافتراضية الفارغة.
   fragranceNotes_ar: dbProduct.fragrance_notes_ar || dbProduct.fragrance_notes || defaultNotes,
   size: dbProduct.size,
   type: dbProduct.type,
@@ -77,7 +102,11 @@ const transformDatabaseProduct = (
   bottle_sizes: bottleSizes || [],
 });
 
-// Fetch samples for a specific perfume
+/**
+ * يجلب متغيّرات أحجام العيّنات النشطة (مثل 3ml–30ml) لعطر واحد.
+ * @param perfumeId مُعرّف العطر.
+ * @returns مصفوفة العيّنات النشطة مرتّبة حسب الحجم؛ [] عند حدوث خطأ.
+ */
 export const fetchPerfumeSamples = async (
   perfumeId: string
 ): Promise<PerfumeSample[]> => {
@@ -86,6 +115,7 @@ export const fetchPerfumeSamples = async (
       .from("perfume_samples")
       .select("*")
       .eq("perfume_id", perfumeId)
+      // عرض المتغيّرات التي فعّلها المسؤول للبيع فقط.
       .eq("is_active", true)
       .order("size");
 
@@ -101,7 +131,11 @@ export const fetchPerfumeSamples = async (
   }
 };
 
-// Fetch bottle sizes for a specific perfume
+/**
+ * يجلب متغيّرات أحجام القوارير الكاملة النشطة (مثل 30ml–200ml) لعطر واحد.
+ * @param perfumeId مُعرّف العطر.
+ * @returns مصفوفة أحجام القوارير النشطة مرتّبة حسب الحجم؛ [] عند حدوث خطأ.
+ */
 export const fetchPerfumeBottleSizes = async (
   perfumeId: string
 ): Promise<PerfumeBottleSize[]> => {
@@ -126,6 +160,13 @@ export const fetchPerfumeBottleSizes = async (
   }
 };
 
+/**
+ * يجلب صفحة واحدة من المنتجات النشطة لشبكة المجموعة، إضافة إلى العدد الإجمالي
+ * حتى تتمكّن الواجهة من عرض أدوات التنقّل بين الصفحات.
+ * @param page     رقم الصفحة يبدأ من 1 (الافتراضي 1).
+ * @param pageSize عدد العناصر في الصفحة (الافتراضي 8).
+ * @returns `{ products, total }` — حيث total هو العدد الكامل للمنتجات النشطة وليس حجم الصفحة.
+ */
 // Fetch all products from database (only active ones for collection display)
 // Updated: now supports pagination
 export const fetchProducts = async (
@@ -133,11 +174,12 @@ export const fetchProducts = async (
   pageSize: number = 8
 ): Promise<{ products: Product[]; total: number }> => {
   try {
-    // Calculate range for pagination
+    // تحويل رقم الصفحة (يبدأ من 1) إلى نطاق صفوف شامل يبدأ من 0 كما يتوقّعه Supabase.
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
 
-    // Fetch total count
+    // استخدام head:true مع count:"exact" يُعيد عدد الصفوف فقط (بدون الصفوف نفسها)
+    // حتى نحسب عدد الصفحات بتكلفة منخفضة.
     const { count, error: countError } = await supabase
       .from("perfumes")
       .select("id", { count: "exact", head: true })
@@ -148,7 +190,7 @@ export const fetchProducts = async (
       return { products: [], total: 0 };
     }
 
-    // Fetch paginated products
+    // الأحدث أولًا؛ تقصر .range() الاستعلام على صفوف هذه الصفحة فقط.
     const { data, error } = await supabase
       .from("perfumes")
       .select("*")
@@ -163,7 +205,9 @@ export const fetchProducts = async (
 
     if (!data) return { products: [], total: 0 };
 
-    // Load images, samples, and bottle sizes for each product (only for current page)
+    // لكل منتج في هذه الصفحة نُحمّل صوره وعيّناته وأحجام قواريره بالتوازي. تُبقي
+    // Promise.all على الـ map الخارجي كل المنتجات قيد التحميل دفعة واحدة (صفوف هذه
+    // الصفحة فقط، لذا تبقى تكلفة استعلامات N+1 محدودة).
     const productsWithImagesAndSamples = await Promise.all(
       data.map(async (product) => {
         const [images, samples, bottleSizes] = await Promise.all([
@@ -182,9 +226,15 @@ export const fetchProducts = async (
   }
 };
 
+/**
+ * يجلب منتجًا نشطًا واحدًا (لصفحة تفاصيل المنتج) مع كل صوره وعيّناته وأحجام قواريره.
+ * @param id مُعرّف العطر.
+ * @returns كائن `Product` الكامل، أو null إن لم يُوجد/غير نشط/عند حدوث خطأ.
+ */
 // Fetch single product by ID
 export const fetchProductById = async (id: string): Promise<Product | null> => {
   try {
+    // تتوقّع .single() صفًّا واحدًا بالضبط وإلا تُرجع خطأ.
     const { data, error } = await supabase
       .from("perfumes")
       .select("*")
@@ -226,28 +276,42 @@ export const fetchProductById = async (id: string): Promise<Product | null> => {
 };
 
 // Helper functions for filtering (maintaining backward compatibility)
+// دوال تصفية نقية تعمل على مصفوفة مُحمّلة مسبقًا — بدون أي استدعاءات لقاعدة البيانات.
+
+/** تُرجع منتجات القوارير الكاملة فقط من قائمة موجودة في الذاكرة. */
 export const getFullBottles = (products: Product[]) =>
   products.filter((p) => p.type === "bottle");
 
+/** تُرجع منتجات العيّنات فقط من قائمة موجودة في الذاكرة. */
 export const getSamples = (products: Product[]) =>
   products.filter((p) => p.type === "sample");
 
+/** تُرجع منتجات أطقم الهدايا فقط من قائمة موجودة في الذاكرة. */
 export const getGiftSets = (products: Product[]) =>
   products.filter((p) => p.type === "gift");
 
+/** تُصفّي قائمة في الذاكرة حسب الجنس؛ القيمة "all" تمرّر كل العناصر. */
 export const getByGender = (products: Product[], gender: string) => {
   if (gender === "all") return products;
   return products.filter((p) => p.gender === gender);
 };
 
+/** تُصفّي قائمة في الذاكرة حسب حجم العيّنة؛ القيمة "all" تمرّر كل العناصر. */
 export const getSamplesBySize = (products: Product[], size: string) => {
   if (size === "all") return products;
   return products.filter((p) => p.size === size);
 };
 
+/**
+ * يبحث في المنتجات النشطة بالاسم، مطابقًا الاسم الإنجليزي أو العربي.
+ * @param query نص البحث الحر.
+ * @returns المنتجات المطابقة مع تحميل الصور والمتغيّرات؛ [] عند حدوث خطأ.
+ */
 // Search products by name
 export const searchProducts = async (query: string): Promise<Product[]> => {
   try {
+    // استخدام .or() مع شرطي ilike = مطابقة جزئية غير حسّاسة لحالة الأحرف على الاسم
+    // الإنجليزي أو العربي. تجعل علامات %...% البحث من نوع "يحتوي على".
     const { data, error } = await supabase
       .from("perfumes")
       .select("*")
@@ -281,6 +345,12 @@ export const searchProducts = async (query: string): Promise<Product[]> => {
   }
 };
 
+/**
+ * استعلام منتجات مُصفّى على جانب الخادم. يبني استعلام Supabase تدريجيًا مضيفًا
+ * المُرشّحات التي زوّدها المُستدعي فعليًا فقط.
+ * @param filters قيود اختيارية للنوع / الجنس / نطاق السعر.
+ * @returns المنتجات النشطة المطابقة مع تحميل الصور والمتغيّرات؛ [] عند حدوث خطأ.
+ */
 // Filter products by category
 export const filterProducts = async (filters: {
   type?: "bottle" | "sample" | "gift";
@@ -289,6 +359,8 @@ export const filterProducts = async (filters: {
   maxPrice?: number;
 }): Promise<Product[]> => {
   try {
+    // نبدأ من استعلام المنتجات النشطة الأساسي ثم نُسلسل المُرشّحات بشكل شرطي حتى
+    // لا تُقيّد المُرشّحات غير المُحدَّدة النتيجة.
     let query = supabase.from("perfumes").select("*").eq("is_active", true);
 
     if (filters.type) {
@@ -299,6 +371,7 @@ export const filterProducts = async (filters: {
       query = query.eq("gender", filters.gender);
     }
 
+    // gte / lte = حدّ أدنى / أقصى للسعر شامل للطرفين.
     if (filters.minPrice !== undefined) {
       query = query.gte("price", filters.minPrice);
     }

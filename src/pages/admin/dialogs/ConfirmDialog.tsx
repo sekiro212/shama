@@ -1,3 +1,11 @@
+/**
+ * ConfirmDialog.tsx
+ * ------------------
+ * نافذة تأكيد قابلة لإعادة الاستخدام للوحة الإدارة (مبنية على shadcn/Radix AlertDialog).
+ * تُعرض قبل الإجراءات المدمّرة أو المهمة (مثل حذف عطر/طلب).
+ * يتغيّر الأسلوب البصري (الأيقونة + الألوان + زر الإجراء) بناءً على الخاصية (prop)
+ * `variant`: "danger" (أحمر)، أو "warning" (كهرماني)، أو "default" (أزرق العلامة).
+ */
 import { AlertTriangle, Trash2, AlertCircle } from "lucide-react";
 import {
   AlertDialog,
@@ -16,6 +24,8 @@ interface ConfirmDialogProps extends ConfirmDialogState {
   onCancel: () => void;
 }
 
+// يربط كل نمط (variant) من النافذة بأيقونته وأصناف ألوان Tailwind الخاصة به،
+// بحيث يستطيع مكوّن واحد عرض أنماط danger / warning / default.
 const variantConfig = {
   danger: {
     icon: Trash2,
@@ -40,6 +50,15 @@ const variantConfig = {
   },
 };
 
+/**
+ * يعرض نافذة تأكيد/إلغاء.
+ * الخصائص (props) الأساسية:
+ * - open: هل النافذة ظاهرة (يتحكّم بها الـ hook الأب)
+ * - title / description: النص المعروض للمسؤول
+ * - confirmLabel: تسمية زر التأكيد (الافتراضي "Confirm")
+ * - variant: يختار سمة الأيقونة/اللون ("danger" | "warning" | "default")
+ * - onConfirm / onCancel: دوال رد النداء (callbacks) التي يُطلقها زرّا الإجراء/الإلغاء
+ */
 export function ConfirmDialog({
   open,
   title,
@@ -49,9 +68,11 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  // اختيار مجموعة الأيقونة + الألوان للنمط (variant) المطلوب.
   const config = variantConfig[variant];
   const Icon = config.icon;
 
+  // إغلاق النافذة بأي وسيلة (الطبقة العلوية/مفتاح Escape) يُحتسب إلغاءً.
   return (
     <AlertDialog open={open} onOpenChange={(v) => !v && onCancel()}>
       <AlertDialogContent className="glass-card bg-[#F8F9FB] dark:bg-[#1a2235] border-[#323D50]/10 dark:border-white/10 max-w-md">

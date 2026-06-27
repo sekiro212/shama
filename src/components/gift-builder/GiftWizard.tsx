@@ -1,4 +1,18 @@
 // src/components/gift-builder/GiftWizard.tsx
+/**
+ * ====================================================================
+ * GiftWizard — المعالج الرئيسي لبناء الهدية المخصّصة (أربع خطوات)
+ * --------------------------------------------------------------------
+ * يُدير الحالة الكاملة لمعالج الهدية ويُنسّق الانتقال بين خطواته الأربع:
+ *   1) الوصف     → GiftStep1Describe
+ *   2) العطور    → GiftStep2Products
+ *   3) التخصيص   → GiftStep3Customize
+ *   4) المعاينة  → GiftStep4Preview
+ * كما يستدعي خدمات الذكاء الاصطناعي (AI) لاقتراح العطور وتوليد صورة الهدية،
+ * ثم يُرسل الطلب النهائي عبر giftBuilderService.
+ * يُعرَض داخل نافذة منبثقة (modal) تدعم اللغتين العربية والإنجليزية.
+ * ====================================================================
+ */
 import { useState, useCallback, useRef, useEffect } from "react";
 import { X } from "lucide-react";
 import { Product } from "@/services/productsService";
@@ -13,10 +27,15 @@ import GiftStep2Products from "./GiftStep2Products";
 import GiftStep3Customize from "./GiftStep3Customize";
 import GiftStep4Preview from "./GiftStep4Preview";
 
+/**
+ * خصائص المكوّن:
+ * - onClose: دالة إغلاق النافذة المنبثقة للمعالج.
+ */
 interface Props {
   onClose: () => void;
 }
 
+// مفاتيح ترجمة عناوين الخطوات الأربع كما تظهر في شريط التقدّم (progress bar)
 const STEP_LABEL_KEYS = [
   "giftBuilder.stepDescribe",
   "giftBuilder.stepProducts",
@@ -24,13 +43,19 @@ const STEP_LABEL_KEYS = [
   "giftBuilder.stepPreview",
 ] as const;
 
+/**
+ * المكوّن الرئيسي للمعالج: يحوي حالة الخطوات والدوال المنسِّقة لها.
+ */
 export default function GiftWizard({ onClose }: Props) {
   const { user } = useAuth();
   const { t } = useLanguage();
 
+  // مرجع يتتبّع ما إذا كان المكوّن لا يزال مُركَّبًا (mounted)؛ يمنع تحديث الحالة
+  // بعد إزالة المكوّن (مثلًا إذا أُغلقت النافذة أثناء انتظار استجابة AI)
   const isMounted = useRef(true);
   useEffect(() => () => { isMounted.current = false; }, []);
 
+  // الحالة المركزية للمعالج: رقم الخطوة الحالية + كل بيانات الهدية ومؤشّرات الانشغال
   const [state, setState] = useState<GiftWizardState>({
     step: 1,
     description: "",
@@ -43,9 +68,15 @@ export default function GiftWizard({ onClose }: Props) {
     isPlacingOrder: false,
   });
 
+  // دالة مساعدة مُعمَّمة لتحديث حقل واحد من حالة المعالج مع الحفاظ على بقية الحقول
   const set = <K extends keyof GiftWizardState>(key: K, val: GiftWizardState[K]) =>
     setState((prev) => ({ ...prev, [key]: val }));
 
+  /**
+   * معالج الانتقال من الخطوة 1 إلى 2:
+   * يرسل وصف المستخدم إلى الذكاء الاصطناعي للحصول على قائمة عطور مقترحة،
+   * ثم ينتقل إلى خطوة اختيار العطور. عند الفشل يظهر إشعار خطأ ويُلغى التحميل.
+   */
   const handleStep1Next = useCallback(async () => {
     set("isGenerating", true);
     try {
@@ -62,14 +93,22 @@ export default function GiftWizard({ onClose }: Props) {
     }
   }, [state.description, t]);
 
+  /**
+   * معالج الانتقال من الخطوة 3 إلى 4:
+   * يبني وصفًا نصيًّا (prompt) من العطور المختارة وخيارات التخصيص، ثم يولّد
+   * صورة الهدية عبر الذكاء الاصطناعي، وأخيرًا ينتقل إلى خطوة المعاينة.
+   * عند فشل التوليد ينتقل المستخدم للمعاينة دون صورة مولَّدة.
+   */
   const handleStep3Next = useCallback(async () => {
     set("isGenerating", true);
     try {
+      // بناء نص الوصف الموجَّه للذكاء الاصطناعي من اختيارات المستخدم
       const prompt = buildGiftImagePrompt(
         state.selectedProducts,
         state.customization,
         state.imageStyle
       );
+      // تجميع روابط صور العطور المختارة لتمريرها كمرجع بصري لمولّد الصور
       const imageUrls = state.selectedProducts
         .flatMap((p) => p.images?.map((i) => i.image_url) ?? [])
         .filter((url): url is string => Boolean(url));
@@ -82,17 +121,24 @@ export default function GiftWizard({ onClose }: Props) {
         generatedImageUrl: imageUrl ?? "",
       }));
     } catch {
+      // عند فشل التوليد: ننتقل للمعاينة مع ترك رابط الصورة فارغًا
       toast.error(t("giftBuilder.errorGenerating"));
       setState((prev) => ({ ...prev, step: 4, isGenerating: false, generatedImageUrl: "" }));
     }
   }, [state.selectedProducts, state.customization, state.imageStyle, t]);
 
+  /**
+   * يرسل طلب الهدية المخصّصة النهائي إلى الخادم عبر placeCustomGiftOrder.
+   * في حال غياب الصورة المولَّدة يستخدم صورة أول عطر مختار كصورة احتياطية.
+   * عند النجاح يُغلق المعالج؛ وعند الفشل يُظهر إشعارًا فقط إن بقي المكوّن مُركَّبًا.
+   */
   const handlePlaceOrder = useCallback(async () => {
     set("isPlacingOrder", true);
     try {
       await placeCustomGiftOrder({
         products: state.selectedProducts,
         customization: state.customization,
+        // الصورة المولَّدة أولًا، وإلا أول صورة عطر، وإلا سلسلة فارغة كحل أخير
         generatedImageUrl: state.generatedImageUrl || state.selectedProducts[0]?.images?.[0]?.image_url || "",
         imageStyle: state.imageStyle,
         userId: user?.id,
@@ -100,6 +146,7 @@ export default function GiftWizard({ onClose }: Props) {
       toast.success(t("giftBuilder.orderPlaced"));
       onClose();
     } catch {
+      // نتجنّب تحديث الحالة إذا أُزيل المكوّن لتفادي تحذيرات React
       if (isMounted.current) {
         toast.error(t("giftBuilder.errorOrder"));
         set("isPlacingOrder", false);
@@ -107,6 +154,10 @@ export default function GiftWizard({ onClose }: Props) {
     }
   }, [state.selectedProducts, state.customization, state.generatedImageUrl, state.imageStyle, user, t, onClose]);
 
+  /**
+   * تبديل اختيار عطر: إزالته إن كان مختارًا مسبقًا، أو إضافته ما لم يبلغ
+   * الاختيار الحد الأقصى (4 عطور)؛ وإلا تبقى القائمة كما هي دون تغيير.
+   */
   const toggleProduct = useCallback((product: Product) => {
     setState((prev) => {
       const exists = prev.selectedProducts.some((p) => p.id === product.id);
@@ -138,6 +189,7 @@ export default function GiftWizard({ onClose }: Props) {
         </div>
 
         {/* Progress bar */}
+        {/* شريط التقدّم: يُلوَّن كل قسم بلون العلامة التجارية إذا بلغته الخطوة الحالية أو تجاوزتها */}
         <div className="flex gap-2 mb-8">
           {([1, 2, 3, 4] as const).map((n) => (
             <div key={n} className="flex-1">
@@ -160,6 +212,7 @@ export default function GiftWizard({ onClose }: Props) {
         </div>
 
         {/* Steps */}
+        {/* عرض الخطوة المطابقة لقيمة state.step؛ كل خطوة مكوّن مستقل يتلقّى ما يلزمه من الحالة والدوال */}
         {state.step === 1 && (
           <GiftStep1Describe
             value={state.description}

@@ -1,3 +1,10 @@
+// ===========================================================================
+// AdminLayout.tsx — التخطيط/الغلاف (LAYOUT) لتطبيق لوحة الإدارة.
+// يعمل كبوابة مصادقة وكإطار بصري في آنٍ واحد: إذا لم يسجّل المسؤول الدخول يعرض
+// نموذج تسجيل الدخول؛ وبعد المصادقة يعرض الشريط الجانبي + الشريط العلوي و
+// <Outlet /> حيث تظهر صفحات الموارد المدفوعة بالمسارات.
+// ===========================================================================
+
 import { useState, useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import { toast } from "sonner";
@@ -12,9 +19,15 @@ import { useAdminBadges } from "./hooks/useAdminBadges";
 import { AdminEventProvider } from "./contexts/AdminEventContext";
 
 // ---------------------------------------------------------------------------
-// Login gate -- shown when the admin is not authenticated
+// بوابة تسجيل الدخول -- تظهر عندما لا يكون المسؤول مُصادَقًا
 // ---------------------------------------------------------------------------
 
+/**
+ * AdminLoginGate — نموذج اسم المستخدم/كلمة المرور بملء الشاشة يُعرض للمسؤولين
+ * غير المُصادَقين. يرسل بيانات الاعتماد عبر `login()` من AdminAuthContext (الذي
+ * يتحقق منها مقابل جدول `users` في Supabase) ويُظهر النجاح/الخطأ عبر إشعارات
+ * toast. يعرضه AdminLayout كلما كانت `isAuthenticated` بقيمة false.
+ */
 function AdminLoginGate() {
   const { t } = useLanguage();
   const { login } = useAdminAuth();
@@ -22,6 +35,7 @@ function AdminLoginGate() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // التحقق من المدخلات، استدعاء تسجيل دخول المسؤول، ثم إظهار النتيجة كإشعار toast.
   const handleSubmit = async () => {
     if (!username || !password) return;
     setLoading(true);
@@ -42,6 +56,8 @@ function AdminLoginGate() {
             S
           </div>
           <h1 className="text-2xl font-bold gradient-text">
+            {/* استخدام العنوان المترجَم، مع الرجوع إلى "Admin Login" عند غياب
+                المفتاح (تُعيد t() المفتاح نفسه إن لم يكن مترجَمًا). */}
             {(() => {
               const v = t("admin.shell.loginTitle");
               return v !== "admin.shell.loginTitle" ? v : "Admin Login";
@@ -106,14 +122,21 @@ function AdminLoginGate() {
 }
 
 // ---------------------------------------------------------------------------
-// Authenticated admin shell
+// غلاف الإدارة بعد المصادقة
 // ---------------------------------------------------------------------------
 
+/**
+ * AuthenticatedShell — واجهة الإدارة الفعلية التي تظهر بعد تسجيل الدخول.
+ * يعرض الأشرطة الجانبية لسطح المكتب + الجوال، والشريط العلوي، و<Outlet /> لصفحات
+ * المسارات. تُعكَس حالة طيّ الشريط الجانبي من localStorage بحيث تستطيع منطقة
+ * المحتوى الرئيسية ضبط حشوها (padding) الجانبي ليطابق عرض الشريط الجانبي.
+ */
 function AuthenticatedShell() {
+  // أعداد شارات الإشعارات (المراجعات/الذكريات المعلّقة) للشريط الجانبي.
   const { pendingReviewCount, pendingMemoryCount } = useAdminBadges();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Track sidebar collapsed state so we can offset the main content area.
+  // تتبّع حالة طيّ الشريط الجانبي حتى نتمكن من ضبط إزاحة منطقة المحتوى الرئيسية.
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     try {
       return localStorage.getItem("admin-sidebar-collapsed") === "true";
@@ -123,6 +146,7 @@ function AuthenticatedShell() {
   });
 
   useEffect(() => {
+    // المزامنة بين الألسنة: يُطلَق حدث `storage` الأصلي عند كتابة لسان آخر.
     const handler = () => {
       setSidebarCollapsed(
         localStorage.getItem("admin-sidebar-collapsed") === "true"
@@ -130,8 +154,8 @@ function AuthenticatedShell() {
     };
     window.addEventListener("storage", handler);
 
-    // Same-window localStorage writes do not fire the storage event, so we
-    // poll as a fallback.
+    // عمليات الكتابة في localStorage داخل النافذة نفسها لا تُطلق حدث storage،
+    // لذا نلجأ إلى الاستقصاء (polling) كحلٍّ احتياطي.
     const interval = setInterval(() => {
       const val =
         localStorage.getItem("admin-sidebar-collapsed") === "true";
@@ -145,6 +169,7 @@ function AuthenticatedShell() {
   }, []);
 
   return (
+    // يبثّ AdminEventProvider أحداث الإدارة عبر الصفحات (مثل تحديثات البيانات).
     <AdminEventProvider>
       <div className="min-h-screen bg-[#F8F9FB] dark:bg-[#1a2235] text-[#323D50] dark:text-[#F5F5F5]">
         <AdminSidebar
@@ -160,11 +185,13 @@ function AuthenticatedShell() {
 
         <div
           className={`${
+            // إزاحة المحتوى بمقدار عرض الشريط الجانبي الحالي (مطوي مقابل مُوسَّع).
             sidebarCollapsed ? "lg:ps-[72px]" : "lg:ps-64"
           } transition-all duration-300`}
         >
           <AdminTopBar onMobileMenuToggle={() => setMobileOpen(true)} />
           <main className="p-6">
+            {/* تُعرض صفحة المورد المدفوعة بالمسار هنا. */}
             <Outlet />
           </main>
         </div>
@@ -174,12 +201,20 @@ function AuthenticatedShell() {
 }
 
 // ---------------------------------------------------------------------------
-// Layout root
+// جذر التخطيط
 // ---------------------------------------------------------------------------
 
+/**
+ * AdminLayout — التصدير الافتراضي الموصول كمسار الغلاف في AdminApp.
+ * مفتاح المصادقة: يعرض بوابة تسجيل الدخول عند عدم المصادقة، وإلا فيعرض الغلاف
+ * الكامل بعد المصادقة (الشريط الجانبي/العلوي + <Outlet /> المدفوع بالمسارات).
+ *
+ * @returns بوابة تسجيل الدخول أو غلاف الإدارة بعد المصادقة.
+ */
 export default function AdminLayout() {
   const { isAuthenticated } = useAdminAuth();
 
+  // حجب واجهة الإدارة بالكامل خلف فحص مصادقة الإدارة المخصّص.
   if (!isAuthenticated) {
     return <AdminLoginGate />;
   }

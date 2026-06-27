@@ -1,3 +1,9 @@
+/**
+ * StatCard — مكوّن واجهة مشترك في لوحة الإدارة.
+ *
+ * بطاقة مؤشّر أداء (KPI) تعرض عنوانًا وقيمة رئيسية وأيقونة ومؤشّر اتجاه
+ * اختياري. تُستخدم في لوحات النظرة العامة والعطور والكوبونات.
+ */
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowUp, ArrowDown, type LucideIcon } from "lucide-react";
 
@@ -9,6 +15,15 @@ interface StatCardProps {
   trend?: { value: number; direction: "up" | "down" };
 }
 
+/**
+ * يعرض بطاقة إحصائية واحدة.
+ *
+ * @param title     - التسمية التي تصف المقياس.
+ * @param value     - قيمة المقياس (نص أو رقم).
+ * @param icon      - أيقونة Lucide تُعرض على الجانب.
+ * @param iconColor - صنف لون نص Tailwind للأيقونة.
+ * @param trend     - تغيّر اختياري صعودًا/هبوطًا يُعرض بسهم ملوّن.
+ */
 export function StatCard({
   title,
   value,

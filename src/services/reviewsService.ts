@@ -1,3 +1,15 @@
+/**
+ * reviewsService.ts
+ * -----------------
+ * طبقة الخدمة لمراجعات المنتجات (جدول `reviews`). تتولّى:
+ *  - القراءات العامة (تُعرض فقط المراجعات "approved" في صفحة المنتج)
+ *  - قيام المستخدم بجلب/إرسال مراجعته الوحيدة لكل عطر
+ *  - إشراف المسؤول (سرد الكل، الموافقة، الحذف) وشارة عدّاد المعلّقة
+ *
+ * يعيد trigger في قاعدة البيانات احتساب متوسط `rating` لكل عطر عند تغيّر
+ * المراجعات، ويفرض قيد فريد (perfume_id, user_id) مراجعةً واحدة لكل مستخدم
+ * لكل منتج. تكون المراجعات الجديدة افتراضيًا "pending" حتى الموافقة (AI أو مسؤول).
+ */
 import { supabase } from "@/lib/supabase";
 
 export type ReviewStatus = "pending" | "approved";
@@ -25,8 +37,14 @@ export interface NewReviewPayload {
   ai_reason?: string | null;
 }
 
+/**
+ * عام: يجلب المراجعات المرئية (المعتمدة) لمنتج، الأحدث أولًا.
+ * @param perfumeId معرّف العطر (id).
+ * @returns المراجعات المعتمدة؛ [] عند الخطأ.
+ */
 export async function fetchApprovedReviews(perfumeId: string): Promise<Review[]> {
   try {
+    // الصفوف "approved" فقط عامة؛ تبقى المعلّقة مخفية حتى يُشرف عليها.
     const { data, error } = await supabase
       .from("reviews")
       .select("*")

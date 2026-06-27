@@ -1,3 +1,12 @@
+/**
+ * =============================================================================
+ * تبويب الذكريات (Memories) في لوحة الإدارة
+ * -----------------------------------------------------------------------------
+ * مكوّن عرضي يعرض الذكريات التي يكتبها العملاء عن العطور، ويتيح تصفيتها حسب
+ * الحالة (الكل / قيد المراجعة / مقبولة) والبحث النصّي فيها، مع إمكانية قبول
+ * الذكرى أو حذفها. يعتمد على الخطّاف useMemories لإدارة البيانات والعمليات.
+ * =============================================================================
+ */
 import { useState, useMemo } from "react";
 import { Search, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,9 +22,15 @@ interface MemoriesTabProps {
   memoriesApi: ReturnType<typeof useMemories>;
 }
 
+/**
+ * يعرض قائمة الذكريات مع أدوات التصفية والبحث وأزرار القبول والحذف.
+ * @param memoriesApi واجهة الخطّاف useMemories (البيانات ودوال الإجراءات).
+ */
 export function MemoriesTab({ memoriesApi }: MemoriesTabProps) {
   const { t, isRTL } = useLanguage();
+  // فلتر الحالة المحلي: يحدد أي مجموعة من الذكريات تُعرض حالياً.
   const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "approved">("all");
+  // نص البحث المحلي للتصفية الفورية ضمن الذكريات المحمّلة.
   const [searchQuery, setSearchQuery] = useState("");
 
   const {
@@ -29,10 +44,13 @@ export function MemoriesTab({ memoriesApi }: MemoriesTabProps) {
     confirmDialogProps,
   } = memoriesApi;
 
+  // تصفية الذكريات حسب الحالة المختارة ونص البحث معاً (تُعاد حسابها عند تغيّر أيٍّ منها).
   const filteredMemories = useMemo(() => {
     return memories.filter((memory) => {
+      // مطابقة الحالة: "الكل" تمرّر كل الذكريات، وإلا تُطابق الحالة المختارة فقط.
       const matchesStatus = statusFilter === "all" || memory.status === statusFilter;
       const query = searchQuery.trim().toLowerCase();
+      // مطابقة البحث: نص فارغ يمرّر الكل، وإلا يُبحث في نص الذكرى واسم العطر واسم الكاتب.
       const matchesSearch =
         !query ||
         memory.memory_text.toLowerCase().includes(query) ||
@@ -111,6 +129,7 @@ export function MemoriesTab({ memoriesApi }: MemoriesTabProps) {
         </div>
       </div>
 
+      {/* حالة التحميل: بطاقات هيكلية وامضة بدل المحتوى الفعلي */}
       {memoriesLoading ? (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
@@ -130,6 +149,7 @@ export function MemoriesTab({ memoriesApi }: MemoriesTabProps) {
           ))}
         </div>
       ) : filteredMemories.length === 0 ? (
+        /* حالة الفراغ: نميّز بين عدم وجود ذكريات أصلاً وبين عدم تطابق الفلاتر */
         <EmptyState
           icon={MessageSquare}
           title={memories.length === 0 ? t("admin.memories.empty") : "No memories match your filters"}
@@ -140,6 +160,7 @@ export function MemoriesTab({ memoriesApi }: MemoriesTabProps) {
           {filteredMemories.map((memory) => (
             <div
               key={memory.id}
+              /* الذكريات قيد المراجعة تُبرَز بحدّ جانبي كهرماني وخلفية خفيفة لتمييزها */
               className={`glass-card p-4 rounded-xl border-s-4 transition-colors ${
                 memory.status === "pending"
                   ? "border-amber-500 bg-amber-500/5"
@@ -163,6 +184,7 @@ export function MemoriesTab({ memoriesApi }: MemoriesTabProps) {
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <StatusBadge status={memory.status} type="memory" />
+                  {/* زر القبول يظهر فقط للذكريات قيد المراجعة */}
                   {memory.status === "pending" && (
                     <LoadingButton
                       size="sm"
@@ -189,6 +211,7 @@ export function MemoriesTab({ memoriesApi }: MemoriesTabProps) {
         </div>
       )}
 
+      {/* نافذة التأكيد المشتركة لعملية الحذف */}
       <ConfirmDialog {...confirmDialogProps} />
     </div>
   );

@@ -1,3 +1,17 @@
+/**
+ * ===============================================================
+ * ScentMemoryWall.tsx — جدار ذكريات العطور
+ * ---------------------------------------------------------------
+ * قسم تفاعلي يعرض ذكريات/اقتباسات قصيرة شاركها الزوّار حول عطر
+ * معيّن، بأسلوب شريط متحرّك (marquee) في صفّين متعاكسي الاتجاه.
+ * يوفّر نافذة لإضافة ذكرى جديدة (اختيار العطر + النصّ + اسم اختياري).
+ * يعرض حالة فارغة مدمجة عند عدم وجود ذكريات معتمَدة بعد.
+ *
+ * مكان الاستخدام: قسم ضمن الصفحة الرئيسية.
+ * يجلب الذكريات المعتمَدة وقائمة المنتجات من خدمات Supabase،
+ * ويدعم الاتجاهين العربي (RTL) والإنجليزي (LTR).
+ * ===============================================================
+ */
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Plus, Send } from "lucide-react";
@@ -24,6 +38,10 @@ import {
 import { fetchProducts, Product } from "@/services/productsService";
 import { toast } from "sonner";
 
+/**
+ * بطاقة ذكرى واحدة: تعرض نصّ الذكرى (مقتبسًا) واسم العطر المرتبط بها.
+ * @param memory كائن الذكرى المعروض.
+ */
 function MemoryCard({ memory }: { memory: Memory }) {
   return (
     <div className="flex-shrink-0 glass-card p-4 rounded-xl w-60 border border-[#5B8DD9]/10 hover:border-warm/40 transition-colors duration-300">
@@ -36,6 +54,10 @@ function MemoryCard({ memory }: { memory: Memory }) {
   );
 }
 
+/**
+ * المكوّن الرئيسي لجدار ذكريات العطور. يدير جلب الذكريات والمنتجات،
+ * وحالة نافذة إضافة ذكرى جديدة وحقولها.
+ */
 export default function ScentMemoryWall() {
   const { t, isRTL, language } = useLanguage();
   const [memories, setMemories] = useState<Memory[]>([]);
@@ -46,11 +68,13 @@ export default function ScentMemoryWall() {
   const [authorName, setAuthorName] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  // عند التحميل: جلب الذكريات المعتمَدة فقط، وقائمة المنتجات (حتى 100) لملء قائمة اختيار العطر
   useEffect(() => {
     fetchApprovedMemories().then(setMemories);
     fetchProducts(1, 100).then(({ products: p }) => setProducts(p));
   }, []);
 
+  // إرسال ذكرى جديدة بعد التحقّق من اختيار عطر وأن النصّ لا يقلّ عن 5 أحرف
   const handleSubmit = async () => {
     if (!selectedPerfumeId || memoryText.trim().length < 5) {
       toast.error(t("memories.validationError"));
@@ -80,6 +104,7 @@ export default function ScentMemoryWall() {
     }
   };
 
+  // توزيع الذكريات على صفّين (الفهارس الزوجية/الفردية) لعرضهما كشريطين متحرّكين متعاكسين
   const row1 = memories.filter((_, i) => i % 2 === 0);
   const row2 = memories.filter((_, i) => i % 2 === 1);
   const isEmpty = memories.length === 0;
@@ -141,6 +166,7 @@ export default function ScentMemoryWall() {
             </Button>
           </motion.div>
 
+          {/* الصفوف المتحرّكة: تتكرّر عناصر كل صفّ مرّتين [...row, ...row] لتدويرٍ بصري سلِس بلا انقطاع */}
           {/* Marquee rows */}
           <div className="space-y-3">
             {/* Row 1 — left to right */}

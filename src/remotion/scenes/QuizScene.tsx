@@ -1,3 +1,14 @@
+/**
+ * ===========================================================================
+ * مشهد الاختبار (Quiz Scene)
+ * ---------------------------------------------------------------------------
+ * مشهد من الفيديو الإعلاني (Remotion) يحاكي اختبار تحديد العطر المفضّل داخل
+ * إطار هاتف (PhoneFrame). يطرح سؤالاً مع أربعة خيارات (منعش/دافئ/عود/زهري)
+ * تظهر بالتتابع، ثم تُحاكى نقرة المستخدم على خيار "الدافئ" (نبضة)، ويتقدّم
+ * شريط التقدّم، وأخيراً يتلاشى المشهد للخروج. يرافقه مقطع صوتي خاص بالمشهد.
+ * الهدف: عرض ميزة الاختبار التفاعلي لاقتراح العطر المناسب.
+ * ===========================================================================
+ */
 import { AbsoluteFill, Audio, useCurrentFrame, interpolate, spring, useVideoConfig } from "remotion";
 import { dir, isRtl, t, type Lang } from "../i18n";
 import { getFonts } from "../fonts";
@@ -10,31 +21,40 @@ type Props = {
   primaryColor: string;
 };
 
+/**
+ * مكوّن مشهد الاختبار.
+ * props: اللغة واللونان الذهبي والأساسي للعلامة.
+ */
 export const QuizScene: React.FC<Props> = ({ language, goldColor, primaryColor }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const fonts = getFonts(language);
 
+  // ظهور العنوان: تلاشٍ تدريجي مع انزلاق رأسي للأعلى (بمنحنى تباطؤ تكعيبي)
   const titleOpacity = interpolate(frame, [0, 14], [0, 1], { extrapolateRight: "clamp" });
   const titleY = interpolate(frame, [0, 18], [22, 0], { extrapolateRight: "clamp", easing: (x) => 1 - Math.pow(1 - x, 3) });
 
+  // حركة دخول إطار الهاتف بدءاً من الإطار 8
   const phoneEnter = spring({
     frame: frame - 8,
     fps,
     config: { damping: 18, stiffness: 90, mass: 0.8 },
   });
 
-  const tileEnterStart = 24;
-  const tapFrame = 70;
-  const progressStart = 76;
-  const progressEnd = 100;
+  // توقيتات المشهد بالإطارات:
+  const tileEnterStart = 24; // بدء ظهور خيارات الإجابة
+  const tapFrame = 70;       // لحظة محاكاة نقرة المستخدم على الخيار
+  const progressStart = 76;  // بدء امتلاء شريط التقدّم
+  const progressEnd = 100;   // اكتمال شريط التقدّم
   const progress = interpolate(frame, [progressStart, progressEnd], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
 
+  // تلاشي خروج المشهد بأكمله بين الإطارين 108 و120
   const exitOpacity = interpolate(frame, [108, 120], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
 
+  // خيارات الإجابة الأربعة، لكلٍّ منها مفتاح ونص (مترجم) ولون مميّز
   const options: Array<{ key: "warm" | "fresh" | "oud" | "floral"; label: string; tone: string }> = [
     { key: "fresh", label: t("quiz_opt_fresh", language), tone: "#7BB6E6" },
     { key: "warm", label: t("quiz_opt_warm", language), tone: goldColor },
@@ -42,6 +62,7 @@ export const QuizScene: React.FC<Props> = ({ language, goldColor, primaryColor }
     { key: "floral", label: t("quiz_opt_floral", language), tone: "#D9A8C8" },
   ];
 
+  // الخيار الذي ستحاكي الرسومُ اختياره (الدافئ)
   const selectedKey = "warm";
 
   return (
@@ -54,8 +75,10 @@ export const QuizScene: React.FC<Props> = ({ language, goldColor, primaryColor }
         opacity: exitOpacity,
       }}
     >
+      {/* المقطع الصوتي الخاص بمشهد الاختبار */}
       <Audio src={sceneAudio("quiz", language)} volume={0.95} />
 
+      {/* عنوان المشهد — يظهر مع انزلاق رأسي عبر titleOpacity وtitleY */}
       <div
         style={{
           opacity: titleOpacity,
@@ -74,6 +97,7 @@ export const QuizScene: React.FC<Props> = ({ language, goldColor, primaryColor }
         {t("quiz_title", language)}
       </div>
 
+      {/* حاوية إطار الهاتف — تظهر وتتكبّر قليلاً عبر phoneEnter */}
       <div
         style={{
           opacity: phoneEnter,
@@ -126,12 +150,15 @@ export const QuizScene: React.FC<Props> = ({ language, goldColor, primaryColor }
               }}
             >
               {options.map((opt, i) => {
+                // كل خيار يدخل بتأخير 6 إطارات عن سابقه (تأثير التتابع)
                 const tileEnter = spring({
                   frame: frame - tileEnterStart - i * 6,
                   fps,
                   config: { damping: 18, stiffness: 110, mass: 0.6 },
                 });
+                // يُعدّ الخيار "محدّداً" إذا كان هو الخيار المستهدف وبعد لحظة النقرة
                 const isSelected = opt.key === selectedKey && frame >= tapFrame;
+                // نبضة عند النقر (spring قليل التخميد لإحساس الارتداد)
                 const tapPulse = isSelected
                   ? spring({
                       frame: frame - tapFrame,
@@ -139,7 +166,7 @@ export const QuizScene: React.FC<Props> = ({ language, goldColor, primaryColor }
                       config: { damping: 10, stiffness: 200, mass: 0.5 },
                     })
                   : 0;
-                const scale = isSelected ? 1 + tapPulse * 0.04 : 1;
+                const scale = isSelected ? 1 + tapPulse * 0.04 : 1; // تكبير طفيف للخيار المحدّد
                 return (
                   <div
                     key={opt.key}
@@ -167,6 +194,7 @@ export const QuizScene: React.FC<Props> = ({ language, goldColor, primaryColor }
               })}
             </div>
 
+            {/* شريط التقدّم (مسار الاختبار) — يُثبّت اتجاهه LTR */}
             <div
               style={{
                 marginTop: "auto",
@@ -178,6 +206,7 @@ export const QuizScene: React.FC<Props> = ({ language, goldColor, primaryColor }
                 direction: "ltr",
               }}
             >
+              {/* الجزء الممتلئ — يتمدّد عرضه بحسب قيمة progress */}
               <div
                 style={{
                   width: `${progress * 100}%`,

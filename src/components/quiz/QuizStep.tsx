@@ -1,13 +1,36 @@
+/**
+ * ====================================================================
+ * QuizStep — خطوة واحدة من اختبار العطور (سؤال + خيارات)
+ * --------------------------------------------------------------------
+ * يعرض سؤالًا واحدًا مع شبكة من الخيارات المصوّرة بأيقونات، ويُبلِغ المكوّن
+ * الأب بالخيار الذي ينقره المستخدم. يحترم تفضيل تقليل الحركة (reduced motion)
+ * فيُبسّط حركات framer-motion عند تفعيله. مغلَّف بـ React.memo لتفادي إعادة
+ * التصيير غير الضرورية بين الأسئلة.
+ * ====================================================================
+ */
 import React, { ComponentType } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Check } from "lucide-react";
 
+/**
+ * خيار واحد ضمن السؤال:
+ * - label: نص الخيار المعروض (مُترجَم).
+ * - Icon: مكوّن الأيقونة المصاحبة للخيار.
+ * - value: القيمة المنطقية المُخزَّنة عند الاختيار (تبقى بالإنجليزية).
+ */
 interface QuizOption {
   label: string;
   Icon: ComponentType<{ className?: string }>;
   value: string;
 }
 
+/**
+ * خصائص المكوّن:
+ * - question / subtitle: نص السؤال والعنوان الفرعي.
+ * - options: قائمة الخيارات المتاحة.
+ * - onSelect: دالة تُستدعى بقيمة الخيار عند النقر.
+ * - selected: قيمة الخيار المختار حاليًا (لإبراز التحديد).
+ */
 interface QuizStepProps {
   question: string;
   subtitle: string;
@@ -16,6 +39,9 @@ interface QuizStepProps {
   selected?: string;
 }
 
+/**
+ * المكوّن الداخلي لخطوة الاختبار (يُصدَّر مغلّفًا بـ React.memo في الأسفل).
+ */
 function QuizStepComponent({
   question,
   subtitle,
@@ -23,8 +49,10 @@ function QuizStepComponent({
   onSelect,
   selected,
 }: QuizStepProps) {
+  // تفضيل المستخدم لتقليل الحركة؛ عند تفعيله نستبدل الحركات المعقّدة بأخرى مبسّطة
   const reduce = useReducedMotion();
 
+  // إعدادات حركة الحاوية: ظهور متدرّج للخيارات (stagger) إلا عند تقليل الحركة
   const containerVariants = reduce
     ? { hidden: { opacity: 0 }, visible: { opacity: 1 } }
     : {
@@ -35,6 +63,7 @@ function QuizStepComponent({
         },
       };
 
+  // إعدادات حركة كل خيار على حدة: انزلاق وتكبير خفيف، أو ظهور بسيط عند تقليل الحركة
   const itemVariants = reduce
     ? { hidden: { opacity: 0 }, visible: { opacity: 1 } }
     : {
@@ -76,6 +105,7 @@ function QuizStepComponent({
         }`}
       >
         {options.map((option) => {
+          // إبراز الخيار المطابق للقيمة المختارة حاليًا
           const isSelected = selected === option.value;
           const Icon = option.Icon;
 
@@ -134,4 +164,5 @@ function QuizStepComponent({
   );
 }
 
+// تغليف بـ React.memo: يمنع إعادة تصيير الخطوة ما لم تتغيّر خصائصها فعليًا
 export default React.memo(QuizStepComponent);

@@ -1,0 +1,8 @@
+# Edge Function secrets — never commit. Push to Supabase with:
+#   supabase secrets set --env-file supabase/.env --project-ref wdpldfemkbxjdveuieof
+.env
+.env.*
+
+# Supabase CLI local state
+.temp/
+.branches/

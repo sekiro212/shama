@@ -1,3 +1,12 @@
+/**
+ * =============================================================================
+ * تبويب النظرة العامة (Overview) في لوحة الإدارة
+ * -----------------------------------------------------------------------------
+ * مكوّن عرضي (presentational) يعرض البطاقات الإحصائية الرئيسية للمتجر:
+ * إجمالي الطلبات، إجمالي الإيرادات، متوسط قيمة الطلب، وعدد العطور،
+ * بالإضافة إلى قائمة بأحدث الطلبات. يستقبل بياناته جاهزة عبر الخصائص (props).
+ * =============================================================================
+ */
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShoppingCart, DollarSign, Package } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -8,6 +17,11 @@ interface OverviewTabProps {
   perfumesCount: number;
 }
 
+/**
+ * يعرض شبكة البطاقات الإحصائية وقائمة أحدث الطلبات.
+ * @param orderStats إحصائيات الطلبات المحسوبة مسبقاً (الإجمالي، الإيرادات، إلخ).
+ * @param perfumesCount العدد الإجمالي للعطور في المتجر.
+ */
 export function OverviewTab({ orderStats, perfumesCount }: OverviewTabProps) {
   const { t } = useLanguage();
 
@@ -70,12 +84,14 @@ export function OverviewTab({ orderStats, perfumesCount }: OverviewTabProps) {
       </div>
 
       {/* Recent Orders */}
+      {/* قسم أحدث الطلبات */}
       <Card className="glass-card border-[#323D50]/10 dark:border-white/10">
         <CardHeader>
           <CardTitle className="text-[#323D50] dark:text-white">{t("admin.recentOrders")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
+            {/* المرور على أحدث الطلبات وعرض اسم العميل وقيمته وتاريخه في صف واحد */}
             {orderStats.recentOrders.map((order) => (
               <div
                 key={order.id}

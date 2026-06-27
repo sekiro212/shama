@@ -1,3 +1,12 @@
+/**
+ * ===================================================================
+ * صفحة قائمة الأمنيات (Wishlist) — المسار: /wishlist
+ * -------------------------------------------------------------------
+ * تعرض العطور التي حفظها المستخدم في المفضّلة (من WishlistContext) مع
+ * إمكانية إزالة عنصر، تفريغ القائمة كاملة، أو نقل عنصر إلى السلة.
+ * تدعم العربية والإنجليزية مع وعي باتجاه RTL.
+ * ===================================================================
+ */
 import { Heart, ShoppingBag, Trash2, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useWishlist } from "@/contexts/WishlistContext";
@@ -5,11 +14,16 @@ import { useCart } from "@/contexts/CartContext";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/contexts/LanguageContext";
 
+/**
+ * المكوّن الرئيسي لصفحة قائمة الأمنيات.
+ * يقرأ العناصر المحفوظة من السياق ويعرضها، مع حالة فراغ عند عدم وجود عناصر.
+ */
 const WishlistPage = () => {
   const { t, isRTL } = useLanguage();
   const { items, removeFromWishlist, clearWishlist } = useWishlist();
   const { addToCart } = useCart();
 
+  // نقل عنصر من المفضّلة إلى السلة: يُضاف للسلة ثم يُزال من قائمة الأمنيات
   const handleAddToCart = (item: (typeof items)[0]) => {
     addToCart({
       id: item.id,
@@ -30,6 +44,7 @@ const WishlistPage = () => {
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold gradient-text mb-1 sm:mb-2 leading-tight">
               {t("wishlist.title")}
             </h1>
+            {/* اختيار صيغة المفرد/الجمع للعدد حسب عدد العناصر المحفوظة */}
             <p className="dark:text-white/60 text-[#6B7B8D] text-xs sm:text-sm">
               {items.length} {items.length === 1 ? t("wishlist.itemSaved") : t("wishlist.itemsSaved")} {t("wishlist.saved")}
             </p>
@@ -46,6 +61,7 @@ const WishlistPage = () => {
           )}
         </div>
 
+        {/* حالة الفراغ: تظهر عند عدم وجود أي عنصر محفوظ في المفضّلة */}
         {/* Empty State */}
         {items.length === 0 && (
           <div className="flex flex-col items-center justify-center py-24 text-center">

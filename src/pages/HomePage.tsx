@@ -1,3 +1,16 @@
+/**
+ * HomePage.tsx
+ * -----------------------------------------------------------------------------
+ * الصفحة الرئيسية لمتجر عطور شمعة — مركّبة على المسار "/".
+ * وهي نقطة الدخول التسويقية للمتجر، وتجمع عدّة أقسام: لافتة رئيسية (hero)،
+ * المنتجات المميّزة (تُجلب من Supabase)، دعوة لاستخدام باحث الـ AI،
+ * إحصاءات الإثبات الاجتماعي، كتلة "من نحن"، العناصر المُشاهَدة مؤخرًا،
+ * جدار ذكريات العطر، ومعرض وسائط التواصل الاجتماعي.
+ *
+ * يمرّ كل النص الموجّه للمستخدم عبر `t()` (useLanguage) بحيث تُصيَّر الصفحة
+ * بالإنجليزية (LTR) والعربية (RTL)؛ ويقلب `isRTL` الأيقونات/التباعد الاتجاهي.
+ * تستخدم الحركات framer-motion وتحترم إعداد المستخدم لتقليل الحركة.
+ */
 import { Link, useNavigate } from "react-router-dom";
 import {
   ChevronRight,
@@ -45,7 +58,13 @@ const TikTokIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-/* Editorial section header — badge on top row, optional action on the right (desktop) */
+/**
+ * SectionHeader — كتلة عنوان قابلة لإعادة الاستخدام لأقسام الصفحة الرئيسية.
+ * تصيّر شارة "eyebrow"، وعنوان عرض كبير، ووصفًا اختياريًا.
+ * عندما تكون `align` بقيمة "center" يُوسَّط العمود ويُسقَط مكان `action`؛
+ * وإلا يطفو الإجراء (مثل زر "عرض الكل") إلى الجانب.
+ */
+/* عنوان قسم تحريري — الشارة في الصف العلوي، وإجراء اختياري على اليمين (سطح المكتب) */
 function SectionHeader({
   eyebrow,
   title,
@@ -87,10 +106,17 @@ function SectionHeader({
   );
 }
 
+/**
+ * AIFinderBanner — بطاقة ترويجية توجّه المستخدمين إلى باحث العطر بالـ AI.
+ * كل "chip" هو نص بحث مُعدّ مسبقًا: النقر عليه ينتقل إلى /ai-finder
+ * مع تعبئة الاستعلام مسبقًا عبر معامل الرابط `?q=` بحيث تستطيع صفحة الباحث
+ * تشغيل ذلك البحث تلقائيًا.
+ */
 const AIFinderBanner = () => {
   const navigate = useNavigate();
   const { t, isRTL } = useLanguage();
 
+  // رقائق اقتراح سريعة؛ يُمرَّر `query` إلى باحث الـ AI كـ ?q=
   const chips = [
     { label: t("home.chipNightOut"), query: "special occasion" },
     { label: t("home.chipEveryday"), query: "everyday fresh" },
@@ -126,6 +152,7 @@ const AIFinderBanner = () => {
               {chips.map((chip) => (
                 <button
                   key={chip.query}
+                  // الانتقال إلى باحث الـ AI مع تحميل نص هذه الرقاقة مسبقًا
                   onClick={() =>
                     navigate(`/ai-finder?q=${encodeURIComponent(chip.query)}`)
                   }
@@ -154,6 +181,12 @@ const AIFinderBanner = () => {
   );
 };
 
+/**
+ * HomePage — المكوّن الأعلى مستوى للمسار "/".
+ * يحمّل مجموعة صغيرة من المنتجات المميّزة عند التركيب (mount) ويؤلّف كل
+ * قسم من الصفحة الرئيسية. تحتفظ الحالة المحلية بالمنتجات المميّزة، ومجموعة
+ * صور المجموعة المستخدمة لمعاينة التمرير في قسم "من نحن"، وأعلام التحميل.
+ */
 export default function HomePage() {
   const { t, isRTL } = useLanguage();
   const reduceMotion = useReducedMotion();
@@ -162,6 +195,8 @@ export default function HomePage() {
   const [aboutHoverImg, setAboutHoverImg] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // اختيار صورة مجموعة عشوائية (دون تكرار الحالية) لعرضها عندما يمرّر
+  // المستخدم المؤشّر فوق بلاطة شعار "من نحن".
   const handleAboutHover = () => {
     if (collectionImages.length === 0) return;
     const pool = aboutHoverImg
@@ -171,6 +206,9 @@ export default function HomePage() {
     setAboutHoverImg(next ?? collectionImages[0]);
   };
 
+  // جلب البيانات: يُشغَّل مرة واحدة عند التركيب. يسحب المنتجات من Supabase،
+  // ويُبقي أول 3 زجاجات كاملة كـ "مميّزة"، ويسطّح كل روابط صور المنتجات
+  // في مجموعة واحدة لمعاينة التمرير في قسم "من نحن".
   useEffect(() => {
     const loadProducts = async () => {
       try {
@@ -192,6 +230,8 @@ export default function HomePage() {
     loadProducts();
   }, []);
 
+  // يبني props الخاصة بـ framer-motion لظهور الـ hero المتدرّج. عندما يفضّل
+  // المستخدم تقليل الحركة نلجأ إلى تلاشٍ بسيط (دون انزلاق عمودي).
   const heroRise = (delay: number) =>
     reduceMotion
       ? ({ initial: { opacity: 0 }, animate: { opacity: 1 }, transition: { duration: 0.4, delay } } as const)
@@ -210,9 +250,9 @@ export default function HomePage() {
 
   return (
     <div className="grain-bg min-h-dvh w-full bg-[#F8F9FB] dark:bg-[#1a2235] relative overflow-hidden">
-      {/* Hero — one orchestrated reveal */}
+      {/* Hero — ظهور واحد منسّق */}
       <section className="relative min-h-[72dvh] sm:min-h-[76dvh] lg:min-h-[78dvh] flex items-center justify-center w-full overflow-hidden">
-        {/* Static background wash — no parallax */}
+        {/* خلفية ثابتة — دون تأثير parallax */}
         <div className="absolute inset-0 z-0" aria-hidden>
           <img
             src="https://images.unsplash.com/photo-1594736797933-d0401ba2fe65?w=1280&q=60&auto=format&fit=crop"
@@ -224,9 +264,9 @@ export default function HomePage() {
             fetchPriority="auto"
             decoding="async"
           />
-          {/* Warm candlelight glow from the center */}
+          {/* توهّج دافئ كضوء الشمعة من المركز */}
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(232,185,138,0.22)_0%,transparent_60%)]" />
-          {/* Paper + midnight gradient readability wash — heavier at the edges so type stays crisp */}
+          {/* تدرّج لتحسين الوضوح (ورقي + ليلي) — أثقل عند الحواف لتبقى الكتابة واضحة */}
           <div className="absolute inset-0 bg-gradient-to-b from-[#F8F9FB]/55 via-[#F8F9FB]/10 to-[#F8F9FB] dark:from-[#1a2235]/55 dark:via-[#1a2235]/10 dark:to-[#1a2235]" />
         </div>
 
@@ -285,7 +325,7 @@ export default function HomePage() {
         </BackgroundBeamsWithCollision>
       </section>
 
-      {/* Featured Products — sits right under the hero so products earn the screen */}
+      {/* المنتجات المميّزة — تقع مباشرة تحت الـ hero بحيث تنال المنتجات الشاشة */}
       <section id="products" className="pt-8 sm:pt-12 md:pt-16 pb-14 sm:pb-20 md:pb-24 relative z-10">
         <div className="container mx-auto px-3 sm:px-4">
           <SectionHeader
@@ -306,6 +346,8 @@ export default function HomePage() {
             }
           />
 
+          {/* يتكيّف تخطيط الشبكة مع عدد المنتجات المميّزة الموجودة (3 / 2 / 1)
+              بحيث يبقى الصف متوازنًا بصريًا. */}
           <div
             className={
               loading || featuredProducts.length >= 3
@@ -315,6 +357,7 @@ export default function HomePage() {
                   : "max-w-md mx-auto border border-[#323D50]/10 dark:border-white/10"
             }
           >
+            {/* أثناء التحميل تُعرض هياكل وميض (skeletons)، ثم تُستبدل ببطاقات حقيقية */}
             {loading
               ? Array.from({ length: 3 }).map((_, index) => (
                   <div
@@ -345,7 +388,7 @@ export default function HomePage() {
                 ))}
           </div>
 
-          {/* Mobile fallback for action — show "View All" under the grid too */}
+          {/* بديل للجوال للإجراء — عرض "عرض الكل" تحت الشبكة أيضًا */}
           <div className="text-center mt-10 md:hidden">
             <Button
               asChild
@@ -361,17 +404,17 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* AI Finder Banner — bridge from "here are products" to "help me pick" */}
+      {/* لافتة باحث الـ AI — جسر من "هذه هي المنتجات" إلى "ساعدني في الاختيار" */}
       <section className="py-8 sm:py-12 relative z-10">
         <div className="container mx-auto px-3 sm:px-4">
           <AIFinderBanner />
         </div>
       </section>
 
-      {/* Stats — social proof after users have seen the product */}
+      {/* الإحصاءات — إثبات اجتماعي بعد أن يرى المستخدمون المنتج */}
       <section className="py-14 sm:py-20 relative z-10">
         <div className="container mx-auto px-3 sm:px-4">
-          {/* Desktop: single connected row with dividers */}
+          {/* سطح المكتب: صف واحد متصل بفواصل */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -394,7 +437,7 @@ export default function HomePage() {
             ))}
           </motion.div>
 
-          {/* Mobile: compact cards */}
+          {/* الجوال: بطاقات مدمجة */}
           <div className="grid grid-cols-2 gap-3 md:hidden">
             {stats.map((stat, index) => (
               <motion.div
@@ -420,11 +463,11 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* About — image left / text right on desktop */}
+      {/* من نحن — الصورة يسارًا / النص يمينًا على سطح المكتب */}
       <section className="py-14 sm:py-20 md:py-24 relative z-10">
         <div className="container mx-auto px-3 sm:px-4">
           <div className="grid lg:grid-cols-2 gap-10 md:gap-14 lg:gap-20 items-center">
-            {/* Image */}
+            {/* الصورة */}
             <motion.div
               initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -447,7 +490,7 @@ export default function HomePage() {
                       "radial-gradient(ellipse at center, #2a3652 0%, #1a2235 70%, #0E1420 100%)",
                   }}
                 >
-                  {/* Logo layer — visible when not hovering */}
+                  {/* طبقة الشعار — مرئية عند عدم التمرير */}
                   <div
                     className={`absolute inset-0 grid place-items-center transition-opacity duration-500 ${
                       aboutHoverImg ? "opacity-0" : "opacity-100"
@@ -468,7 +511,7 @@ export default function HomePage() {
                       }}
                     />
                   </div>
-                  {/* Collection preview layer — swaps on hover */}
+                  {/* طبقة معاينة المجموعة — تُستبدل عند التمرير */}
                   {aboutHoverImg && (
                     <motion.img
                       key={aboutHoverImg}
@@ -480,7 +523,7 @@ export default function HomePage() {
                       className="absolute inset-0 w-full h-full object-cover"
                     />
                   )}
-                  {/* Gradient + caption */}
+                  {/* تدرّج + تسمية توضيحية */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent pointer-events-none" />
                   <div className="absolute bottom-4 start-5 text-white/85 text-sm font-medium tracking-wide pointer-events-none">
                     {t("home.about.since2024")}
@@ -489,7 +532,7 @@ export default function HomePage() {
               </div>
             </motion.div>
 
-            {/* Text */}
+            {/* النص */}
             <motion.div
               initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -536,7 +579,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Recently Viewed + Scent Memory Wall */}
+      {/* المُشاهَدة مؤخرًا + جدار ذكريات العطر */}
       <section className="relative z-10">
         <div className="container mx-auto px-4">
           <RecentlyViewed />
@@ -544,7 +587,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Social Gallery */}
+      {/* معرض التواصل الاجتماعي */}
       <section className="py-14 sm:py-20 md:py-24 relative z-10">
         <div className="container mx-auto px-3 sm:px-4">
           <SectionHeader
@@ -599,7 +642,7 @@ export default function HomePage() {
                   style={{ backgroundImage: `url(${card.image})` }}
                 >
                   <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent group-hover:from-black/85 transition-colors duration-300" />
-                  {/* Warm corner glow on hover */}
+                  {/* توهّج دافئ في الزاوية عند التمرير */}
                   <div className="absolute -top-10 -end-10 w-28 h-28 rounded-full bg-warm/0 group-hover:bg-warm/25 blur-2xl transition-colors duration-500" />
                   <div className="absolute bottom-4 start-4 end-4 flex items-center justify-between">
                     <span className="text-white font-semibold text-sm sm:text-base tracking-wide">

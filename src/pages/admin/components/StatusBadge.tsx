@@ -1,6 +1,16 @@
+/**
+ * StatusBadge — مكوّن واجهة مشترك في لوحة الإدارة.
+ *
+ * يعرض شارة (badge) ملوّنة لقيمة حالة معيّنة. يتم اختيار نظام الألوان حسب
+ * نوع المورد `type` (طلب، تقييم، ذكرى، كوبون، vanex)، بحيث يقوم نفس المكوّن
+ * بتنسيق جميع الحالات عبر جداول لوحة الإدارة.
+ */
 import { Badge } from "@/components/ui/badge";
 import { VANEX_STATUSES } from "@/lib/vanexStatus";
 
+// أصناف ألوان Tailwind لكل حالة في دورة حياة شحنات Vanex.
+// عدّة حالات مختلفة تتشارك نفس اللون عمدًا (مثلًا كل حالات "قيد النقل"
+// بالأزرق، وكل حالات الفشل النهائي بالأحمر).
 const VANEX_STATUS_STYLES: Record<(typeof VANEX_STATUSES)[number], string> = {
   store_new: "bg-gray-500/20 text-gray-400 border-gray-500/30",
   pending: "bg-gray-500/20 text-gray-400 border-gray-500/30",
@@ -28,7 +38,12 @@ interface StatusBadgeProps {
   type?: "order" | "review" | "memory" | "coupon" | "vanex";
 }
 
+/**
+ * تُرجع أصناف ألوان Tailwind المناسبة للحالة، بالاعتماد على نوع المورد
+ * `type`. وعند عدم التعرّف على الحالة تعود إلى لون رمادي محايد.
+ */
 function getStatusStyle(status: string, type?: string): string {
+  // توحيد حالة الأحرف ليكون البحث في خرائط الأنماط غير حسّاس لحالة الأحرف.
   const key = status.toLowerCase();
 
   if (type === "coupon") {
@@ -49,12 +64,14 @@ function getStatusStyle(status: string, type?: string): string {
   }
 
   if (type === "vanex") {
+    // البحث عن حالة الشحنة في الخريطة؛ الرموز غير المعروفة تعود إلى الرمادي.
     return (
       VANEX_STATUS_STYLES[key as keyof typeof VANEX_STATUS_STYLES] ??
       "bg-gray-500/20 text-gray-400 border-gray-500/30"
     );
   }
 
+  // الفرع الافتراضي: حالات الطلبات (وتُستخدم أيضًا لطلبات الهدايا).
   const orderStyles: Record<string, string> = {
     pending: "bg-gray-500/20 text-gray-400 border-gray-500/30",
     confirmed: "bg-blue-500/20 text-blue-400 border-blue-500/30",
@@ -69,10 +86,18 @@ function getStatusStyle(status: string, type?: string): string {
   return "bg-gray-500/20 text-gray-400 border-gray-500/30";
 }
 
+/**
+ * يعرض شارة محدّدة الإطار وملوّنة لقيمة حالة.
+ *
+ * @param status - نص الحالة الخام (يُستخدم للون وكنص افتراضي).
+ * @param label  - نص عرض اختياري يحل محل نص الحالة الخام.
+ * @param type   - عائلة المورد التي تحدّد نظام الألوان.
+ */
 export function StatusBadge({ status, label, type }: StatusBadgeProps) {
   return (
     <Badge
       variant="outline"
+      // تسميات Vanex منسّقة مسبقًا للقراءة، لذا نتجاوز تحويل capitalize هنا.
       className={`${type === "vanex" ? "" : "capitalize"} ${getStatusStyle(status, type)}`}
     >
       {label ?? status}

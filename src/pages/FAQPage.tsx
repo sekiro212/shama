@@ -1,3 +1,12 @@
+/**
+ * ============================================================================
+ * صفحة "الأسئلة الشائعة" (FAQ) — المسار: /faq
+ * ----------------------------------------------------------------------------
+ * صفحة ثابتة تعرض الأسئلة المتكرّرة مجمّعةً في أقسام (الطلب، الشحن، المنتجات،
+ * الدعم). كل سؤال يُعرض داخل عنصر طيّ/فتح (Accordion) لإظهار إجابته عند النقر.
+ * النصوص (الأسئلة والإجابات) ثنائية اللغة عبر دالة الترجمة t().
+ * ============================================================================
+ */
 import { motion, useReducedMotion } from "framer-motion";
 import {
   Accordion,
@@ -7,6 +16,7 @@ import {
 } from "@/components/ui/accordion";
 import { useLanguage } from "@/contexts/LanguageContext";
 
+// أقسام الأسئلة: لكل قسم مفتاحه وقائمة معرّفات أسئلته (q1، q2، ...)
 const SECTIONS: { key: string; questions: string[] }[] = [
   { key: "ordering", questions: ["q1", "q2", "q3"] },
   { key: "shipping", questions: ["q1", "q2", "q3", "q4"] },
@@ -14,6 +24,9 @@ const SECTIONS: { key: string; questions: string[] }[] = [
   { key: "support", questions: ["q1", "q2"] },
 ];
 
+/**
+ * المكوّن الرئيسي لصفحة الأسئلة الشائعة.
+ */
 export default function FAQPage() {
   const { t } = useLanguage();
   const reduce = useReducedMotion();
@@ -38,6 +51,7 @@ export default function FAQPage() {
           </p>
         </motion.header>
 
+        {/* تكرار الأقسام؛ ولكل قسم تكرار أسئلته داخل مكوّن Accordion قابل للطيّ */}
         <div className="space-y-8">
           {SECTIONS.map((section, sIdx) => (
             <section
@@ -59,6 +73,7 @@ export default function FAQPage() {
                 className="w-full divide-y divide-[#323D50]/10 dark:divide-white/10"
               >
                 {section.questions.map((q) => {
+                  // اشتقاق مفتاح الإجابة من مفتاح السؤال: q1 → a1
                   const aKey = q.replace("q", "a");
                   return (
                     <AccordionItem

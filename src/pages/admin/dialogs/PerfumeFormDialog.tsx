@@ -1,3 +1,13 @@
+/**
+ * PerfumeFormDialog.tsx
+ * ---------------------
+ * نموذج نافذة لإضافة عطر جديد أو تحرير عطر موجود (محرّر المنتجات الرئيسي
+ * للمسؤول). وهو حاوية تجمع أربعة أقسام فرعية: BasicFields (الاسم/السعر/الوصف...)،
+ * مدخلات روائح العطر (fragrance-notes)، وSamplesSection، وBottleSizesSection،
+ * وImagesSection.
+ * تأتي كل الحالة والمعالِجات من الـ hook `usePerfumes` (يُمرَّر باسم
+ * `perfumesApi`)؛ وهذا المكوّن يربط تلك البيانات بالواجهة فحسب.
+ */
 import { Save, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/ui/loading-button";
@@ -20,8 +30,16 @@ interface PerfumeFormDialogProps {
   perfumesApi: ReturnType<typeof usePerfumes>;
 }
 
+/**
+ * يعرض نافذة إنشاء/تحرير العطر.
+ * الخاصية (prop) الأساسية:
+ * - perfumesApi: ناتج الـ hook `usePerfumes` الكامل، يوفّر حالة النموذج، وحقول
+ *   روائح العطر، ومصفوفات متغيّرات العيّنات/القوارير، ومعالِجات الصور، ومعالِج
+ *   الإرسال.
+ */
 export function PerfumeFormDialog({ perfumesApi }: PerfumeFormDialogProps) {
   const { t, isRTL } = useLanguage();
+  // استخراج كل بيانات النموذج ومعالِجات التعديل من الـ hook الخاص بالعطور.
   const {
     isDialogOpen,
     setIsDialogOpen,
@@ -70,6 +88,8 @@ export function PerfumeFormDialog({ perfumesApi }: PerfumeFormDialogProps) {
             generatingDescription={generatingDescription}
           />
 
+          {/* روائح العطر: ثلاثة مدخلات نصية مفصولة بفواصل (عليا/وسطى/قاعدية)
+              تُربَط بحقول هرم العطر (scent-pyramid) للعطر في قاعدة البيانات. */}
           <div className="space-y-4">
             <Label className="text-[#323D50] dark:text-white/80">
               {t("admin.form.fragranceNotes")}
@@ -135,6 +155,7 @@ export function PerfumeFormDialog({ perfumesApi }: PerfumeFormDialogProps) {
           />
 
           <div className="flex gap-2 pt-4">
+            {/* زر الحفظ: يثبّت العطر (إدراج عند الإضافة، تحديث عند التحرير). */}
             <LoadingButton
               onClick={handleSubmit}
               loading={submitLoading}

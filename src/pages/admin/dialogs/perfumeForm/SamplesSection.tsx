@@ -1,3 +1,9 @@
+// ===========================================================================
+// SamplesSection.tsx — قسم فرعي لمتغيّرات أحجام العيّنات من نموذج العطر.
+// عرضي فقط (presentational): مفتاح يُفعّل متغيّرات العيّنات، ثم يعرض قائمة قابلة
+// للتحرير من صفوف {size, price, stock}. تُفوَّض كل تعديلات المصفوفة إلى دوال رد
+// النداء add/remove/updateSample المملوكة للـ hook الخاص بـ usePerfumes.
+// ===========================================================================
 import { Plus, Trash2, Package } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,6 +28,14 @@ interface SamplesSectionProps {
   updateSample: (index: number, field: keyof PerfumeSample, value: any) => void;
 }
 
+/**
+ * يعرض القائمة الاختيارية لمتغيّرات أحجام العيّنات لعطر ما.
+ * الخصائص (props) الأساسية:
+ * - hasSamples / onHasSamplesChange: مربّع الاختيار الرئيسي الذي يبدّل هذا القسم
+ * - perfumeSamples: صفوف المتغيّرات الحالية (الحجم/السعر/المخزون)، صف محرّر لكلٍّ منها
+ * - sampleSizes: خيارات الأحجام المسموح بها للقائمة المنسدلة (3ml–30ml)
+ * - addSample / removeSample / updateSample: تعديل مصفوفة المتغيّرات في الأعلى
+ */
 export function SamplesSection({
   hasSamples,
   onHasSamplesChange,
@@ -48,6 +62,7 @@ export function SamplesSection({
         </Label>
       </div>
 
+      {/* لا يُعرض محرّر المتغيّرات إلا عند تفعيل متغيّرات العيّنات. */}
       {hasSamples && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">

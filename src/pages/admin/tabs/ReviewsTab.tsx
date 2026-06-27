@@ -1,3 +1,12 @@
+/**
+ * =============================================================================
+ * تبويب التقييمات المُعلَّمة بالذكاء الاصطناعي (Flagged Reviews)
+ * -----------------------------------------------------------------------------
+ * مكوّن عرضي يعرض فقط التقييمات التي لم يستطع مُشرف الذكاء الاصطناعي قبولها
+ * تلقائياً (حالتها "pending")، أما التقييمات الجيدة فتُنشر تلقائياً ولا تظهر هنا.
+ * يتيح للمدير البحث في التقييمات المعلّمة وقبولها رغم التحفّظ أو حذفها.
+ * =============================================================================
+ */
 import { useState, useMemo } from "react";
 import {
   Star,
@@ -19,8 +28,13 @@ interface ReviewsTabProps {
   reviewsApi: ReturnType<typeof useReviews>;
 }
 
+/**
+ * يعرض التقييمات المعلّمة للمراجعة مع شريط بحث وبطاقات إحصائية وأزرار إجراء.
+ * @param reviewsApi واجهة الخطّاف useReviews (البيانات ودوال القبول والحذف).
+ */
 export function ReviewsTab({ reviewsApi }: ReviewsTabProps) {
   const { t, isRTL } = useLanguage();
+  // نص البحث المحلي للتصفية ضمن التقييمات المعلّمة المعروضة.
   const [searchQuery, setSearchQuery] = useState("");
 
   const {
@@ -33,6 +47,8 @@ export function ReviewsTab({ reviewsApi }: ReviewsTabProps) {
     confirmDialogProps,
   } = reviewsApi;
 
+  // اشتقاق قائمة التقييمات المعلّمة: أولاً التقييمات قيد المراجعة فقط،
+  // ثم تصفيتها بنص البحث عبر اسم العطر والبريد ونص التعليق وسبب التعليم من الذكاء الاصطناعي.
   const flaggedReviews = useMemo(() => {
     const pending = reviews.filter((r) => r.status === "pending");
     if (!searchQuery.trim()) return pending;
@@ -46,9 +62,11 @@ export function ReviewsTab({ reviewsApi }: ReviewsTabProps) {
     );
   }, [reviews, searchQuery]);
 
+  // عدّادات الملخّص: المعلّمة (تحتاج مراجعة) مقابل المقبولة تلقائياً.
   const flaggedCount = reviews.filter((r) => r.status === "pending").length;
   const approvedCount = reviews.length - flaggedCount;
 
+  // حالة التحميل: عرض بطاقات هيكلية وامضة والخروج المبكّر قبل بناء الواجهة.
   if (reviewsLoading) {
     return (
       <div className="space-y-4">
@@ -68,6 +86,10 @@ export function ReviewsTab({ reviewsApi }: ReviewsTabProps) {
         <div className="flex items-center gap-3">
           <ShieldAlert className="w-7 h-7 text-amber-500" />
           <div>
+            {/*
+              نمط متكرر في هذا الملف: إذا أعادت دالة الترجمة المفتاح نفسه كما هو،
+              فهذا يعني أن الترجمة غير موجودة، فنعرض النص الإنجليزي الاحتياطي بدلاً منه.
+            */}
             <h2 className="text-2xl font-bold text-[#323D50] dark:text-white">
               {t("admin.reviews.flaggedTitle") !== "admin.reviews.flaggedTitle"
                 ? t("admin.reviews.flaggedTitle")
@@ -123,6 +145,7 @@ export function ReviewsTab({ reviewsApi }: ReviewsTabProps) {
         />
       </div>
 
+      {/* حالة الفراغ: نميّز بين عدم وجود نتائج بحث وبين عدم وجود تقييمات تحتاج مراجعة */}
       {flaggedReviews.length === 0 ? (
         <EmptyState
           icon={searchQuery ? MessageSquare : Check}
@@ -179,6 +202,10 @@ interface FlaggedReviewCardProps {
   onDelete: () => void;
 }
 
+/**
+ * بطاقة عرض تقييم معلّم واحد: تُظهر سبب تعليم الذكاء الاصطناعي له، واسم العطر،
+ * وبريد صاحب التقييم، وعدد النجوم، ونص التعليق، مع زرّي القبول والحذف.
+ */
 function FlaggedReviewCard({
   review,
   isApproving,
@@ -217,6 +244,7 @@ function FlaggedReviewCard({
               {review.user_email}
             </p>
           </div>
+          {/* رسم خمس نجوم: تُملأ النجمة باللون الكهرماني إذا كان ترتيبها ضمن قيمة التقييم */}
           <div className="flex items-center gap-0.5 shrink-0">
             {[1, 2, 3, 4, 5].map((s) => (
               <Star

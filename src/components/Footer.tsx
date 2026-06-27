@@ -1,9 +1,27 @@
+/**
+ * ===============================================================
+ * Footer.tsx — تذييل الموقع (الفوتر)
+ * ---------------------------------------------------------------
+ * يعرض شعار العلامة التجارية، نموذج الاشتراك في النشرة البريدية،
+ * روابط مواقع التواصل الاجتماعي، أعمدة روابط (المتجر/الخدمة/الشركة)،
+ * وصفّ الروابط القانونية في الأسفل.
+ *
+ * مكان الاستخدام: يُركَّب في التخطيط الرئيسي (Layout) أسفل كل
+ * صفحات الموقع العامّة.
+ * يدعم الاتجاهين العربي (RTL) والإنجليزي (LTR) عبر useLanguage().
+ * ===============================================================
+ */
 import { useState, useEffect, FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { toast } from "sonner";
 import { Mail, ArrowRight, ChevronDown } from "lucide-react";
 
+/**
+ * خطّاف (hook) مساعد يتتبّع ما إذا كان عرض الشاشة بحجم سطح المكتب (768px فأكثر).
+ * يُستخدم لتبديل سلوك أعمدة الروابط بين العرض الكامل (سطح المكتب) والطيّ
+ * القابل للفتح (الجوال). يستمع لتغيّر المقاس عبر matchMedia.
+ */
 function useIsDesktop() {
   const [isDesktop, setIsDesktop] = useState(() =>
     typeof window !== "undefined"
@@ -39,6 +57,13 @@ const TikTokIcon = ({ className }: { className?: string }) => (
 
 type LinkItem = { label: string; href: string };
 
+/**
+ * عمود روابط واحد في الفوتر (مثل: المتجر، الخدمة، الشركة).
+ * على سطح المكتب يظهر العنوان وقائمة الروابط مفتوحة دائمًا، وعلى
+ * الجوال يتحوّل إلى عنصر طيّ (accordion) يُفتح ويُغلق بالضغط.
+ * @param heading عنوان العمود (نصّ مُترجَم).
+ * @param items مصفوفة الروابط المعروضة داخل العمود.
+ */
 function NavColumn({
   heading,
   items,
@@ -97,12 +122,17 @@ function NavColumn({
   );
 }
 
+/**
+ * المكوّن الرئيسي لتذييل الموقع. يدير حالة نموذج الاشتراك في
+ * النشرة البريدية (البريد، حالة الإرسال، حالة الاشتراك الناجح).
+ */
 export default function Footer() {
   const { t } = useLanguage();
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
 
+  // معالجة إرسال نموذج الاشتراك في النشرة البريدية (ملاحظة: نقطة النهاية الفعلية لم تُربَط بعد)
   const handleSubscribe = async (e: FormEvent) => {
     e.preventDefault();
     const value = email.trim();

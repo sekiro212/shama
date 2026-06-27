@@ -1,16 +1,27 @@
+/**
+ * CookieBanner.tsx
+ * ----------------
+ * شريط الموافقة على ملفات تعريف الارتباط (بأسلوب GDPR) مثبّت أسفل كل صفحة
+ * (يُركَّب مرة واحدة قرب جذر التطبيق). يظهر حتى يستجيب الزائر فقط، ثم يحفظ
+ * اختياره في localStorage كي لا يظهر مجدداً.
+ */
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Cookie, ArrowRight } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 
+// مفتاح localStorage الذي يخزّن قرار الزائر السابق ("accepted" | "dismissed").
 const CONSENT_KEY = "shama-cookies-accepted";
 
+/** شريط الموافقة على الكوكيز في الأسفل؛ يدير ظهوره ذاتياً عبر localStorage. */
 export default function CookieBanner() {
   const { t } = useLanguage();
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotion(); // احترام إعداد النظام "تقليل الحركة" — تخطّي حركة الانزلاق
   const [visible, setVisible] = useState(false);
 
+  // عند التركيب، نُظهر الشريط فقط إذا لم يُخزَّن اختيار سابق.
+  // داخل try/catch لأن localStorage قد يرمي خطأً (وضع التصفح الخاص / حجب الكوكيز).
   useEffect(() => {
     try {
       const stored = localStorage.getItem(CONSENT_KEY);
@@ -20,6 +31,7 @@ export default function CookieBanner() {
     }
   }, []);
 
+  // أثناء الظهور، نسمح بإغلاق الشريط بمفتاح Escape (دعم لوحة المفاتيح لإمكانية الوصول).
   useEffect(() => {
     if (!visible) return;
     const onKey = (e: KeyboardEvent) => {
@@ -29,6 +41,7 @@ export default function CookieBanner() {
     return () => window.removeEventListener("keydown", onKey);
   }, [visible]);
 
+  /** يحفظ اختيار الزائر ويُخفي الشريط. */
   const dismiss = (value: "accepted" | "dismissed") => {
     try {
       localStorage.setItem(CONSENT_KEY, value);

@@ -38,7 +38,17 @@ export interface Order {
   vanex_last_synced_at?: string | null;
   vanex_logs?: VanexOrderLog[] | null;
   delivery_fee?: number;
-  payment_method?: "cod" | "bank_transfer";
+  payment_method?:
+    | "cod"
+    | "bank_transfer"
+    | "edfali"
+    | "sadadapi"
+    | "localbankcards"
+    | "tlync"
+    | "mpgs";
+  payment_status?: "unpaid" | "paid" | "failed";
+  payment_gateway?: string | null;
+  payment_reference?: string | null;
   transfer_proof_url?: string;
   total: number;
   order_date: string;
@@ -353,47 +363,6 @@ export const updateOrderStatus = async (
   } catch (error) {
     console.error("Error updating order status:", error);
     return false;
-  }
-};
-
-/**
- * تتبّع طلب عبر معرّفه أو عبر البريد الإلكتروني.
- * @param query معرّف الطلب أو البريد الإلكتروني (يُكتشف البريد بوجود الرمز @).
- * @returns الطلب المطابق، أو null عند عدم وجوده أو الخطأ.
- */
-// Track order by ID or email
-export const trackOrder = async (query: string): Promise<Order | null> => {
-  try {
-    // إذا احتوى النص على "@" فهو بريد إلكتروني، وإلا فهو معرّف طلب
-    const isEmail = query.includes("@");
-
-    let result;
-    if (isEmail) {
-      // البحث بالبريد: تطبيع النص (قص ومسافات وحروف صغيرة) وأخذ أحدث طلب فقط
-      result = await supabase
-        .from("orders")
-        .select("*")
-        .eq("email", query.trim().toLowerCase())
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .single();
-    } else {
-      result = await supabase
-        .from("orders")
-        .select("*")
-        .eq("id", query.trim())
-        .single();
-    }
-
-    if (result.error) {
-      console.error("Error tracking order:", result.error);
-      return null;
-    }
-
-    return result.data;
-  } catch (error) {
-    console.error("Error tracking order:", error);
-    return null;
   }
 };
 

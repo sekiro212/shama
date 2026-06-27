@@ -1,3 +1,13 @@
+/**
+ * ===================================================================
+ * صفحة المجموعة (Collection) — المسار: /collection
+ * -------------------------------------------------------------------
+ * تعرض كل العطور مع أدوات بحث وتصفية (الجنس، الملاحظات العطرية، نص البحث)
+ * وترتيب (الأحدث، السعر، التقييم) وترقيم صفحات (pagination). تجلب البيانات
+ * صفحةً بصفحة من خدمة productsService. التصفية والترتيب يتمّان في الواجهة
+ * على الصفحة المُحمّلة حاليًا. تدعم العربية والإنجليزية مع وعي باتجاه RTL.
+ * ===================================================================
+ */
 import { useState, useEffect, useMemo } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Filter, ChevronLeft, ChevronRight, Search, SortAsc, X, SlidersHorizontal } from "lucide-react";
@@ -13,6 +23,11 @@ import { Input } from "@/components/ui/input";
 import ProductCard from "@/components/ProductCard";
 import { fetchProducts, Product } from "@/services/productsService";
 
+/**
+ * المكوّن الرئيسي لصفحة المجموعة.
+ * يدير حالات التصفية والترتيب والبحث والصفحة الحالية، ويجلب المنتجات،
+ * ثم يطبّق التصفية والترتيب ويعرض الشبكة مع شريط الترقيم.
+ */
 export default function CollectionPage() {
   const { t, isRTL, language } = useLanguage();
   const [genderFilter, setGenderFilter] = useState("all");
@@ -25,10 +40,13 @@ export default function CollectionPage() {
   const [itemsPerPage] = useState(8);
   const [totalProducts, setTotalProducts] = useState(0);
 
+  // جمع كل الملاحظات العطرية الفريدة من المنتجات لبناء شرائح التصفية.
+  // مذكور بـ useMemo لتفادي إعادة الحساب إلا عند تغيّر المنتجات أو اللغة.
   // Collect all unique fragrance notes from products — language-aware
   const allNotes = useMemo(() => {
     const notes = new Set<string>();
     products.forEach((p) => {
+      // اختيار مصدر الملاحظات حسب اللغة: العربية إن توفّرت، وإلا الإنجليزية
       const source =
         language === "ar" && p.fragranceNotes_ar?.top?.length
           ? p.fragranceNotes_ar
@@ -45,6 +63,8 @@ export default function CollectionPage() {
   // Filter to show only bottles and gift sets (no separate samples)
   const displayProducts = products.filter((p) => p.type !== "sample");
 
+  // أثر جانبي: جلب منتجات الصفحة الحالية من قاعدة البيانات.
+  // يُعاد التنفيذ عند تغيّر رقم الصفحة أو عدد العناصر في الصفحة.
   useEffect(() => {
     const loadProducts = async () => {
       try {
@@ -66,15 +86,19 @@ export default function CollectionPage() {
     loadProducts();
   }, [currentPage, itemsPerPage]);
 
+  // تطبيق كل عوامل التصفية ثم الترتيب على المنتجات المعروضة.
+  // مذكور بـ useMemo لإعادة الحساب فقط عند تغيّر أحد عوامل التصفية أو اللغة.
   // Apply all filters and sort
   const filteredProducts = useMemo(() => {
     let result = [...displayProducts];
 
+    // تصفية حسب الجنس (رجالي/نسائي/للجنسين)
     // Gender filter
     if (genderFilter !== "all") {
       result = result.filter((p) => p.gender === genderFilter);
     }
 
+    // تصفية نصية تبحث في الاسم والوصف بالعربية والإنجليزية معًا
     // Search filter
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -103,6 +127,7 @@ export default function CollectionPage() {
       });
     }
 
+    // الترتيب: السعر تصاعديًا/تنازليًا أو الأعلى تقييمًا؛ "الأحدث" مرتّب أصلًا من الـ API
     // Sort
     switch (sortBy) {
       case "price_asc":
@@ -126,16 +151,19 @@ export default function CollectionPage() {
     return Math.ceil(total / itemsPerPage);
   };
 
+  // تغيير الصفحة مع تمرير سلس إلى أعلى الصفحة
   const handlePageChange = (newPage: number) => {
     setCurrentPage(newPage);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  // إعادة الترقيم إلى الصفحة الأولى عند تغيّر أي عامل تصفية
   // Reset pagination when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [genderFilter, sortBy, searchQuery, selectedNotes]);
 
+  // تفريغ الملاحظات المختارة عند تبديل اللغة لتفادي قيم بلغة قديمة لا تطابق الشرائح
   // Clear selected notes when language switches — prevents stale-language values
   useEffect(() => {
     setSelectedNotes([]);
@@ -144,6 +172,10 @@ export default function CollectionPage() {
   // Get total pages
   const totalPages = getTotalPages(totalProducts);
 
+  /**
+   * مكوّن ترقيم الصفحات: يعرض زرّي السابق/التالي وأرقام الصفحات (٥ كحدّ أقصى).
+   * لا يظهر إذا كان هناك صفحة واحدة فقط.
+   */
   // Pagination component
   const Pagination = ({
     currentPage,
@@ -224,6 +256,7 @@ export default function CollectionPage() {
   // on every render and forces every card to remount, restarting image fade-in
   // (visible as a "flicker on scroll" when re-renders happen).
 
+  // عدد عوامل التصفية المفعّلة (لا يُحتسب الترتيب الافتراضي)؛ يُستخدم لإظهار شارة العدّ وزر المسح
   // Active filter count (excluding default sort)
   const activeFilterCount =
     (genderFilter !== "all" ? 1 : 0) +
@@ -256,6 +289,7 @@ export default function CollectionPage() {
         </div>
       </div>
 
+      {/* شريط التصفية الملتصق أسفل الترويسة الثابتة عند التمرير */}
       {/* Sticky Filter Bar (U2) — sits flush under the fixed Header */}
       <div className="sticky top-16 sm:top-20 md:top-24 z-30 backdrop-blur-xl bg-[#F8F9FB]/85 dark:bg-[#1a2235]/85 border-b border-[#323D50]/10 dark:border-white/10 shadow-sm">
         <div className="container mx-auto px-3 sm:px-4 max-w-7xl py-3 sm:py-4 space-y-3">
@@ -263,6 +297,7 @@ export default function CollectionPage() {
           <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center">
             {/* Search */}
             <div className="relative flex-1 min-w-0 lg:max-w-md">
+              {/* موضع أيقونة البحث يتبدّل بين اليمين واليسار حسب اتجاه اللغة (RTL) */}
               <Search className={`absolute ${isRTL ? "right-4" : "left-4"} top-1/2 -translate-y-1/2 w-4 h-4 dark:text-white/40 text-[#6B7B8D]`} />
               <Input
                 value={searchQuery}
@@ -341,6 +376,7 @@ export default function CollectionPage() {
             </div>
           </div>
 
+          {/* الصف الثاني: شرائح الملاحظات العطرية؛ النقر يضيف/يزيل الملاحظة من التصفية */}
           {/* Row 2: Fragrance note chips — horizontal scroll on mobile */}
           {allNotes.length > 0 && (
             <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1 pb-1 lg:flex-wrap lg:overflow-visible">

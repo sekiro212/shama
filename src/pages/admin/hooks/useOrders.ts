@@ -1,3 +1,14 @@
+/**
+ * useOrders.ts
+ *
+ * hook للبيانات والتعديلات الخاص بمورد "الطلبات" في لوحة الإدارة — وهو أكبر hook
+ * في اللوحة. يحمّل الطلبات والإحصاءات المجمّعة، ويوفّر دورة حياة الطلب كاملةً:
+ * القبول (إنقاص المخزون)، الإرجاع (إعادة التخزين)، الحذف، تغيير الحالة،
+ * إضافةً إلى تكامل التوصيل مع Vanex (إرسال / مزامنة / مزامنة جماعية /
+ * إلغاء / استرجاع). يتتبّع كل إجراء طويل التنفيذ معرّف الطلب "المنشغل" الخاص به
+ * من أجل مؤشّرات التحميل على مستوى الصف، وتُعلِم الإجراءات المؤثّرة على المخزون
+ * المكوّن الأب عبر `onStockMutated` كي تتمكّن قائمة العطور من التحديث.
+ */
 import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
@@ -24,6 +35,13 @@ interface UseOrdersOptions {
   onStockMutated?: () => void;
 }
 
+/**
+ * hook يدير مورد الطلبات في لوحة الإدارة.
+ * @param onStockMutated دالة استدعاء اختيارية تُطلَق بعد أي إجراء يغيّر المخزون
+ *                       (قبول/إرجاع) كي يتمكّن المكوّن الأب من تحديث مخزون العطور.
+ * @returns الطلبات + الإحصاءات + حالة التحميل، وحالة النافذة/النافذة المنبثقة، وجميع
+ *          معرّفات الانشغال لكل إجراء، وprops نافذة التأكيد، وكل معالجات التحميل/التعديل.
+ */
 export function useOrders({ onStockMutated }: UseOrdersOptions = {}) {
   const { t } = useLanguage();
   const { confirm, confirmDialogProps } = useConfirmDialog();
@@ -52,6 +70,7 @@ export function useOrders({ onStockMutated }: UseOrdersOptions = {}) {
     null
   );
 
+  // جلب قائمة الطلبات من Supabase إلى الحالة.
   const loadOrders = async () => {
     try {
       setOrdersLoading(true);
@@ -65,6 +84,7 @@ export function useOrders({ onStockMutated }: UseOrdersOptions = {}) {
     }
   };
 
+  // جلب الإحصاءات المجمّعة للطلبات (الإجماليات، أبرز المدن، الطلبات الأخيرة).
   const loadOrderStats = async () => {
     try {
       const stats = await getOrderStats();
@@ -74,6 +94,7 @@ export function useOrders({ onStockMutated }: UseOrdersOptions = {}) {
     }
   };
 
+  // حذف طلب بعد التأكيد، ثم تحديث القائمة + الإحصاءات.
   const handleDeleteOrder = async (id: string) => {
     const confirmed = await confirm({
       title: t("admin.confirmDialog.deleteOrder.title"),
@@ -88,6 +109,7 @@ export function useOrders({ onStockMutated }: UseOrdersOptions = {}) {
       const success = await deleteOrder(id);
       if (success) {
         toast.success(t("admin.toast.orderDeletedSuccess"));
+        // إعادة مزامنة كلٍّ من الجدول وإحصاءات لوحة المعلومات.
         loadOrders();
         loadOrderStats();
       } else {
@@ -101,6 +123,7 @@ export function useOrders({ onStockMutated }: UseOrdersOptions = {}) {
     }
   };
 
+  // إنشاء طرد توصيل Vanex لطلب، وحفظ أكواده، ثم المزامنة.
   const handleSendToVanex = async (order: Order) => {
     const confirmed = await confirm({
       title: t("admin.confirmDialog.sendToVanex.title"),
@@ -112,6 +135,7 @@ export function useOrders({ onStockMutated }: UseOrdersOptions = {}) {
 
     try {
       setSendingToVanex(order.id);
+      // 1) طلب من Vanex إنشاء طرد الشحنة.
       const result = await createVanexPackage(order);
 
       if (!result) {
@@ -119,6 +143,7 @@ export function useOrders({ onStockMutated }: UseOrdersOptions = {}) {
         return;
       }
 
+      // 2) حفظ كود/معرّف الطرد المُرجَع في صف الطلب.
       const { packageCode, packageId } = result;
       const saved = await saveVanexPackageInfo(order.id, packageCode, packageId);
       if (!saved) {
@@ -127,6 +152,7 @@ export function useOrders({ onStockMutated }: UseOrdersOptions = {}) {
       }
 
       toast.success(t("admin.vanex.sendSuccess").replace("{code}", packageCode));
+      // 3) مزامنة أولية للحالة بأفضل جهد ممكن (مع تجاهل الإخفاقات هنا).
       await syncVanexOrder(order.id).catch(() => undefined);
       loadOrders();
       loadOrderStats();
@@ -138,8 +164,9 @@ export function useOrders({ onStockMutated }: UseOrdersOptions = {}) {
     }
   };
 
+  // جلب أحدث حالة توصيل من Vanex لطلب واحد.
   const handleSyncVanex = async (order: Order) => {
-    if (!order.vanex_package_code) return;
+    if (!order.vanex_package_code) return; // لا شيء للمزامنة إذا لم يُرسَل قط.
     try {
       setSyncingVanex(order.id);
       const ok = await syncVanexOrder(order.id);
@@ -157,6 +184,7 @@ export function useOrders({ onStockMutated }: UseOrdersOptions = {}) {
     }
   };
 
+  // مزامنة حالة التوصيل لكل طلبات Vanex في استدعاء جماعي واحد.
   const handleBulkSyncVanex = async () => {
     try {
       setBulkSyncingVanex(true);
@@ -251,7 +279,7 @@ export function useOrders({ onStockMutated }: UseOrdersOptions = {}) {
     try {
       setAcceptingOrder(order.id);
 
-      // Update order status to accepted
+      // تحديث حالة الطلب إلى مقبول (accepted)
       const { error: orderError } = await supabase
         .from("orders")
         .update({
@@ -262,7 +290,7 @@ export function useOrders({ onStockMutated }: UseOrdersOptions = {}) {
 
       if (orderError) throw orderError;
 
-      // Update stock quantities for each item
+      // تحديث كميات المخزون لكل عنصر
       for (const item of order.items) {
         const { data: perfume, error: fetchError } = await supabase
           .from("perfumes")
@@ -274,7 +302,7 @@ export function useOrders({ onStockMutated }: UseOrdersOptions = {}) {
 
         const newStock = perfume.stock_quantity - item.quantity;
 
-        // Update stock and set inactive if stock reaches 0
+        // تحديث المخزون وتعيينه غير نشط إذا بلغ المخزون 0
         const { error: updateError } = await supabase
           .from("perfumes")
           .update({
@@ -310,7 +338,7 @@ export function useOrders({ onStockMutated }: UseOrdersOptions = {}) {
     try {
       setReturningOrder(order.id);
 
-      // Update order status to returned
+      // تحديث حالة الطلب إلى مُرجَع (returned)
       const { error: orderError } = await supabase
         .from("orders")
         .update({
@@ -321,7 +349,7 @@ export function useOrders({ onStockMutated }: UseOrdersOptions = {}) {
 
       if (orderError) throw orderError;
 
-      // Update stock quantities for each item (increase)
+      // تحديث كميات المخزون لكل عنصر (زيادة)
       for (const item of order.items) {
         const { data: perfume, error: fetchError } = await supabase
           .from("perfumes")
@@ -333,7 +361,7 @@ export function useOrders({ onStockMutated }: UseOrdersOptions = {}) {
 
         const newStock = perfume.stock_quantity + item.quantity;
 
-        // Update stock and set active if it was inactive
+        // تحديث المخزون وتعيينه نشطًا إذا كان غير نشط
         const { error: updateError } = await supabase
           .from("perfumes")
           .update({

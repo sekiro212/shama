@@ -1,3 +1,10 @@
+/**
+ * useMemories.ts
+ *
+ * hook للبيانات والتعديلات الخاص بمورد "الذكريات" في لوحة الإدارة (الذكريات
+ * المُرسَلة من المستخدمين بانتظار المراجعة). يحمّل جميع الذكريات إضافةً إلى عدد المعلّقة منها
+ * ويوفّر إجراءَي الموافقة/الحذف، بما يماثل سير مراجعة المراجعات.
+ */
 import { useState } from "react";
 import { toast } from "sonner";
 import {
@@ -10,18 +17,28 @@ import {
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useConfirmDialog } from "./useConfirmDialog";
 
+/**
+ * hook يدير مراجعة الذكريات في لوحة الإدارة.
+ * @returns قائمة الذكريات، وحالة التحميل + عدد المعلّقة، ومعرّفات الانشغال لكل صف،
+ *          و`loadMemories`/`handleApproveMemory`/`handleDeleteMemory`، إضافةً إلى
+ *          props نافذة التأكيد الخاصة بتأكيد الحذف.
+ */
 export function useMemories() {
   const { t } = useLanguage();
   const { confirm, confirmDialogProps } = useConfirmDialog();
   const [memories, setMemories] = useState<Memory[]>([]);
   const [memoriesLoading, setMemoriesLoading] = useState(true);
+  // عدد الذكريات التي ما زالت تنتظر الموافقة.
   const [pendingMemoryCount, setPendingMemoryCount] = useState(0);
+  // معرّفات الانشغال لكل صف كي يُظهر الجدول مؤشّر التحميل على الذكرى المتأثّرة فقط.
   const [approvingMemory, setApprovingMemory] = useState<string | null>(null);
   const [deletingMemory, setDeletingMemory] = useState<string | null>(null);
 
+  // تحميل جميع الذكريات وعدد المعلّقة معًا.
   const loadMemories = async () => {
     setMemoriesLoading(true);
     try {
+      // جلب القائمة وعدد المعلّقة بالتوازي.
       const [allMemories, pendingCount] = await Promise.all([
         fetchAllMemories(),
         fetchPendingMemoryCount(),
@@ -35,6 +52,7 @@ export function useMemories() {
     }
   };
 
+  // الموافقة على ذكرى واحدة، ثم إعادة الجلب لتحديث القائمة + عدد المعلّقة.
   const handleApproveMemory = async (id: string) => {
     setApprovingMemory(id);
     try {
@@ -48,7 +66,9 @@ export function useMemories() {
     }
   };
 
+  // حذف ذكرى بعد تأكيد تحذيري (danger)، ثم إعادة الجلب.
   const handleDeleteMemory = async (id: string) => {
+    // اشتراط حدوث الحذف التدميري عبر نافذة التأكيد.
     const confirmed = await confirm({
       title: t("admin.confirmDialog.deleteMemory.title"),
       description: t("admin.memories.confirm.delete"),

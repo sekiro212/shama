@@ -1,3 +1,11 @@
+// ===========================================================================
+// AdminPage.tsx — لوحة الإدارة القديمة (LEGACY) ذات الصفحة الواحدة.
+// شاشة إدارة مكتفية ذاتيًا قائمة على التبويبات (Tabs) (بوابة المصادقة + كل تبويب
+// مورد داخل مكوّن واحد). حلّ محلّها النظام المعياري AdminApp/AdminLayout +
+// الصفحات المدفوعة بالمسارات، لكنها لا تزال مُصدَّرة كحلٍّ احتياطي. أي عمل جديد
+// مكانه الشجرة المعيارية لا هنا.
+// ===========================================================================
+
 import { useState, useEffect } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -44,11 +52,22 @@ import { OrderDetailsDialog } from "./dialogs/OrderDetailsDialog";
 import { ImageModal } from "./dialogs/ImageModal";
 import { CouponFormDialog } from "./dialogs/CouponFormDialog";
 
+/**
+ * AdminPage — لوحة الإدارة الشاملة في مكوّن واحد.
+ *
+ * تتولّى: تسجيل دخول المسؤول (اسم مستخدم/كلمة مرور مخصّصان يُتحقَّق منهما مقابل
+ * جدول `users` في Supabase، مع حفظ الجلسة في localStorage)، وتحميل كل مورد عبر
+ * الـ hooks المرفوعة للبيانات، وعرض كل مورد كتبويب (نظرة عامة، عطور، طلبات،
+ * مراجعات، طلبات هدايا، ذكريات، كوبونات) إضافةً إلى نوافذ التحرير المشتركة.
+ *
+ * @returns شاشة تسجيل الدخول، أو شاشة التحميل، أو لوحة المعلومات التبويبية
+ *          الكاملة، حسب حالة المصادقة/التحميل.
+ */
 export default function AdminPage() {
   const { t, isRTL, language, setLanguage } = useLanguage();
   const { theme, toggleTheme } = useTheme();
 
-  // Authentication state
+  // حالة المصادقة
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showLoginDialog, setShowLoginDialog] = useState(false);
   const [loginCredentials, setLoginCredentials] = useState<LoginCredentials>({
@@ -59,7 +78,9 @@ export default function AdminPage() {
   const [currentAdmin, setCurrentAdmin] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("overview");
 
-  // Lifted hooks
+  // hooks مرفوعة — يمتلك كل منها بيانات وتعديلات مورد واحد. رفعها هنا يتيح
+  // للتبويبات مشاركة الحالة (مثلًا: تحتاج الكوبونات قائمة العطور لتحديد النطاق،
+  // وتعيد الطلبات تحميل العطور عند تغيّر المخزون).
   const perfumesApi = usePerfumes();
   const ordersApi = useOrders({ onStockMutated: () => perfumesApi.loadPerfumes() });
   const reviewsApi = useReviews();
@@ -67,6 +88,7 @@ export default function AdminPage() {
   const giftOrdersApi = useGiftOrders();
   const couponsApi = useCoupons({ perfumes: perfumesApi.perfumes });
 
+  // جلب كل مورد بالتوازي بعد أن يُصادَق المسؤول.
   const loadData = async () => {
     await Promise.all([
       perfumesApi.loadPerfumes(),
@@ -79,8 +101,10 @@ export default function AdminPage() {
     ]);
   };
 
-  // Check authentication on mount
+  // التحقق من المصادقة عند التركيب (mount)
   useEffect(() => {
+    // عند التركيب: قراءة جلسة المسؤول المحفوظة. إن كانت صالحة، يُحمَّل المسؤول
+    // الحالي إضافةً إلى البيانات؛ وإلا تُفتح نافذة تسجيل الدخول.
     const checkAuth = () => {
       const authenticated = isAdminAuthenticated();
       setIsAuthenticated(authenticated);
@@ -98,6 +122,8 @@ export default function AdminPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // إرسال نافذة تسجيل الدخول: المصادقة، ثم عند النجاح فتح الواجهة وتحميل كل
+  // البيانات؛ وعند الفشل عرض إشعار toast بالخطأ.
   const handleLogin = async () => {
     try {
       setLoginLoading(true);
@@ -121,6 +147,7 @@ export default function AdminPage() {
     }
   };
 
+  // مسح الجلسة المحفوظة والعودة إلى حالة القفل/تسجيل الدخول.
   const handleLogout = () => {
     logoutAdmin();
     setIsAuthenticated(false);
@@ -129,7 +156,8 @@ export default function AdminPage() {
     toast.success(t("admin.logoutSuccess"));
   };
 
-  // Loading and authentication checks
+  // فحوص التحميل والمصادقة
+  // الحارس الأول: غير مسجّل الدخول ← عرض شاشة القفل + نافذة تسجيل الدخول.
   if (!isAuthenticated) {
     return (
       <div className="container mx-auto px-4 py-20 text-center bg-[#F8F9FB] dark:bg-[#1a2235] min-h-screen flex items-center justify-center">
@@ -154,6 +182,7 @@ export default function AdminPage() {
     );
   }
 
+  // الحارس الثاني: مُصادَق لكن البيانات لا تزال قيد التحميل ← شاشة التحميل.
   if (perfumesApi.loading) {
     return (
       <div className="container mx-auto px-4 py-20 text-center bg-[#F8F9FB] dark:bg-[#1a2235] min-h-screen flex items-center justify-center">
@@ -207,6 +236,7 @@ export default function AdminPage() {
           </div>
         </div>
 
+        {/* تبويبات الموارد: يفتح كل TabsTrigger ما يقابله من TabsContent أدناه. */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-7 glass bg-white dark:bg-white/5 border-[#323D50]/15 dark:border-white/20">
             <TabsTrigger
@@ -303,6 +333,8 @@ export default function AdminPage() {
         </Tabs>
       </div>
 
+      {/* النوافذ المشتركة: محرّر العطور، تفاصيل الطلب، عارض الصور، ومحرّر
+          الكوبونات. حالة فتحها/إغلاقها مدفوعة بالـ hooks المرفوعة أعلاه. */}
       <PerfumeFormDialog perfumesApi={perfumesApi} />
       <OrderDetailsDialog
         open={ordersApi.showOrderDetails}

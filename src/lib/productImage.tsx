@@ -1,8 +1,17 @@
+/**
+ * productImage.tsx — صورة بديلة (placeholder) لقارورة العطر.
+ *
+ * يوفّر شكلين للصورة الافتراضية عند غياب صورة المنتج: رابط SVG مضمّن كـ data URI
+ * (للأماكن التي تتطلب رابطاً نصياً مثل السلة)، ومكوّن React يرسم أيقونة قارورة
+ * (للأماكن التي ترسم JSX). كلاهما لا يعتمد على أي طلب شبكة خارجي.
+ */
 import { PillBottle } from "lucide-react";
 
 // Data URI fallback for contexts where a string URL is required
 // (cart entries, wishlist entries, toast images). Keeps cart persistence
 // self-contained — no external HTTP calls, no broken CDN links.
+// (بديل على شكل data URI للسياقات التي تتطلب رابطاً نصياً — سلة، مفضّلة،
+// صور التنبيهات — فيبقى حفظ السلة مكتفياً ذاتياً دون روابط CDN مكسورة.)
 export const PLACEHOLDER_IMAGE_URL =
   "data:image/svg+xml;charset=UTF-8," +
   encodeURIComponent(
@@ -23,6 +32,11 @@ export const PLACEHOLDER_IMAGE_URL =
     </svg>`
   );
 
+/**
+ * مكوّن بديل يُرسم بدل صورة المنتج المفقودة: تدرّج لوني خفيف مع أيقونة قارورة.
+ * @param className أصناف Tailwind إضافية للتحكم بالحجم/الموضع.
+ * @returns عنصر JSX يملأ الحاوية الأب.
+ */
 export function ProductImageFallback({ className = "" }: { className?: string }) {
   return (
     <div

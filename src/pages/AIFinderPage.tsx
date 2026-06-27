@@ -1,3 +1,13 @@
+/**
+ * ===================================================================
+ * صفحة "الباحث الذكي" (AI Finder) — المسار: /ai-finder
+ * -------------------------------------------------------------------
+ * تتيح للمستخدم وصف العطر الذي يريده بلغة طبيعية (مثل: "عطر خشبي دافئ")
+ * ثم تستدعي خدمة الذكاء الاصطناعي smartSearch لإرجاع أفضل العطور
+ * المطابقة مع درجة تطابق (matchScore) وسبب الاختيار لكل نتيجة.
+ * تدعم الصفحة العربية والإنجليزية مع اتجاه RTL.
+ * ===================================================================
+ */
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useSearchParams } from "react-router-dom";
@@ -9,11 +19,18 @@ import { toast } from "sonner";
 import ProductCard from "@/components/ProductCard";
 import MatchBadge from "@/components/MatchBadge";
 
+/**
+ * المكوّن الرئيسي لصفحة الباحث الذكي.
+ * يدير حقل البحث، الاقتراحات الجاهزة (chips)، استدعاء الذكاء الاصطناعي،
+ * وعرض النتائج أو حالات التحميل والفراغ.
+ */
 export default function AIFinderPage() {
   const { t, isRTL } = useLanguage();
   const [searchParams] = useSearchParams();
   const reduce = useReducedMotion();
 
+  // اقتراحات بحث جاهزة: كل عنصر يحمل نصًا معروضًا مترجمًا (label)
+  // واستعلامًا ثابتًا بالإنجليزية (query) يُرسل إلى الذكاء الاصطناعي
   const CHIPS = [
     { label: t("home.chipNightOut"), query: "an elegant perfume for special events" },
     { label: t("home.chipEveryday"), query: "a light fresh everyday perfume" },
@@ -29,15 +46,22 @@ export default function AIFinderPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
 
+  /**
+   * تنفيذ البحث الذكي: ترسل نص الاستعلام إلى smartSearch (الذكاء الاصطناعي)
+   * وتخزّن النتائج. تستقبل استعلامًا اختياريًا q لاستخدامه بدل حقل query
+   * (مفيد عند النقر على اقتراح جاهز أو القدوم من رابط يحمل بارامتر بحث).
+   */
   async function handleSearch(q?: string) {
     const searchQuery = (q ?? query).trim();
     if (!searchQuery) return;
     setIsLoading(true);
     setHasSearched(true);
     try {
+      // استدعاء الذكاء الاصطناعي لإرجاع العطور المطابقة مع درجة تطابق وسبب
       const res = await smartSearch(searchQuery);
       setResults(res);
     } catch {
+      // في حال فشل الاستدعاء نفرّغ النتائج ونعرض رسالة خطأ
       setResults([]);
       toast.error(t("aiFinder.searchFailed"));
     } finally {
@@ -45,6 +69,8 @@ export default function AIFinderPage() {
     }
   }
 
+  // أثر جانبي يعمل مرة واحدة عند تحميل الصفحة: إن وُجد بارامتر ?q= في الرابط
+  // تُملأ خانة البحث ويُنفّذ البحث تلقائيًا (قدوم المستخدم من صفحة أخرى)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const q = searchParams.get("q");
@@ -54,11 +80,13 @@ export default function AIFinderPage() {
     }
   }, []);
 
+  // عند النقر على اقتراح جاهز: نضع نصه في الحقل وننفّذ البحث به مباشرة
   function handleChipClick(chipQuery: string) {
     setQuery(chipQuery);
     handleSearch(chipQuery);
   }
 
+  // الضغط على Enter (دون Shift) يُنفّذ البحث، بينما Shift+Enter ينزل سطرًا جديدًا
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -66,9 +94,11 @@ export default function AIFinderPage() {
     }
   }
 
+  // ترتيب النتائج تنازليًا حسب درجة التطابق لعرض الأقرب أولًا
   const sortedResults = [...results].sort((a, b) => b.matchScore - a.matchScore);
 
   return (
+    // الحاوية الجذرية: تطبّق اتجاه RTL تلقائيًا عند تفعيل اللغة العربية
     <div
       className={`min-h-screen bg-[#F8F9FB] dark:bg-[#1a2235] text-[#323D50] dark:text-[#F5F5F5] ${isRTL ? "rtl" : "ltr"}`}
     >
@@ -106,6 +136,7 @@ export default function AIFinderPage() {
           transition={{ duration: 0.5, delay: 0.12 }}
           className="glass-card p-4 sm:p-6 rounded-2xl mb-8 max-w-3xl mx-auto"
         >
+          {/* حقل وصف العطر؛ سمة dir تضبط اتجاه الكتابة حسب اللغة الحالية */}
           <textarea
             rows={3}
             value={query}

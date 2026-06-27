@@ -634,6 +634,11 @@
     "yourOrderId": "رقم طلبك:",
     "trackOrder": "تتبع الطلب",
     "continueShopping": "متابعة التسوق",
+    "removeItem": "إزالة المنتج",
+    "increaseQty": "زيادة الكمية",
+    "decreaseQty": "إنقاص الكمية",
+    "itemRemoved": "تمت إزالة المنتج",
+    "fieldRequired": "{field} مطلوب",
     "orderSummary": "ملخص الطلب",
     "total": "المجموع:",
     "totalLabel": "المجموع",
@@ -683,6 +688,7 @@
     "accountNumber": "رقم الحساب (دينار ليبي)",
     "iban": "الآيبان",
     "copied": "تم النسخ!",
+    "copyFailed": "تعذّر النسخ",
     "transferProof": "صورة التحويل",
     "uploadProof": "ارفع صورة التحويل",
     "uploadProofDesc": "ارفع لقطة شاشة للتحويل البنكي كإثبات للدفع",
@@ -740,7 +746,41 @@
       "transferSub": "حوّل إلى حسابنا البنكي ثم ارفع إيصال التحويل",
       "uploadHeading": "ارفع إيصال التحويل",
       "uploadHint": "JPEG أو PNG أو WebP — حتى 5 ميغابايت",
-      "uploadChange": "تغيير الملف"
+      "uploadChange": "تغيير الملف",
+      "onlineHeading": "الدفع الإلكتروني",
+      "edfali": "أدفلي",
+      "edfaliSub": "محفظة الهاتف — التأكيد برمز OTP",
+      "sadad": "سداد",
+      "sadadSub": "محفظة الهاتف — التأكيد برمز OTP",
+      "localcards": "البطاقات المصرفية المحلية",
+      "localcardsSub": "ادفع ببطاقة مصرفية ليبية",
+      "tlync": "تي-لينك",
+      "tlyncSub": "ادفع عبر بوابة تي-لينك",
+      "mpgs": "فيزا / ماستركارد",
+      "mpgsSub": "ادفع ببطاقة دولية"
+    },
+    "plutu": {
+      "step1Hint": "أدخل رقم هاتفك لاستلام رمز التحقق لمرة واحدة.",
+      "step2Hint": "أدخل الرمز المُرسَل إلى هاتفك لتأكيد الدفع.",
+      "mobileLabel": "رقم الهاتف",
+      "birthYearLabel": "سنة الميلاد",
+      "codeLabel": "رمز التحقق",
+      "sendOtp": "إرسال الرمز",
+      "sending": "جارٍ الإرسال…",
+      "confirmPay": "تأكيد الدفع",
+      "confirming": "جارٍ التأكيد…",
+      "resend": "تغيير الرقم / إعادة إرسال الرمز",
+      "otpSent": "تم إرسال رمز إلى هاتفك",
+      "invalidMobile": "أدخل رقم هاتف صحيح (09XXXXXXXX)",
+      "invalidBirthYear": "أدخل سنة ميلاد صحيحة من 4 أرقام",
+      "enterCode": "أدخل رمز التحقق",
+      "sendFailed": "تعذّر إرسال الرمز. حاول مجددًا.",
+      "confirmFailed": "تعذّر تأكيد الدفع. تحقّق من الرمز وحاول مجددًا.",
+      "status": {
+        "verifying": "جارٍ التحقّق من الدفع…",
+        "paid": "تم تأكيد الدفع",
+        "failed": "لم يكتمل الدفع"
+      }
     },
     "summary": {
       "heading": "طلبك",
@@ -763,6 +803,8 @@
     "success": {
       "title": "شكرًا لطلبك",
       "subtitle": "سنتواصل معك قريبًا. رقم طلبك أدناه — احتفظ به لتتبع شحنتك.",
+      "failedTitle": "لم يكتمل الدفع",
+      "failedSubtitle": "تم حفظ طلبك لكن الدفع لم يتمّ. يمكنك إعادة المحاولة من طلباتك أو التواصل معنا للمساعدة.",
       "viewDetails": "عرض تفاصيل الطلب",
       "continueShopping": "متابعة التسوّق"
     }

@@ -1,3 +1,13 @@
+/**
+ * LoginDialog.tsx
+ * ---------------
+ * نافذة تسجيل دخول المسؤول. المسار /admin غير محميّ بـ ProtectedRoute؛ بدلًا من
+ * ذلك، عند عدم وجود جلسة مسؤول يعرض غلاف الإدارة هذه النافذة.
+ * تجمع اسم مستخدم + كلمة مرور وتسلّمهما إلى المكوّن الأب عبر `onLogin`.
+ * فحص بيانات الاعتماد الفعلي (مقابل جدول `users` في Supabase) موجود في
+ * authService.ts — وهذا المكوّن ليس إلا النموذج. الحالة (بيانات الاعتماد،
+ * التحميل) يملكها المكوّن الأب / AdminAuthContext وتُمرَّر كخصائص (props).
+ */
 import { Lock } from "lucide-react";
 import {
   Dialog,
@@ -20,6 +30,14 @@ interface LoginDialogProps {
   onLogin: () => void;
 }
 
+/**
+ * يعرض نافذة نموذج تسجيل دخول المسؤول.
+ * الخصائص (props) الأساسية:
+ * - open / onOpenChange: التحكّم في ظهور النافذة والإبلاغ عنه
+ * - loginCredentials / setLoginCredentials: حالة اسم المستخدم+كلمة المرور المتحكَّم بها
+ * - loginLoading: يُعطّل المدخلات ويعرض مؤشّر تحميل (spinner) أثناء المصادقة
+ * - onLogin: يُطلق فحص المصادقة (التحقق من بيانات الاعتماد مقابل Supabase)
+ */
 export function LoginDialog({
   open,
   onOpenChange,
@@ -45,6 +63,7 @@ export function LoginDialog({
             <Label htmlFor="username" className="text-[#323D50] dark:text-white/80">
               {t("admin.login.username")}
             </Label>
+            {/* حقل اسم مستخدم متحكَّم به، يبقى متزامنًا مع حالة بيانات اعتماد المكوّن الأب. */}
             <Input
               id="username"
               type="text"
@@ -78,10 +97,12 @@ export function LoginDialog({
               className="glass bg-white dark:bg-white/5 border-[#323D50]/15 dark:border-white/20 text-white"
               placeholder={t("admin.login.enterPassword")}
               disabled={loginLoading}
+              // الضغط على Enter في حقل كلمة المرور يرسل تسجيل الدخول.
               onKeyDown={(e) => e.key === "Enter" && onLogin()}
             />
           </div>
 
+          {/* زر الإرسال معطّل حتى يُملأ الحقلان كلاهما. */}
           <LoadingButton
             onClick={onLogin}
             loading={loginLoading}

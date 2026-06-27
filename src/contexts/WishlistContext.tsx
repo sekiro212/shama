@@ -1,3 +1,12 @@
+/**
+ * WishlistContext.tsx
+ * -------------------------------------------------------------------------
+ * حالة قائمة الأمنيات ("المنتجات المحفوظة") للمتجر. تخزّن قائمة منزوعة
+ * التكرار من المنتجات التي فضّلها المتسوّق، محفوظة في localStorage بحيث
+ * تبقى بعد إعادة التحميل. تُصدِر عمليات الإضافة/الإزالة أحداث تحليلات.
+ * يُستهلك عبر الـ hook المسمى `useWishlist()`.
+ * -------------------------------------------------------------------------
+ */
 import { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { trackEvent } from "@/services/trackingService";
 
@@ -20,7 +29,13 @@ interface WishlistContextType {
 
 const WishlistContext = createContext<WishlistContextType | undefined>(undefined);
 
+/**
+ * Provider يحتفظ بعناصر قائمة الأمنيات، يُهيّأ بكسل (lazily) من localStorage
+ * ويُعكس إليه عند كل تغيير (تحافظ فحوص `typeof window` على الأمان مع
+ * التصيير من الخادم SSR).
+ */
 export function WishlistProvider({ children }: { children: ReactNode }) {
+  // التهيئة من localStorage مرة واحدة بحيث تبقى المفضّلات عبر الزيارات.
   const [items, setItems] = useState<WishlistItem[]>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("wishlist");
@@ -29,12 +44,17 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
     return [];
   });
 
+  // حفظ قائمة الأمنيات كلما تغيّرت.
   useEffect(() => {
     if (typeof window !== "undefined") {
       localStorage.setItem("wishlist", JSON.stringify(items));
     }
   }, [items]);
 
+  /**
+   * إضافة منتج إلى قائمة الأمنيات إن لم يكن موجودًا (يبقى فريدًا حسب id).
+   * يمنع كلٌّ من فحص الإرجاع المبكر والفحص داخل المُحدِّث (updater) التكرار.
+   */
   const addToWishlist = (item: WishlistItem) => {
     if (items.some((i) => i.id === item.id)) return;
     trackEvent("wishlist_add", { product_id: item.id, product_name: item.name, price: item.price });
@@ -44,15 +64,18 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  /** إزالة منتج من قائمة الأمنيات حسب id. تُصدِر "wishlist_remove". */
   const removeFromWishlist = (id: string) => {
     trackEvent("wishlist_remove", { product_id: id });
     setItems((current) => current.filter((item) => item.id !== id));
   };
 
+  /** ما إذا كان id المنتج موجودًا حاليًا في قائمة الأمنيات (يقود أيقونات القلب). */
   const isInWishlist = (id: string) => {
     return items.some((item) => item.id === id);
   };
 
+  /** إفراغ قائمة الأمنيات بالكامل. */
   const clearWishlist = () => {
     setItems([]);
   };
@@ -66,6 +89,10 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
   );
 }
 
+/**
+ * Hook للوصول إلى سياق قائمة الأمنيات (wishlist context).
+ * يطلق خطأً إذا استُخدم خارج `WishlistProvider`.
+ */
 export function useWishlist() {
   const context = useContext(WishlistContext);
   if (!context) {

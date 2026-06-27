@@ -1,12 +1,24 @@
+/**
+ * ============================================================================
+ * صفحة "سياسة ملفات تعريف الارتباط" (Cookies) — المسار: /cookies
+ * ----------------------------------------------------------------------------
+ * صفحة ثابتة قانونية توضّح لمستخدم الموقع ما يُخزَّن محليًا في المتصفّح
+ * (localStorage) وغرض كل عنصر. الموقع لا يستخدم أدوات تتبّع أو تحليلات.
+ * تُعرض البيانات في جدول، وكل عنصر مصنّف إمّا "أساسي" أو "وظيفي".
+ * النصوص ثنائية اللغة عبر دالة الترجمة t().
+ * ============================================================================
+ */
 import { motion, useReducedMotion } from "framer-motion";
 import { useLanguage } from "@/contexts/LanguageContext";
 
+// بنية صف واحد في جدول ملفات التعريف: اسم المفتاح، مفتاح وصف الغرض، والتصنيف
 type Row = {
   keyName: string;
   purposeKey: string;
   category: "catEssential" | "catFunctional";
 };
 
+// قائمة المفاتيح المخزّنة فعليًا في المتصفّح مع غرض كلٍّ منها وتصنيفه
 const ROWS: Row[] = [
   { keyName: "cart", purposeKey: "rows.cart", category: "catFunctional" },
   { keyName: "shama-language", purposeKey: "rows.language", category: "catFunctional" },
@@ -20,6 +32,9 @@ const ROWS: Row[] = [
   { keyName: "shama-cookies-accepted", purposeKey: "rows.consent", category: "catEssential" },
 ];
 
+/**
+ * المكوّن الرئيسي لصفحة سياسة ملفات تعريف الارتباط.
+ */
 export default function CookiesPage() {
   const { t } = useLanguage();
   const reduce = useReducedMotion();
@@ -66,6 +81,7 @@ export default function CookiesPage() {
                     </th>
                   </tr>
                 </thead>
+                {/* جسم الجدول: صف لكل مفتاح تخزين مع شارة تصنيفه (أساسي/وظيفي) */}
                 <tbody>
                   {ROWS.map((row) => (
                     <tr

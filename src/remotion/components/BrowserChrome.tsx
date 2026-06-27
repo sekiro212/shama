@@ -1,5 +1,14 @@
+/**
+ * ===========================================================================
+ * الملف: BrowserChrome.tsx
+ * الدور: مكوّن عرض (component) يحاكي إطار نافذة متصفّح.
+ * يرسم شريط متصفّح أعلى المحتوى (الدوائر الثلاث الملوّنة + شريط العنوان) ليبدو
+ * المحتوى الممرَّر كأنه صفحة ويب مفتوحة، ويُستخدم في مشاهد عرض الموقع.
+ * ===========================================================================
+ */
 import React from "react";
 
+// خصائص المكوّن: المحتوى الداخلي، عنوان URL المعروض، عائلة الخط، والعرض.
 type Props = {
   children: React.ReactNode;
   url?: string;
@@ -7,6 +16,7 @@ type Props = {
   width?: number;
 };
 
+/** يلفّ المحتوى الممرَّر داخل إطار نافذة متصفّح بشريط عنوان وأزرار. */
 export const BrowserChrome: React.FC<Props> = ({
   children,
   url = "shama.ly",
@@ -33,9 +43,10 @@ export const BrowserChrome: React.FC<Props> = ({
           paddingInline: 20,
           gap: 14,
           borderBottom: "1px solid rgba(255,255,255,0.04)",
-          direction: "ltr",
+          direction: "ltr", // شريط المتصفّح يبقى من اليسار لليمين دائماً حتى في العربية
         }}
       >
+        {/* أزرار النافذة الثلاثة الملوّنة (إغلاق/تصغير/تكبير) كما في نظام macOS */}
         <div style={{ display: "flex", gap: 8 }}>
           <div style={dot("#FF5F57")} />
           <div style={dot("#FEBC2E")} />
@@ -61,11 +72,13 @@ export const BrowserChrome: React.FC<Props> = ({
         </div>
         <div style={{ width: 44 }} />
       </div>
+      {/* منطقة محتوى الصفحة الفعلية أسفل شريط العنوان */}
       <div style={{ background: "#0A0A0B" }}>{children}</div>
     </div>
   );
 };
 
+/** دالة مساعدة تعيد نمط دائرة صغيرة ملوّنة لأزرار نافذة المتصفّح. */
 const dot = (color: string): React.CSSProperties => ({
   width: 12,
   height: 12,

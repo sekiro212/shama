@@ -1,3 +1,13 @@
+/**
+ * OrderDetailsDialog.tsx
+ * ----------------------
+ * نافذة للقراءة في الغالب تعرض التفاصيل الكاملة لطلب عميل واحد: معلومات العميل،
+ * معلومات الطلب/الدفع (بما في ذلك إثبات التحويل البنكي)، لوحة تتبّع توصيل Vanex
+ * (الحالة، سجل التاريخ، وإجراءات المزامنة/الإلغاء/الاسترجاع)، وقائمة العناصر
+ * المطلوبة مع ملخّص المجموع الجزئي.
+ * معالِجات تعديلات Vanex اختيارية وتُمرَّر عبر الخاصية (prop) `vanexActions`
+ * (شريحة من الـ hook `useOrders`).
+ */
 import { useMemo, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { ar as arLocale } from "date-fns/locale";
@@ -38,6 +48,14 @@ interface OrderDetailsDialogProps {
   vanexActions?: VanexActions;
 }
 
+/**
+ * يعرض نافذة تفاصيل الطلب.
+ * الخصائص (props) الأساسية:
+ * - open / onOpenChange: التحكّم في ظهور النافذة والإبلاغ عنه
+ * - order: الطلب المراد عرضه (القيمة null لا تعرض شيئًا)
+ * - onImageClick: يفتح صورة عنصر في معاينة ImageModal
+ * - vanexActions: معالِجات توصيل Vanex الاختيارية + أعلام التحميل لكل طلب
+ */
 export function OrderDetailsDialog({
   open,
   onOpenChange,
@@ -46,19 +64,25 @@ export function OrderDetailsDialog({
   vanexActions,
 }: OrderDetailsDialogProps) {
   const { t, language } = useLanguage();
+  // حالة واجهة محلية لحقل إدخال سبب "استرجاع الشحنة" المضمّن.
   const [recallOpen, setRecallOpen] = useState(false);
   const [recallReason, setRecallReason] = useState("");
 
+  // اشتقاق إجراءات Vanex المسموح بها وفق حالة توصيل الطلب الحالي.
   const vanexStatus = order?.vanex_status ?? null;
   const hasPackageId = Boolean(order?.vanex_package_id);
+  // يمكن المزامنة فقط إذا وُجد رمز طرد (package code) وتوفّرت المعالِجات.
   const canSync = Boolean(order?.vanex_package_code) && Boolean(vanexActions);
+  // يعتمد الإلغاء/الاسترجاع إضافةً إلى ذلك على حالة التوصيل الحالية (انظر دوال vanexStatus المساعدة).
   const canCancel = hasPackageId && canCancelVanex(vanexStatus) && Boolean(vanexActions);
   const canRecall = hasPackageId && canRecallVanex(vanexStatus) && Boolean(vanexActions);
 
+  // أعلام التحميل لكل طلب: true فقط عندما يكون هذا الطلب هو الذي يُجرى عليه الإجراء.
   const isSyncing = order ? vanexActions?.syncingVanex === order.id : false;
   const isCancelling = order ? vanexActions?.cancellingVanex === order.id : false;
   const isRecalling = order ? vanexActions?.recallingVanex === order.id : false;
 
+  // سجل التتبّع مرتّب من الأحدث إلى الأقدم؛ محفوظ في الذاكرة (memoized) فلا يُعاد ترتيبه إلا عند تغيّر السجلات.
   const sortedLogs = useMemo(() => {
     if (!order?.vanex_logs?.length) return [];
     return [...order.vanex_logs].sort(
@@ -66,6 +90,7 @@ export function OrderDetailsDialog({
     );
   }, [order?.vanex_logs]);
 
+  // تسمية ودّية للبشر بصيغة "منذ x دقائق"، مُعرَّبة عند تفعيل العربية.
   const lastSyncedLabel = order?.vanex_last_synced_at
     ? formatDistanceToNow(new Date(order.vanex_last_synced_at), {
         addSuffix: true,
@@ -84,7 +109,7 @@ export function OrderDetailsDialog({
 
         {order && (
           <div className="space-y-6">
-            {/* Customer Information */}
+            {/* معلومات العميل */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card className="glass-card border-[#323D50]/10 dark:border-white/10">
                 <CardHeader>
@@ -195,6 +220,7 @@ export function OrderDetailsDialog({
               </Card>
             </div>
 
+            {/* لوحة تتبّع توصيل Vanex — لا تُعرض إلا بعد أن يصبح للطلب شحنة Vanex. */}
             {order.vanex_package_code && (
               <Card className="glass-card border-[#323D50]/10 dark:border-white/10">
                 <CardHeader className="flex flex-row items-center justify-between">
@@ -329,6 +355,7 @@ export function OrderDetailsDialog({
                     </div>
                   )}
 
+                  {/* نموذج استرجاع مضمّن: يطلب سببًا اختياريًا، ثم يستدعي معالِج الاسترجاع. */}
                   {canRecall && recallOpen && (
                     <div className="pt-3 border-t border-[#323D50]/10 dark:border-white/10 space-y-2">
                       <label className="text-sm text-[#6B7B8D] dark:text-white/60">
@@ -342,6 +369,7 @@ export function OrderDetailsDialog({
                       />
                       <div className="flex gap-2">
                         <Button
+                          // إرسال الاسترجاع (السبب الفارغ يصبح undefined)، ثم إغلاق النموذج وإعادة تعيينه.
                           onClick={async () => {
                             await vanexActions?.handleRecallVanex(
                               order,
@@ -374,7 +402,7 @@ export function OrderDetailsDialog({
               </Card>
             )}
 
-            {/* Order Items */}
+            {/* عناصر الطلب */}
             <Card className="glass-card border-[#323D50]/10 dark:border-white/10">
               <CardHeader>
                 <CardTitle className="text-[#323D50] dark:text-white text-lg">
@@ -382,6 +410,7 @@ export function OrderDetailsDialog({
                 </CardTitle>
               </CardHeader>
               <CardContent>
+                {/* بنود الطلب تأتي من عمود `items` بصيغة JSONB في الطلب. */}
                 <div className="space-y-4">
                   {order.items.map((item) => (
                     <div
@@ -443,11 +472,12 @@ export function OrderDetailsDialog({
                   ))}
                 </div>
 
-                {/* Order Summary */}
+                {/* ملخّص الطلب */}
                 <div className="mt-6 pt-4 border-t border-[#323D50]/10 dark:border-white/10">
                   <div className="flex justify-between items-center">
                     <span className="text-[#6B7B8D] dark:text-white/60">{t("admin.orderDetails.totalItemsLabel")}</span>
                     <span className="text-[#323D50] dark:text-white">
+                      {/* إجمالي عدد العناصر = مجموع كميات كل بند. */}
                       {order.items.reduce(
                         (sum, item) => sum + item.quantity,
                         0

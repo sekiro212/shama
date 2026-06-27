@@ -1,3 +1,17 @@
+/**
+ * ===============================================================
+ * ChatbotPanel.tsx — لوحة المساعد الذكي (روبوت الدردشة)
+ * ---------------------------------------------------------------
+ * نافذة دردشة عائمة تتيح للمستخدم سؤال مساعد الذكاء الاصطناعي عن
+ * العطور والحصول على توصيات. تعرض الرسائل المتبادلة (المستخدم/
+ * المساعد)، أزرار اقتراحات سريعة، ومؤشّر كتابة أثناء توليد الردّ.
+ * يعتمد على الخطّاف useChatbot الذي يدير البثّ المتدفّق (streaming)
+ * للردود من نموذج OpenRouter.
+ *
+ * مكان الاستخدام: يُستدعى من زر عائم في الواجهة عبر الخاصية isOpen.
+ * يعرض ردود المساعد بصيغة Markdown، ويدعم الاتجاهين العربي والإنجليزي.
+ * ===============================================================
+ */
 import { useState, useRef, useEffect } from "react";
 import { X, Send, Trash2, Sparkles, Bot, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,10 +24,17 @@ interface ChatbotPanelProps {
   onClose: () => void;
 }
 
+/**
+ * المكوّن الرئيسي للوحة الدردشة.
+ * @param isOpen هل اللوحة مفتوحة؟ (تُخفى تمامًا من الـ DOM عند الإغلاق).
+ * @param onClose دالة إغلاق اللوحة.
+ */
 export default function ChatbotPanel({ isOpen, onClose }: ChatbotPanelProps) {
   const { t, isRTL } = useLanguage();
+  // الخطّاف يدير قائمة الرسائل وحالة التحميل وإرسال الرسائل ومسح المحادثة (مع البثّ المتدفّق للردّ)
   const { messages, isLoading, sendMessage, clearChat } = useChatbot();
 
+  // اقتراحات سريعة جاهزة يضغطها المستخدم لإرسال سؤال شائع بنقرة واحدة
   const quickActions = [
     t("chatbot.quickActions.summer"),
     t("chatbot.quickActions.giftIdeas"),
@@ -26,16 +47,19 @@ export default function ChatbotPanel({ isOpen, onClose }: ChatbotPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // التمرير التلقائي لأسفل المحادثة كلما وصلت رسالة جديدة أو تحدّث نصّ الردّ المتدفّق
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // تركيز حقل الكتابة تلقائيًا عند فتح اللوحة (بعد انتهاء حركة الظهور)
   useEffect(() => {
     if (isOpen) {
       setTimeout(() => inputRef.current?.focus(), 300);
     }
   }, [isOpen]);
 
+  // إرسال نصّ المستخدم، مع تجاهل الإرسال إذا كان فارغًا أو أثناء توليد ردّ سابق
   const handleSend = () => {
     const text = input.trim();
     if (!text || isLoading) return;
@@ -43,6 +67,7 @@ export default function ChatbotPanel({ isOpen, onClose }: ChatbotPanelProps) {
     sendMessage(text);
   };
 
+  // Enter يُرسل، وShift+Enter يسمح بسطر جديد
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -55,9 +80,11 @@ export default function ChatbotPanel({ isOpen, onClose }: ChatbotPanelProps) {
     sendMessage(action);
   };
 
+  // لا تُركَّب اللوحة في الـ DOM إطلاقًا عند الإغلاق (توفيرًا للأداء)
   if (!isOpen) return null;
 
   return (
+    // الموضع الثابت يتبع اتجاه اللغة: أسفل اليسار في العربية وأسفل اليمين في الإنجليزية
     <div className={`fixed inset-0 sm:inset-auto sm:bottom-24 ${isRTL ? "sm:left-6" : "sm:right-6"} z-50 sm:w-[400px] sm:h-[min(600px,calc(100dvh-8rem))] flex flex-col animate-slide-up`}>
       <div className="glass-card bg-[#F8F9FB]/95 dark:bg-[#1a2235]/95 backdrop-blur-2xl border border-[#5B8DD9]/30 sm:rounded-2xl overflow-hidden flex flex-col h-full shadow-2xl shadow-[#5B8DD9]/20">
         {/* Header */}
@@ -112,6 +139,7 @@ export default function ChatbotPanel({ isOpen, onClose }: ChatbotPanelProps) {
                 }`}
               >
                 {msg.role === "assistant" ? (
+                  // \u0631\u062F\u0651 \u0627\u0644\u0645\u0633\u0627\u0639\u062F \u064A\u064F\u0639\u0631\u064E\u0636 \u0628\u0635\u064A\u063A\u0629 Markdown\u061B \u0648\u0627\u0644\u0642\u064A\u0645\u0629 "\u200B" (\u0645\u0633\u0627\u0641\u0629 \u0635\u0641\u0631\u064A\u0629) \u062A\u062D\u0627\u0641\u0638 \u0639\u0644\u0649 \u0627\u0631\u062A\u0641\u0627\u0639 \u0627\u0644\u0641\u0642\u0627\u0639\u0629 \u0623\u062B\u0646\u0627\u0621 \u0628\u062F\u0621 \u0627\u0644\u0628\u062B\u0651 \u0642\u0628\u0644 \u0648\u0635\u0648\u0644 \u0627\u0644\u0646\u0635\u0651
                   <div className="prose prose-sm prose-invert max-w-none [&_p]:mb-2 [&_p:last-child]:mb-0 [&_ul]:mb-2 [&_li]:mb-1">
                     <ReactMarkdown>{msg.content || "\u200B"}</ReactMarkdown>
                   </div>
@@ -127,6 +155,7 @@ export default function ChatbotPanel({ isOpen, onClose }: ChatbotPanelProps) {
             </div>
           ))}
 
+          {/* مؤشّر "يكتب الآن" (نقاط متحرّكة): يظهر عند التحميل وقبل أن يبدأ نصّ ردّ المساعد بالوصول */}
           {isLoading && messages[messages.length - 1]?.content === "" && (
             <div className="flex gap-2 justify-start">
               <div className="w-7 h-7 rounded-lg bg-gradient-to-r from-[#5B8DD9] to-[#3E6BB5] flex items-center justify-center flex-shrink-0">
@@ -150,6 +179,7 @@ export default function ChatbotPanel({ isOpen, onClose }: ChatbotPanelProps) {
           <div ref={messagesEndRef} />
         </div>
 
+        {/* الاقتراحات السريعة تُعرَض فقط في بداية المحادثة (رسالتان أو أقل) */}
         {/* Quick Actions */}
         {messages.length <= 2 && (
           <div className="px-4 pb-2">

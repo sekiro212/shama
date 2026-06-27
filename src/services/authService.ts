@@ -1,3 +1,12 @@
+/**
+ * ===========================================================================
+ * ملف: authService.ts
+ * الغرض: خدمة مصادقة المسؤول (admin) فقط.
+ * تتحقق من اسم المستخدم وكلمة المرور مقابل جدول "users" في Supabase،
+ * وتخزّن الجلسة في localStorage مع طابع زمني لانتهاء الصلاحية بعد 24 ساعة.
+ * ملاحظة: هذا النظام منفصل تمامًا عن مصادقة المستخدم العادي (Supabase Auth).
+ * ===========================================================================
+ */
 import { supabase } from "@/lib/supabase";
 
 export interface User {
@@ -20,11 +29,16 @@ export interface AuthResponse {
   error?: string;
 }
 
-// Admin authentication function
+/**
+ * مصادقة المسؤول: تتحقق من بيانات الدخول مقابل قاعدة البيانات.
+ * @param credentials اسم المستخدم وكلمة المرور المُدخلان.
+ * @returns كائن يحتوي على success وبيانات المستخدم عند النجاح، أو رسالة خطأ عند الفشل.
+ */
 export const authenticateAdmin = async (
   credentials: LoginCredentials
 ): Promise<AuthResponse> => {
   try {
+    // مطابقة اسم المستخدم وكلمة المرور معًا مع شرط أن يكون الحساب مفعّلًا (is_active)
     const { data, error } = await supabase
       .from("users")
       .select("*")
@@ -34,6 +48,7 @@ export const authenticateAdmin = async (
       .single();
 
     if (error) {
+      // الرمز PGRST116 يعني أن single() لم يجد أي صف مطابق => بيانات دخول غير صحيحة
       if (error.code === "PGRST116") {
         return {
           success: false,
@@ -53,7 +68,7 @@ export const authenticateAdmin = async (
       };
     }
 
-    // Store authentication in localStorage
+    // تخزين الجلسة في localStorage مع طابع زمني يُستخدم لاحقًا لحساب انتهاء الصلاحية
     localStorage.setItem(
       "admin_auth",
       JSON.stringify({
@@ -75,7 +90,10 @@ export const authenticateAdmin = async (
   }
 };
 
-// Check if admin is authenticated
+/**
+ * التحقق ممّا إذا كان المسؤول مسجّل الدخول حاليًا.
+ * @returns true إذا وُجدت جلسة صالحة (لم تنتهِ صلاحيتها وللمستخدم دور admin مفعّل).
+ */
 export const isAdminAuthenticated = (): boolean => {
   try {
     const authData = localStorage.getItem("admin_auth");
@@ -85,12 +103,13 @@ export const isAdminAuthenticated = (): boolean => {
     const now = new Date().getTime();
     const authAge = now - timestamp;
 
-    // Session expires after 24 hours
+    // انتهاء صلاحية الجلسة بعد 24 ساعة (محسوبة بالميلي ثانية)؛ تُحذف الجلسة عند الانتهاء
     if (authAge > 24 * 60 * 60 * 1000) {
       localStorage.removeItem("admin_auth");
       return false;
     }
 
+    // الجلسة صالحة فقط إذا كان الدور admin والحساب مفعّلًا
     return user && user.role === "admin" && user.is_active;
   } catch (error) {
     console.error("Auth check error:", error);
@@ -98,7 +117,10 @@ export const isAdminAuthenticated = (): boolean => {
   }
 };
 
-// Get current admin user
+/**
+ * إرجاع بيانات المسؤول المسجّل حاليًا من الجلسة المخزّنة.
+ * @returns كائن المستخدم، أو null إذا لم توجد جلسة.
+ */
 export const getCurrentAdmin = (): User | null => {
   try {
     const authData = localStorage.getItem("admin_auth");
@@ -112,12 +134,16 @@ export const getCurrentAdmin = (): User | null => {
   }
 };
 
-// Logout admin
+/**
+ * تسجيل خروج المسؤول بحذف الجلسة من localStorage.
+ */
 export const logoutAdmin = (): void => {
   localStorage.removeItem("admin_auth");
 };
 
-// Refresh authentication (extend session)
+/**
+ * تجديد الجلسة (تمديد صلاحيتها) بتحديث الطابع الزمني إلى الوقت الحالي مع الإبقاء على بيانات المستخدم.
+ */
 export const refreshAuthentication = (): void => {
   const authData = localStorage.getItem("admin_auth");
   if (authData) {

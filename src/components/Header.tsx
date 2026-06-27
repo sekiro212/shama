@@ -1,3 +1,17 @@
+/**
+ * ===============================================================
+ * Header.tsx — الشريط العلوي (الهيدر) الرئيسي للموقع
+ * ---------------------------------------------------------------
+ * المكوّن المسؤول عن التنقّل الأساسي في الموقع: الشعار، روابط
+ * الأقسام، البحث، تبديل اللغة (EN/AR) والثيم (فاتح/داكن)، حساب
+ * المستخدم، قائمة المفضّلة، وزر السلّة. يعرض نسخة لسطح المكتب
+ * وأخرى للجوال داخل قائمة منزلقة (Sheet).
+ *
+ * مكان الاستخدام: يُركَّب في التخطيط الرئيسي (Layout) أعلى كل
+ * صفحات الموقع العامّة.
+ * يدعم الاتجاهين: العربية من اليمين لليسار (RTL) والإنجليزية (LTR).
+ * ===============================================================
+ */
 import { Link, useLocation } from "react-router-dom";
 import {
   ShoppingBag,
@@ -58,8 +72,14 @@ type NavItem = {
   isAiFinder?: boolean;
 };
 
+// مفتاح التخزين في sessionStorage لتذكّر أن المستخدم أغلق شريط الإعلان
 const ANNOUNCEMENT_DISMISS_KEY = "shama.announcement.dismissed";
 
+/**
+ * المكوّن الرئيسي للهيدر.
+ * @param onCartClick دالة تُستدعى عند الضغط على زر السلّة (تفتح سلّة التسوّق الجانبية).
+ * @param onSearchClick دالة اختيارية تُستدعى عند الضغط على زر البحث (تفتح نافذة البحث).
+ */
 export default function Header({ onCartClick, onSearchClick }: HeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [announcementOpen, setAnnouncementOpen] = useState(false);
@@ -71,6 +91,7 @@ export default function Header({ onCartClick, onSearchClick }: HeaderProps) {
   const { user, signOut } = useAuth();
   const location = useLocation();
 
+  // إظهار شريط الإعلان فقط إذا كان نصّه غير فارغ ولم يُغلقه المستخدم سابقًا في الجلسة الحالية
   useEffect(() => {
     const msg = t("header.announcement");
     const dismissed = sessionStorage.getItem(ANNOUNCEMENT_DISMISS_KEY) === "1";
@@ -82,6 +103,7 @@ export default function Header({ onCartClick, onSearchClick }: HeaderProps) {
     setAnnouncementOpen(false);
   };
 
+  // قائمة روابط التنقّل الأساسية؛ يُترجَم كل اسم حسب اللغة الحالية عبر t()
   const navigation: NavItem[] = [
     { name: t("nav.home"), href: "/", Icon: Home },
     { name: t("nav.collection"), href: "/collection", Icon: Gem },
@@ -91,6 +113,7 @@ export default function Header({ onCartClick, onSearchClick }: HeaderProps) {
     { name: t("nav.aiFinder"), href: "/ai-finder", Icon: Sparkles, isAiFinder: true },
   ];
 
+  // تحديد الرابط النشِط لتمييزه بصريًا: الصفحة الرئيسية تتطابق تمامًا، وبقية الأقسام تتطابق بالبادئة
   const isActive = (href: string) =>
     href === "/" ? location.pathname === "/" : location.pathname.startsWith(href);
 
@@ -350,6 +373,7 @@ export default function Header({ onCartClick, onSearchClick }: HeaderProps) {
                     <Menu className="h-5 w-5" />
                   </Button>
                 </SheetTrigger>
+                {/* في الوضع العربي (RTL) تنزلق القائمة من اليسار، وفي الإنجليزي (LTR) من اليمين */}
                 <SheetContent
                   side={isRTL ? "left" : "right"}
                   className="glass-card bg-[#F8F9FB]/98 dark:bg-[#1a2235]/98 backdrop-blur-md border-s border-warm/15 w-80"

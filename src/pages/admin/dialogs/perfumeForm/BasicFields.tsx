@@ -1,3 +1,11 @@
+/**
+ * BasicFields.tsx
+ * ---------------
+ * Perfume-form subsection holding the core product fields: bilingual name (EN/AR),
+ * price, bilingual description (with one-click AI generation), size, type, gender,
+ * stock quantity and rating. Every input is controlled and reports changes through
+ * `handleInputChange(field, value)`, which maps directly to columns on the perfumes table.
+ */
 import { Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +27,14 @@ interface BasicFieldsProps {
   generatingDescription: boolean;
 }
 
+/**
+ * Renders the core perfume input fields.
+ * Key props:
+ * - formData: the current perfume form values
+ * - handleInputChange: updates a single field on the form state
+ * - handleGenerateDescription: calls the AI service to draft the EN description
+ * - generatingDescription: loading flag for the AI generate button
+ */
 export function BasicFields({
   formData,
   handleInputChange,
@@ -64,6 +80,7 @@ export function BasicFields({
           <Label htmlFor="price" className="text-[#323D50] dark:text-white/80">
             {t("admin.form.price")} *
           </Label>
+          {/* Price stored as a float; parsed from the numeric text input. */}
           <Input
             id="price"
             type="number"

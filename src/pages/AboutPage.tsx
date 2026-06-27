@@ -1,8 +1,24 @@
+/**
+ * ============================================================================
+ * صفحة "من نحن" (About) — المسار: /about
+ * ----------------------------------------------------------------------------
+ * صفحة تعريفية ثابتة (static) تعرّف بالعلامة التجارية "شما" وقصتها ووعدها
+ * للعميل. كل النصوص قادمة من ملفات الترجمة عبر الدالة t() لدعم اللغتين
+ * العربية والإنجليزية (ثنائية اللغة / RTL).
+ * لا تحتوي الصفحة على أي منطق برمجي أو جلب بيانات؛ هي عرض محتوى فقط.
+ * ============================================================================
+ */
 import { motion, useReducedMotion } from "framer-motion";
 import { useLanguage } from "@/contexts/LanguageContext";
 
+// مفاتيح أقسام الصفحة بالترتيب؛ تُستخدم لبناء مفاتيح الترجمة (about.<key>.heading/body)
 const SECTIONS = ["name", "atelier", "promise"] as const;
 
+/**
+ * المكوّن الرئيسي لصفحة "من نحن".
+ * - t: دالة الترجمة لجلب النصوص حسب اللغة الحالية.
+ * - reduce: يكتشف تفضيل المستخدم بتقليل الحركة (إمكانية الوصول) لتعطيل الأنيميشن.
+ */
 export default function AboutPage() {
   const { t } = useLanguage();
   const reduce = useReducedMotion();
@@ -34,6 +50,7 @@ export default function AboutPage() {
           </p>
         </motion.header>
 
+        {/* جسم الصفحة: تكرار أقسام التعريف مع ترقيم تسلسلي (01، 02، ...) */}
         <article className="glass-card rounded-3xl p-6 md:p-10 space-y-8 prose-shama">
           {SECTIONS.map((key, idx) => (
             <section key={key}>
@@ -47,6 +64,7 @@ export default function AboutPage() {
             </section>
           ))}
 
+          {/* اقتباس ختامي مميّز يلخّص رؤية العلامة التجارية مع توقيعها */}
           <figure className="mt-10 pt-8 border-t border-warm/20 text-center">
             <blockquote className="font-display italic text-2xl md:text-3xl text-[#1E2A3D] dark:text-[#F5F5F5] leading-snug">
               &ldquo;{t("about.pullquote")}&rdquo;

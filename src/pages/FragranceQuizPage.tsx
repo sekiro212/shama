@@ -1,3 +1,13 @@
+/**
+ * ===================================================================
+ * صفحة اختبار العطور (Fragrance Quiz) — المسار: /quiz
+ * -------------------------------------------------------------------
+ * اختبار تفاعلي متعدّد الخطوات (المناسبة، الصيغة، العائلة العطرية، الشدّة،
+ * الجنس، الميزانية) يجمع إجابات المستخدم ثم يستدعي الذكاء الاصطناعي
+ * للحصول على أفضل ٣ توصيات وبطاقة "بصمة العطر" (Scent DNA). يُرسل أيضًا
+ * حدث تتبّع عند اكتمال الاختبار. يدعم العربية والإنجليزية.
+ * ===================================================================
+ */
 import { useState, ComponentType } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
@@ -35,12 +45,18 @@ import { trackEvent } from "@/services/trackingService";
 
 type Icon = ComponentType<{ className?: string }>;
 
+// إعدادات حركة انزلاق الخطوات: تعتمد على الاتجاه (direction) للأمام أو للخلف
 const slideVariants = {
   enter: (direction: number) => ({ x: direction > 0 ? 200 : -200, opacity: 0 }),
   center: { x: 0, opacity: 1 },
   exit: (direction: number) => ({ x: direction > 0 ? -200 : 200, opacity: 0 }),
 };
 
+/**
+ * المكوّن الرئيسي لصفحة اختبار العطور.
+ * يدير الخطوة الحالية وإجابات المستخدم، ويتولّى الانتقال بين الخطوات،
+ * واستدعاء التوصيات وبطاقة بصمة العطر عند انتهاء الاختبار.
+ */
 export default function FragranceQuizPage() {
   const { t } = useLanguage();
   const reduce = useReducedMotion();
@@ -55,6 +71,8 @@ export default function FragranceQuizPage() {
   >([]);
   const [dnaCard, setDnaCard] = useState<ScentDNACard | null>(null);
 
+  // خيارات الميزانية تتغيّر تبعًا للصيغة المختارة (عيّنة / زجاجة كاملة / كلاهما)
+  // لأن نطاقات الأسعار تختلف بين كل صيغة وأخرى
   // Budget options depend on the chosen format
   const budgetOptions: { label: string; Icon: Icon; value: string }[] = (() => {
     const fmt = answers.format;
@@ -140,8 +158,14 @@ export default function FragranceQuizPage() {
   ];
 
   const totalSteps = quizSteps.length;
+  // نسبة التقدّم المعروضة في شريط التقدّم (بناءً على الخطوة الحالية)
   const progress = ((currentStep + 1) / totalSteps) * 100;
 
+  /**
+   * معالج اختيار إجابة لخطوة ما: يخزّن الإجابة، فإن لم تكن الخطوة الأخيرة
+   * ينتقل للأمام، وإلا يُظهر شاشة النتائج ويستدعي الذكاء الاصطناعي.
+   * التأخير القصير (setTimeout) يسمح بظهور حالة الاختيار قبل الانتقال.
+   */
   const handleSelect = async (value: string) => {
     const stepId = quizSteps[currentStep].id;
     const newAnswers = { ...answers, [stepId]: value };
@@ -149,24 +173,29 @@ export default function FragranceQuizPage() {
 
     setTimeout(async () => {
       if (currentStep < totalSteps - 1) {
+        // الانتقال إلى الخطوة التالية مع ضبط اتجاه الحركة للأمام
         setDirection(1);
         setCurrentStep((prev) => prev + 1);
       } else {
+        // الخطوة الأخيرة: إظهار النتائج وبدء حالة التحميل
         setShowResults(true);
         setIsLoading(true);
         try {
+          // استنتاج الموسم الحالي من رقم الشهر لتغذية بطاقة بصمة العطر
           const month = new Date().getMonth();
           const inferredSeason =
             month >= 2 && month <= 4 ? "spring" :
             month >= 5 && month <= 7 ? "summer" :
             month >= 8 && month <= 10 ? "autumn" : "winter";
 
+          // استدعاء التوصيات وبطاقة بصمة العطر بالتوازي لتسريع الاستجابة
           const [results, dna] = await Promise.all([
             getQuizRecommendations(newAnswers),
             getScentDNACard({ ...newAnswers, season: inferredSeason }),
           ]);
           setRecommendations(results);
           setDnaCard(dna);
+          // تسجيل حدث تتبّع باكتمال الاختبار مع الإجابات وأسماء ودرجات التوصيات
           trackEvent("quiz_completion", {
             answers: newAnswers,
             recommendation_names: results.map((r) => r.name),
@@ -180,6 +209,7 @@ export default function FragranceQuizPage() {
             });
           }
         } catch (error) {
+          // عند فشل الاستدعاء نفرّغ التوصيات والبطاقة لعرض حالة مناسبة
           console.error("Error getting recommendations:", error);
           setRecommendations([]);
           setDnaCard(null);
@@ -190,6 +220,10 @@ export default function FragranceQuizPage() {
     }, 300);
   };
 
+  /**
+   * الرجوع خطوة للخلف: إن كنا في شاشة النتائج نعود لآخر سؤال،
+   * وإلا ننتقل للخطوة السابقة مع ضبط اتجاه الحركة للخلف.
+   */
   const handleBack = () => {
     if (showResults) {
       setShowResults(false);
@@ -202,6 +236,7 @@ export default function FragranceQuizPage() {
     }
   };
 
+  // إعادة الاختبار من البداية: تصفير كل الحالات والإجابات والنتائج
   const handleRestart = () => {
     setCurrentStep(0);
     setAnswers({});

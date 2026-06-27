@@ -1,3 +1,10 @@
+/**
+ * RelatedProducts.tsx
+ * -------------------
+ * شريط "قد يعجبك أيضاً" يظهر أسفل صفحة المنتج. انطلاقاً من المنتج المعروض،
+ * يجلب الكتالوج ويرتّب بقية المنتجات حسب التشابه (تشارك النوتات العطرية + نفس
+ * الفئة/الجنس)، ثم يعرض أفضل المطابقات في صف أفقي قابل للتصفّح صفحةً صفحة.
+ */
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
@@ -6,22 +13,26 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { fetchProducts, Product } from "@/services/productsService";
 
 interface RelatedProductsProps {
-  currentProduct: Product;
+  currentProduct: Product; // المنتج المعروض حالياً؛ يُستبعَد من النتائج
 }
 
+/** يعرض شريط منتجات مشابهة مرتّبة حسب درجة التشابه، أو null إذا لم يوجد شيء. */
 export default function RelatedProducts({ currentProduct }: RelatedProductsProps) {
   const [products, setProducts] = useState<Product[]>([]);
+  // مؤشر البطاقة المرئية الأولى؛ يُزاح الشريط بمقدار هذا المؤشر × عرض البطاقة.
   const [scrollIndex, setScrollIndex] = useState(0);
   const { t, isRTL } = useLanguage();
 
+  // إعادة حساب المنتجات المشابهة كلما تغيّر المنتج المعروض.
   useEffect(() => {
     const loadRelated = async () => {
       const { products: allProducts } = await fetchProducts(1, 50);
-      // Find products with shared fragrance notes or same gender, exclude current
+      // نمنح كل منتج آخر درجة (score) بحسب تطابقه مع المنتج الحالي، ثم نأخذ الأفضل.
       const related = allProducts
         .filter((p) => p.id !== currentProduct.id)
         .map((p) => {
           let score = 0;
+          // تسطيح نوتات المنتج الحالي (top/middle/base) وتحويلها لأحرف صغيرة للمقارنة.
           const currentNotes = [
             ...(currentProduct.fragranceNotes?.top || []),
             ...(currentProduct.fragranceNotes?.middle || []),
@@ -32,22 +43,26 @@ export default function RelatedProducts({ currentProduct }: RelatedProductsProps
             ...(p.fragranceNotes?.middle || []),
             ...(p.fragranceNotes?.base || []),
           ].map((n) => n.toLowerCase());
+          // كل نوتة عطرية مشتركة تضيف نقطة واحدة.
           for (const note of pNotes) {
             if (currentNotes.includes(note)) score++;
           }
+          // تطابق الفئة/الجنس له وزن أعلى (نقطتان).
           if (p.gender === currentProduct.gender) score += 2;
           return { product: p, score };
         })
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 8)
+        .sort((a, b) => b.score - a.score) // الأعلى تشابهاً أولاً
+        .slice(0, 8)                        // نكتفي بأفضل 8 منتجات
         .map((r) => r.product);
       setProducts(related);
     };
     loadRelated();
   }, [currentProduct]);
 
+  // لا نعرض القسم إطلاقاً إن لم توجد منتجات مشابهة.
   if (products.length === 0) return null;
 
+  // أقصى مؤشر تمرير: نُبقي 4 بطاقات ظاهرة دائماً فلا نمرّر لما بعد آخر مجموعة.
   const maxIndex = Math.max(0, products.length - 4);
 
   return (

@@ -1,3 +1,12 @@
+/**
+ * =============================================================================
+ * تبويب أكواد الخصم (Coupons) في لوحة الإدارة
+ * -----------------------------------------------------------------------------
+ * مكوّن عرضي يعرض أكواد الخصم في جدول بيانات (DataTable) مع بطاقات إحصائية.
+ * يعتمد على الخطّاف useCoupons لجلب البيانات وتنفيذ عمليات التعديل والتفعيل
+ * والحذف. يتولّى هذا الملف تعريف أعمدة الجدول وكيفية عرض كل خلية فقط.
+ * =============================================================================
+ */
 import {
   Plus,
   Edit,
@@ -30,6 +39,10 @@ interface CouponsTabProps {
   couponsApi: ReturnType<typeof useCoupons>;
 }
 
+/**
+ * يعرض جدول أكواد الخصم والبطاقات الإحصائية وزر إضافة كود جديد.
+ * @param couponsApi واجهة الخطّاف useCoupons التي تحمل البيانات ودوال الإجراءات.
+ */
 export function CouponsTab({ couponsApi }: CouponsTabProps) {
   const { t, isRTL } = useLanguage();
   const {
@@ -46,10 +59,12 @@ export function CouponsTab({ couponsApi }: CouponsTabProps) {
     confirmDialogProps,
   } = couponsApi;
 
+  // تعريف أعمدة جدول أكواد الخصم: لكل عمود دالة cell ترسم محتوى الخلية.
   const columns: ColumnDef<PromoCode>[] = [
     {
       accessorKey: "code",
       header: t("admin.coupons.table.code"),
+      // عمود الكود: زر يقوم عند الضغط بنسخ الكود إلى الحافظة وإظهار إشعار نجاح.
       cell: ({ row }) => {
         const coupon = row.original;
         return (
@@ -80,6 +95,8 @@ export function CouponsTab({ couponsApi }: CouponsTabProps) {
     {
       id: "value",
       header: t("admin.coupons.table.value"),
+      // عمود القيمة: يعرض مبلغاً ثابتاً بالدينار للخصم الثابت، أو نسبة مئوية
+      // مع حدّ أقصى اختياري للخصم في حالة الخصم النسبي.
       cell: ({ row }) => {
         const coupon = row.original;
         return (
@@ -96,6 +113,7 @@ export function CouponsTab({ couponsApi }: CouponsTabProps) {
     {
       id: "scope",
       header: t("admin.coupons.table.scope"),
+      // عمود النطاق: يبيّن هل ينطبق الكود على كل المنتجات أم على عدد محدد منها.
       cell: ({ row }) => {
         const coupon = row.original;
         return (
@@ -127,6 +145,7 @@ export function CouponsTab({ couponsApi }: CouponsTabProps) {
     {
       id: "status",
       header: t("admin.coupons.table.status"),
+      // عمود الحالة: تُحسب الحالة بأولوية الانتهاء أولاً، ثم التفعيل/التعطيل.
       cell: ({ row }) => {
         const coupon = row.original;
         const expired = isPromoExpired(coupon);
@@ -137,15 +156,19 @@ export function CouponsTab({ couponsApi }: CouponsTabProps) {
     {
       id: "expires",
       header: t("admin.coupons.table.expires"),
+      // عمود تاريخ الانتهاء: يميّز لونياً بين منتهٍ (أحمر) وقريب الانتهاء (كهرماني).
       cell: ({ row }) => {
         const coupon = row.original;
+        // الكود بلا تاريخ انتهاء يعني أنه دائم الصلاحية.
         if (!coupon.expires_at) {
           return <span className="text-[#6B7B8D] text-sm">{t("admin.coupons.never")}</span>;
         }
         const expiresDate = new Date(coupon.expires_at);
         const now = Date.now();
+        // عتبة "قريب الانتهاء" = سبعة أيام بالملي ثانية.
         const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
         const expired = isPromoExpired(coupon);
+        // قريب الانتهاء: غير منتهٍ بعد، لكن المتبقي على انتهائه أقل من أسبوع.
         const expiringSoon = !expired && expiresDate.getTime() - now <= sevenDaysMs;
         return (
           <span
@@ -165,11 +188,14 @@ export function CouponsTab({ couponsApi }: CouponsTabProps) {
     {
       id: "usage",
       header: t("admin.coupons.table.usage"),
+      // عمود الاستخدام: يعرض عدد مرّات الاستخدام مقابل الحد الأقصى مع شريط تقدّم.
       cell: ({ row }) => {
         const coupon = row.original;
+        // حساب نسبة الاستخدام؛ تكون صفراً إذا لم يكن هناك حدّ أقصى محدد.
         const usagePercent = coupon.usage_limit
           ? (coupon.usage_count / coupon.usage_limit) * 100
           : 0;
+        // تدرّج لون شريط التقدّم حسب النسبة: أحمر عند الاقتراب من النفاد ثم كهرماني ثم أخضر.
         const progressColor =
           usagePercent > 80
             ? "[&>div]:bg-red-500"
@@ -195,6 +221,7 @@ export function CouponsTab({ couponsApi }: CouponsTabProps) {
       id: "actions",
       header: t("admin.coupons.table.actions"),
       enableSorting: false,
+      // عمود الإجراءات: قائمة منسدلة تحوي خيارات التعديل والتفعيل/التعطيل والحذف.
       cell: ({ row }) => {
         const coupon = row.original;
         return (
@@ -277,6 +304,7 @@ export function CouponsTab({ couponsApi }: CouponsTabProps) {
         </Button>
       </div>
 
+      {/* جدول البيانات: يتولّى البحث والترقيم وحالات التحميل والفراغ داخلياً */}
       <DataTable
         columns={columns}
         data={coupons}
@@ -290,6 +318,7 @@ export function CouponsTab({ couponsApi }: CouponsTabProps) {
         }}
       />
 
+      {/* نافذة التأكيد المشتركة لعمليات الحذف/التعطيل الحسّاسة */}
       <ConfirmDialog {...confirmDialogProps} />
     </div>
   );

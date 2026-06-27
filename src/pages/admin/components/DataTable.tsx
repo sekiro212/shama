@@ -1,3 +1,9 @@
+/**
+ * ملف: DataTable.tsx
+ * الدور: مكوّن جدول بيانات عام (generic) قابل لإعادة الاستخدام في كل أقسام لوحة التحكم
+ * (طلبات، عطور، مراجعات...). مبنيّ على مكتبة @tanstack/react-table ويوفّر: الفرز، والبحث
+ * بعمود محدّد، والتصفّح بالصفحات، وحالات التحميل والقائمة الفارغة. يدعم الاتجاهين (RTL/LTR).
+ */
 import { useState } from "react";
 import {
   ColumnDef,
@@ -50,6 +56,16 @@ interface DataTableProps<TData, TValue> {
   emptyState?: { icon: LucideIcon; title: string; subtitle?: string };
 }
 
+/**
+ * مكوّن الجدول العام. المعاملات النوعية TData تمثّل نوع الصفّ و TValue نوع قيمة الخلية.
+ * @param columns تعريفات الأعمدة (كيفية عرض كل خلية والترويسة وقابلية الفرز)
+ * @param data مصفوفة الصفوف المراد عرضها
+ * @param searchKey مفتاح العمود الذي يُطبَّق عليه البحث (اختياري)
+ * @param searchPlaceholder النص الإرشادي لحقل البحث
+ * @param pageSize عدد الصفوف في الصفحة الواحدة (افتراضيًا 25)
+ * @param isLoading عند true يُعرض هيكل التحميل بدل الجدول
+ * @param emptyState محتوى حالة القائمة الفارغة (أيقونة وعنوان ونص فرعي)
+ */
 export function DataTable<TData, TValue>({
   columns,
   data,
@@ -60,9 +76,11 @@ export function DataTable<TData, TValue>({
   emptyState,
 }: DataTableProps<TData, TValue>) {
   const { isRTL } = useLanguage();
+  // حالة الفرز وحالة عوامل تصفية الأعمدة (يستخدم البحث أحدها على العمود المحدّد بـ searchKey)
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 
+  // إنشاء نسخة الجدول وربط نماذج الصفوف: الأساسي + التصفّح + الفرز + التصفية
   const table = useReactTable({
     data,
     columns,
@@ -78,10 +96,12 @@ export function DataTable<TData, TValue>({
     },
   });
 
+  // أثناء التحميل: عرض هيكل مؤقّت بعدد أعمدة الجدول نفسه
   if (isLoading) {
     return <TableSkeleton columns={columns.length} />;
   }
 
+  // لا توجد بيانات وتمّ تمرير حالة فارغة: عرض رسالة القائمة الفارغة بدل جدول خالٍ
   if (data.length === 0 && emptyState) {
     return <EmptyState icon={emptyState.icon} title={emptyState.title} subtitle={emptyState.subtitle} />;
   }
@@ -122,6 +142,7 @@ export function DataTable<TData, TValue>({
                 className="border-[#323D50]/10 dark:border-white/10 hover:bg-transparent"
               >
                 {headerGroup.headers.map((header) => {
+                  // هل يدعم هذا العمود الفرز؟ وما اتجاه الفرز الحالي (تصاعدي/تنازلي/لا شيء)؟
                   const canSort = header.column.getCanSort();
                   const sorted = header.column.getIsSorted();
 
@@ -136,6 +157,7 @@ export function DataTable<TData, TValue>({
                       }
                     >
                       <div className="flex items-center gap-1">
+                        {/* flexRender: العرض العام لمحتوى الترويسة سواء كان نصًّا أو مكوّنًا مخصّصًا */}
                         {header.isPlaceholder
                           ? null
                           : flexRender(
@@ -169,6 +191,7 @@ export function DataTable<TData, TValue>({
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
+                      {/* flexRender: العرض العام لمحتوى الخلية وفق تعريف العمود (cell) */}
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()

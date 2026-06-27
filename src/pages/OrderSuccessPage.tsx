@@ -1,16 +1,82 @@
-import { Link, useParams } from "react-router-dom";
-import { CheckCircle2, Copy, ShoppingBag, Receipt } from "lucide-react";
+/**
+ * OrderSuccessPage — صفحة تأكيد نجاح الطلب (المسار: /order-success/:orderId).
+ *
+ * يُعاد توجيه العميل إليها بعد إتمام الدفع. تعرض رقم الطلب القابل للنسخ، ورابط
+ * "عرض التفاصيل" الذي يفتح سجلّ طلبات الحساب (/my-orders) — فالدفع يتطلّب تسجيل
+ * الدخول، لذا يملك كل عميل حسابًا يجد فيه طلبه وتتبّعه.
+ */
+import { useEffect, useState } from "react";
+import { Link, useParams, useLocation } from "react-router-dom";
+import {
+  CheckCircle2,
+  Copy,
+  ShoppingBag,
+  Receipt,
+  Loader2,
+  XCircle,
+} from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { verifyCardReturn } from "@/services/plutuService";
+import { supabase } from "@/lib/supabase";
+
+// حالة الدفع المعروضة على صفحة النجاح عند العودة من بوابة بطاقة Plutu
+type PayState = "none" | "verifying" | "paid" | "failed";
 
 export default function OrderSuccessPage() {
   const { orderId } = useParams<{ orderId: string }>();
+  const { search } = useLocation();
   const { t } = useLanguage();
-  const { user } = useAuth();
   const shouldReduceMotion = useReducedMotion();
+  const [payState, setPayState] = useState<PayState>("none");
+
+  // التحقّق من الدفع عند العودة من بوابة بطاقة Plutu:
+  // - وجود "hashed" في الرابط ⇒ نمرّر المعاملات الموقّعة للتحقق (localbankcards/mpgs)
+  // - وجود "gateway" دون "hashed" ⇒ نستطلع حالة الطلب (tlync يُعلَّم عبر callback الخادم)
+  useEffect(() => {
+    const params = new URLSearchParams(search);
+    const hasHash = params.has("hashed");
+    const hasGateway = params.has("gateway") || params.has("approved");
+    if (!orderId || (!hasHash && !hasGateway)) return;
+
+    let cancelled = false;
+    setPayState("verifying");
+
+    const run = async () => {
+      if (hasHash) {
+        const res = await verifyCardReturn(search);
+        if (!cancelled) setPayState(res.paid ? "paid" : "failed");
+        return;
+      }
+      // استطلاع حالة الطلب حتى يصل callback الخادم (حتى 5 محاولات)
+      for (let i = 0; i < 5 && !cancelled; i++) {
+        const { data } = await supabase
+          .from("orders")
+          .select("payment_status")
+          .eq("id", orderId)
+          .single();
+        const status = (data as { payment_status?: string } | null)
+          ?.payment_status;
+        if (status === "paid") {
+          if (!cancelled) setPayState("paid");
+          return;
+        }
+        if (status === "failed") {
+          if (!cancelled) setPayState("failed");
+          return;
+        }
+        await new Promise((r) => setTimeout(r, 2000));
+      }
+      if (!cancelled) setPayState("paid"); // افتراض مبدئي ريثما يصل التأكيد
+    };
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [orderId, search]);
 
   const handleCopy = () => {
     if (!orderId) return;
@@ -18,7 +84,8 @@ export default function OrderSuccessPage() {
     toast.success(t("cart.copied"));
   };
 
-  const detailsHref = user ? "/my-orders" : `/track-order?id=${orderId ?? ""}`;
+  // الدفع يتطلّب تسجيل الدخول، لذا تفاصيل الطلب تُعرض دائمًا في سجلّ طلبات الحساب.
+  const detailsHref = "/my-orders";
 
   const initial = shouldReduceMotion
     ? { opacity: 0 }
@@ -44,11 +111,30 @@ export default function OrderSuccessPage() {
           transition={{ duration: 0.5, ease: "easeOut" }}
           className="glass-card rounded-3xl p-8 sm:p-12 text-center"
         >
-          {/* Icon */}
+          {/* Icon — يعكس حالة الدفع عند العودة من بوابة بطاقة */}
           <div className="relative mx-auto w-20 h-20 mb-6">
-            <div className="absolute inset-0 rounded-full bg-warm/20 blur-xl" />
-            <div className="relative w-20 h-20 rounded-full bg-warm flex items-center justify-center glow-warm">
-              <CheckCircle2 className="w-10 h-10 text-white" strokeWidth={2.2} />
+            <div
+              className={`absolute inset-0 rounded-full blur-xl ${
+                payState === "failed" ? "bg-red-500/20" : "bg-warm/20"
+              }`}
+            />
+            <div
+              className={`relative w-20 h-20 rounded-full flex items-center justify-center ${
+                payState === "failed"
+                  ? "bg-red-500"
+                  : "bg-warm glow-warm"
+              }`}
+            >
+              {payState === "verifying" ? (
+                <Loader2 className="w-10 h-10 text-white animate-spin" />
+              ) : payState === "failed" ? (
+                <XCircle className="w-10 h-10 text-white" strokeWidth={2.2} />
+              ) : (
+                <CheckCircle2
+                  className="w-10 h-10 text-white"
+                  strokeWidth={2.2}
+                />
+              )}
             </div>
           </div>
 
@@ -56,11 +142,35 @@ export default function OrderSuccessPage() {
             {t("checkout.eyebrow")}
           </p>
           <h1 className="font-display text-3xl sm:text-4xl text-[#1E2A3D] dark:text-[#F5F5F5] mt-3 text-glow-warm">
-            {t("checkout.success.title")}
+            {payState === "failed"
+              ? t("checkout.success.failedTitle")
+              : t("checkout.success.title")}
           </h1>
           <p className="mt-4 text-sm sm:text-base text-[#6B7B8D] dark:text-white/60">
-            {t("checkout.success.subtitle")}
+            {payState === "failed"
+              ? t("checkout.success.failedSubtitle")
+              : t("checkout.success.subtitle")}
           </p>
+
+          {/* شارة حالة الدفع الإلكتروني (تظهر فقط عند العودة من بوابة بطاقة) */}
+          {payState !== "none" && (
+            <div
+              className={`mt-5 inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-display ${
+                payState === "paid"
+                  ? "bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/30"
+                  : payState === "failed"
+                    ? "bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/30"
+                    : "bg-warm/10 text-warm border border-warm/30"
+              }`}
+            >
+              {payState === "verifying" && (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              )}
+              {payState === "paid" && <CheckCircle2 className="w-3.5 h-3.5" />}
+              {payState === "failed" && <XCircle className="w-3.5 h-3.5" />}
+              {t(`checkout.plutu.status.${payState}`)}
+            </div>
+          )}
 
           {orderId && (
             <div className="mt-6 flex items-center justify-center gap-2">

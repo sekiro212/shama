@@ -1,3 +1,13 @@
+/**
+ * =============================================================================
+ * المكوّن الجذري لتطبيق المتجر (App)
+ * -----------------------------------------------------------------------------
+ * يُعرّف هذا الملف هيكل التطبيق العام: تسلسل مزوّدي السياق (Providers)،
+ * ونظام التوجيه (Routing)، والعناصر الثابتة المشتركة بين الصفحات مثل
+ * الرأس (Header) والتذييل (Footer) والسلة وزر المحادثة الآلية.
+ * تُحمَّل معظم الصفحات بأسلوب التحميل الكسول (lazy) لتحسين الأداء.
+ * =============================================================================
+ */
 import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import { useState, lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/sonner";
@@ -16,13 +26,14 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { ChatbotButton } from "@/components/ui/ChatbotButton";
 import "./App.css";
 
+// تحميل كسول (lazy loading) لصفحات التطبيق: كل صفحة تُجلب في حزمة منفصلة
+// عند زيارتها فقط، مما يقلّل حجم الحزمة الأولية ويسرّع أول تحميل للموقع.
 const ProductPage = lazy(() => import("@/pages/ProductPage"));
 const CollectionPage = lazy(() => import("@/pages/CollectionPage"));
 const GiftSetsPage = lazy(() => import("@/pages/GiftSetsPage"));
 const AdminRedirect = lazy(() => import("@/pages/AdminRedirect"));
 const FragranceQuizPage = lazy(() => import("@/pages/FragranceQuizPage"));
 const WishlistPage = lazy(() => import("@/pages/WishlistPage"));
-const OrderTrackingPage = lazy(() => import("@/pages/OrderTrackingPage"));
 const SamplesPage = lazy(() => import("@/pages/SamplesPage"));
 const LoginPage = lazy(() => import("@/pages/LoginPage"));
 const AIFinderPage = lazy(() => import("@/pages/AIFinderPage"));
@@ -40,6 +51,10 @@ const ReviewsPage = lazy(() => import("@/pages/ReviewsPage"));
 const CheckoutPage = lazy(() => import("@/pages/CheckoutPage"));
 const OrderSuccessPage = lazy(() => import("@/pages/OrderSuccessPage"));
 
+/**
+ * مكوّن غلاف يضيف حركة انتقالية ناعمة عند الدخول والخروج من كل صفحة.
+ * يُستخدم مع AnimatePresence لإظهار الصفحة بتأثير تلاشٍ وانزلاق رأسي خفيف.
+ */
 function PageTransition({ children }: { children: React.ReactNode }) {
   return (
     <motion.div
@@ -53,9 +68,15 @@ function PageTransition({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * المكوّن المسؤول عن عرض المسارات (Routes) مع تطبيق الحركات الانتقالية.
+ * يدير أيضاً ظهور نافذة البحث، ويخفي الرأس والتذييل وشريط الكوكيز
+ * في مسارات لوحة الإدارة لأنها تملك واجهتها الخاصة.
+ */
 function AnimatedRoutes({ isCartOpen, setIsCartOpen }: { isCartOpen: boolean; setIsCartOpen: (v: boolean) => void }) {
   const location = useLocation();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  // تحديد ما إذا كان المسار الحالي يخص لوحة الإدارة لإخفاء عناصر المتجر العامة.
   const isAdminRoute = location.pathname.startsWith("/admin");
 
   return (
@@ -68,8 +89,11 @@ function AnimatedRoutes({ isCartOpen, setIsCartOpen }: { isCartOpen: boolean; se
       )}
       <SearchDialog open={isSearchOpen} onOpenChange={setIsSearchOpen} />
       <main>
+        {/* AnimatePresence بوضع "wait" ينتظر انتهاء حركة خروج الصفحة قبل دخول الجديدة */}
         <AnimatePresence mode="wait">
+          {/* Suspense يعرض عنصراً بديلاً (placeholder) ريثما تُجلب حزمة الصفحة المحمّلة كسولياً */}
           <Suspense fallback={<div className="min-h-[60dvh]" aria-hidden="true" />}>
+            {/* مفتاح key المرتبط بالمسار يجبر React على إعادة التركيب عند تغيّر الصفحة لتشغيل الحركة */}
             <Routes location={location} key={location.pathname}>
               <Route path="/" element={<PageTransition><HomePage /></PageTransition>} />
               <Route path="/product/:id" element={<PageTransition><ProductPage /></PageTransition>} />
@@ -79,7 +103,6 @@ function AnimatedRoutes({ isCartOpen, setIsCartOpen }: { isCartOpen: boolean; se
               <Route path="/quiz" element={<PageTransition><FragranceQuizPage /></PageTransition>} />
               <Route path="/wishlist" element={<PageTransition><WishlistPage /></PageTransition>} />
               <Route path="/samples" element={<PageTransition><SamplesPage /></PageTransition>} />
-              <Route path="/track-order" element={<PageTransition><OrderTrackingPage /></PageTransition>} />
               <Route path="/my-orders" element={<PageTransition><MyOrdersPage /></PageTransition>} />
               <Route path="/admin" element={<PageTransition><AdminRedirect /></PageTransition>} />
               <Route path="/ai-finder" element={<PageTransition><AIFinderPage /></PageTransition>} />
@@ -111,10 +134,18 @@ function AnimatedRoutes({ isCartOpen, setIsCartOpen }: { isCartOpen: boolean; se
   );
 }
 
+/**
+ * المكوّن الجذري الذي يركّب تسلسل مزوّدي السياق ثم نظام التوجيه.
+ * يحتفظ بحالة فتح/إغلاق سلة المشتريات ويمرّرها للمسارات.
+ */
 function App() {
   const [isCartOpen, setIsCartOpen] = useState(false);
 
   return (
+    // تسلسل مزوّدي السياق (Provider hierarchy) — الترتيب مقصود:
+    // المصادقة (Auth) تغلّف الكل، ثم السمة (Theme)، ثم اللغة (Language)،
+    // ثم السلة (Cart)، ثم قائمة الأمنيات (Wishlist)، ثم الموجّه (Router).
+    // كل مزوّد داخلي يستطيع الوصول إلى السياقات الأعلى منه.
     <AuthProvider>
       <ThemeProvider>
         <LanguageProvider>

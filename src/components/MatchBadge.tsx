@@ -1,13 +1,26 @@
+/**
+ * MatchBadge.tsx
+ * --------------
+ * شارة صغيرة لنسبة التطابق مع الذكاء الاصطناعي توضع فوق صورة المنتج (تُستخدم في
+ * بطاقات نتائج AI-finder / الاختبار). تعرض نسبة التطابق، وعند المرور بالماوس
+ * تظهر تلميحة (tooltip) تشرح سبب ترشيح الذكاء الاصطناعي لهذا المنتج.
+ */
 import { useState } from "react";
 import { Sparkles } from "lucide-react";
 
 interface MatchBadgeProps {
-  score: number;
-  reason?: string;
-  matchLabel: string;
+  score: number;        // نسبة التطابق من الذكاء الاصطناعي (0–100)
+  reason?: string;      // شرح اختياري من سطر واحد يظهر في تلميحة المرور
+  matchLabel: string;   // كلمة "تطابق" مترجمة مسبقاً (تُمرَّر ليبقى المكوّن مستقلاً عن اللغة)
 }
 
+/**
+ * يعرض شارة نسبة التطابق مع تلميحة اختيارية عند المرور.
+ * يستقبل المكوّن `matchLabel` مترجمة مسبقاً بدل استدعاء useLanguage() بنفسه،
+ * ليبقى شارة عرضية بحتة (presentational).
+ */
 export default function MatchBadge({ score, reason, matchLabel }: MatchBadgeProps) {
+  // نتتبّع حالة المرور محلياً كي لا تُعرض تلميحة الشرح إلا عند التأشير عليها.
   const [hovered, setHovered] = useState(false);
 
   return (
@@ -27,6 +40,7 @@ export default function MatchBadge({ score, reason, matchLabel }: MatchBadgeProp
         </span>
       </div>
 
+      {/* تلميحة الشرح — تُركَّب فقط أثناء المرور وعند توفّر سبب (reason) */}
       {reason && hovered && (
         <div
           role="tooltip"

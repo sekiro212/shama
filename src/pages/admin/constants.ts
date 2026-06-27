@@ -1,5 +1,15 @@
+// ===========================================================================
+// constants.ts — الثوابت (CONSTANTS) والدوال المساعدة الصغيرة المشتركة لتطبيق الإدارة.
+// يحتوي على حالات النموذج الفارغة/الافتراضية المستخدمة لتهيئة وإعادة ضبط نافذتي
+// محرّر الكوبون والعطر، إضافةً إلى دالة مساعدة لتسمية حالة Vanex.
+// ===========================================================================
+
 import type { CouponFormState, Perfume } from "./types";
 
+/**
+ * initialCouponForm — الحالة الافتراضية الفارغة لنافذة إنشاء/تعديل الكوبون.
+ * تُستخدم لتهيئة نموذج كوبون جديد ولإعادة ضبط النموذج بعد الإرسال.
+ */
 export const initialCouponForm: CouponFormState = {
   code: "",
   discount_type: "fixed",
@@ -14,6 +24,11 @@ export const initialCouponForm: CouponFormState = {
   usage_limit_per_user: "",
 };
 
+/**
+ * initialPerfumeData — القيم الافتراضية الفارغة لعطر جديد (NEW) في نموذج
+ * المحرّر. يُسقِط الحقول التي يديرها الخادم (id، created_at، updated_at) لأنها
+ * تُعيَّن من قاعدة البيانات لا من النموذج.
+ */
 export const initialPerfumeData: Omit<Perfume, "id" | "created_at" | "updated_at"> = {
   name: "",
   name_ar: "",
@@ -41,9 +56,9 @@ export const initialPerfumeData: Omit<Perfume, "id" | "created_at" | "updated_at
 };
 
 /**
- * Translate a Vanex status code, falling back to a humanized version of the
- * raw code (e.g. "store_canceled" → "store canceled") when no translation
- * key exists — Vanex adds statuses we may not have localized yet.
+ * ترجمة رمز حالة Vanex، مع الرجوع إلى نسخة مقروءة من الرمز
+ * الخام (مثلاً "store_canceled" ← "store canceled") عند عدم وجود مفتاح
+ * ترجمة — إذ يضيف Vanex حالات قد لا نكون قد ترجمناها بعد.
  */
 export const vanexStatusLabel = (
   t: (key: string) => string,

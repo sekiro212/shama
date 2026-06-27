@@ -1,3 +1,13 @@
+/**
+ * =============================================================================
+ * تبويب إدارة الطلبات (Orders) في لوحة الإدارة
+ * -----------------------------------------------------------------------------
+ * مكوّن عرضي يعرض الطلبات في جدول بيانات مع إمكانية التصفية حسب الحالة،
+ * وتغيير حالة كل طلب، وإرساله إلى شركة التوصيل Vanex ومزامنة حالة الشحنة،
+ * بالإضافة إلى قبول الطلب أو إرجاعه أو حذفه أو عرض تفاصيله الكاملة.
+ * يعتمد على الخطّاف useOrders لكل البيانات والعمليات.
+ * =============================================================================
+ */
 import { useState, useMemo } from "react";
 import {
   Eye,
@@ -45,8 +55,13 @@ interface OrdersTabProps {
   ordersApi: ReturnType<typeof useOrders>;
 }
 
+/**
+ * يعرض جدول الطلبات وأدوات التحكم بها (التصفية، المزامنة، إعادة التحميل).
+ * @param ordersApi واجهة الخطّاف useOrders التي تحمل البيانات وكل دوال الإجراءات.
+ */
 export function OrdersTab({ ordersApi }: OrdersTabProps) {
   const { t, isRTL } = useLanguage();
+  // فلتر الحالة المحلي لتصفية الطلبات المعروضة في الجدول.
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
   const {
@@ -67,11 +82,13 @@ export function OrdersTab({ ordersApi }: OrdersTabProps) {
     handleStatusChange,
   } = ordersApi;
 
+  // تصفية الطلبات حسب الحالة المختارة؛ "الكل" تعيد القائمة كاملة دون تصفية.
   const filteredOrders = useMemo(() => {
     if (statusFilter === "all") return orders;
     return orders.filter((o) => o.status === statusFilter);
   }, [orders, statusFilter]);
 
+  // تعريف أعمدة جدول الطلبات: لكل عمود دالة cell ترسم محتوى الخلية.
   const columns: ColumnDef<Order>[] = [
     {
       accessorKey: "first_name",
@@ -95,6 +112,7 @@ export function OrdersTab({ ordersApi }: OrdersTabProps) {
       accessorKey: "payment_method",
       header: t("admin.orderDetails.paymentMethod"),
       enableSorting: false,
+      // عمود طريقة الدفع: شارة ملوّنة تميّز التحويل البنكي عن الدفع عند الاستلام.
       cell: ({ row }) => {
         const method = row.original.payment_method as keyof typeof PAYMENT_METHOD_STYLES;
         return (
@@ -123,6 +141,7 @@ export function OrdersTab({ ordersApi }: OrdersTabProps) {
       accessorKey: "status",
       header: t("admin.table.status"),
       enableSorting: false,
+      // عمود الحالة: قائمة منسدلة لتغيير حالة الطلب فوراً، يتلوّن إطارها حسب الحالة الحالية.
       cell: ({ row }) => {
         const order = row.original;
         return (
@@ -133,6 +152,7 @@ export function OrdersTab({ ordersApi }: OrdersTabProps) {
             }
             disabled={updatingOrderStatus === order.id}
           >
+            {/* لون مؤشر الحالة يتغيّر حسب القيمة: مُسلَّم أخضر، مشحون أزرق، قيد المعالجة برتقالي... */}
             <SelectTrigger
               className={`h-8 w-[130px] text-xs cursor-pointer border-[#323D50]/15 dark:border-white/20 ${
                 order.status === "delivered"
@@ -179,12 +199,15 @@ export function OrdersTab({ ordersApi }: OrdersTabProps) {
       id: "vanex",
       header: "Vanex",
       enableSorting: false,
+      // عمود Vanex: يعرض رمز الشحنة (قابل للنسخ) وشارة حالة التوصيل إن وُجدت.
       cell: ({ row }) => {
         const order = row.original;
         const code = order.vanex_package_code;
+        // إذا لم يُرسَل الطلب إلى Vanex بعد (لا يوجد رمز شحنة) نعرض شرطة فقط.
         if (!code) {
           return <span className="text-[#6B7B8D] dark:text-white/30 text-xs">&mdash;</span>;
         }
+        // حالة الشحنة كما وردت من نظام Vanex (تُترجم عبر vanexStatusLabel عند العرض).
         const vanexStatus = order.vanex_status;
         return (
           <div className="flex flex-col items-start gap-1">
@@ -205,6 +228,7 @@ export function OrdersTab({ ordersApi }: OrdersTabProps) {
                 <TooltipContent>Click to copy</TooltipContent>
               </Tooltip>
             </TooltipProvider>
+            {/* عرض شارة حالة الشحنة مع تسمية مترجمة عبر vanexStatusLabel */}
             {vanexStatus && (
               <StatusBadge
                 type="vanex"
@@ -220,6 +244,8 @@ export function OrdersTab({ ordersApi }: OrdersTabProps) {
       id: "actions",
       header: () => <span className="text-center w-full block">{t("admin.table.actions")}</span>,
       enableSorting: false,
+      // عمود الإجراءات: قائمة منسدلة تتكيّف مع حالة الطلب (مثلاً يظهر زر "إرسال إلى Vanex"
+      // فقط إذا لم يُرسَل بعد، ويظهر زر المزامنة فقط إذا كان لديه رمز شحنة).
       cell: ({ row }) => {
         const order = row.original;
         return (
@@ -240,6 +266,7 @@ export function OrdersTab({ ordersApi }: OrdersTabProps) {
                 >
                   <Eye className="w-4 h-4 me-2" /> {t("admin.orders.viewDetails")}
                 </DropdownMenuItem>
+                {/* خيار الإرسال إلى Vanex يظهر فقط للطلبات التي لم تُشحن بعد */}
                 {!order.vanex_package_code && (
                   <DropdownMenuItem
                     onClick={() => handleSendToVanex(order)}
@@ -248,6 +275,7 @@ export function OrdersTab({ ordersApi }: OrdersTabProps) {
                     <Truck className="w-4 h-4 me-2" /> Send to Vanex
                   </DropdownMenuItem>
                 )}
+                {/* خيار مزامنة حالة الشحنة يظهر فقط للطلبات التي لها رمز شحنة Vanex */}
                 {order.vanex_package_code && (
                   <DropdownMenuItem
                     onClick={() => handleSyncVanex(order)}
@@ -339,6 +367,7 @@ export function OrdersTab({ ordersApi }: OrdersTabProps) {
         </div>
       </div>
 
+      {/* جدول البيانات: يتولّى البحث بالاسم والترقيم وحالتي التحميل والفراغ داخلياً */}
       <DataTable
         columns={columns}
         data={filteredOrders}
@@ -352,6 +381,7 @@ export function OrdersTab({ ordersApi }: OrdersTabProps) {
         }}
       />
 
+      {/* نافذة التأكيد المشتركة للإجراءات الحسّاسة (الحذف، الإرجاع...) */}
       <ConfirmDialog {...confirmDialogProps} />
     </div>
   );

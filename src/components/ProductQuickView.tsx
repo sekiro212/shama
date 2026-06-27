@@ -1,3 +1,16 @@
+/**
+ * ===============================================================
+ * ProductQuickView.tsx — نافذة المعاينة السريعة للمنتَج
+ * ---------------------------------------------------------------
+ * نافذة منبثقة (Dialog) تعرض ملخّصًا سريعًا عن العطر دون مغادرة
+ * الصفحة الحالية: معرض صور مصغّر، الاسم، الحجم/النوع/التقييم،
+ * وصف مختصر، أبرز النفحات (notes)، السعر، وزرّا الإضافة للسلّة
+ * والانتقال للتفاصيل الكاملة. يتعامل مع حالة "نفاد المخزون".
+ *
+ * مكان الاستخدام: تُفتح من بطاقات/قوائم المنتجات لمعاينة سريعة.
+ * تدعم الاتجاهين العربي (RTL) والإنجليزي (LTR).
+ * ===============================================================
+ */
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ShoppingBag, X, Eye, Star } from "lucide-react";
@@ -14,15 +27,23 @@ interface ProductQuickViewProps {
   onOpenChange: (open: boolean) => void;
 }
 
+/**
+ * المكوّن الرئيسي لنافذة المعاينة السريعة.
+ * @param product بيانات المنتَج (العطر) المعروض.
+ * @param open هل النافذة مفتوحة؟
+ * @param onOpenChange دالة تغيير حالة الفتح/الإغلاق.
+ */
 export default function ProductQuickView({ product, open, onOpenChange }: ProductQuickViewProps) {
   const { addToCart } = useCart();
   const { t, isRTL } = useLanguage();
+  // فهرس الصورة المعروضة حاليًا ضمن معرض الصور المصغّر
   const [selectedImage, setSelectedImage] = useState(0);
 
   const productImages = product?.images?.length
     ? product.images.map((img) => img.image_url)
     : [];
 
+  // الإضافة للسلّة مع منعها عند نفاد المخزون، ثم إغلاق النافذة
   const handleAddToCart = () => {
     if (product.stock_quantity === 0) {
       toast.error(t("product.currentlySoldOut"));
@@ -40,6 +61,7 @@ export default function ProductQuickView({ product, open, onOpenChange }: Produc
     onOpenChange(false);
   };
 
+  // المنتَج يُعدّ نافدًا إذا كان غير مُفعَّل أو كانت كمية المخزون صفرًا
   const isSoldOut = !product.is_active || product.stock_quantity === 0;
 
   return (
@@ -58,6 +80,7 @@ export default function ProductQuickView({ product, open, onOpenChange }: Produc
                 <span className="text-white font-bold text-lg">{t("product.soldOut")}</span>
               </div>
             )}
+            {/* نقاط التنقّل بين الصور (حتى 5 صور) تظهر فقط عند وجود أكثر من صورة واحدة */}
             {productImages.length > 1 && (
               <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
                 {productImages.slice(0, 5).map((_, i) => (

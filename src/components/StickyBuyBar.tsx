@@ -1,3 +1,11 @@
+/**
+ * StickyBuyBar.tsx
+ * ----------------
+ * شريط "الشراء السريع" المخصّص للهاتف فقط، مثبّت أسفل صفحة المنتج. ينزلق إلى
+ * الظهور بمجرد تمرير المستخدم لما بعد القسم الرئيسي (hero)، بحيث يبقى السعر +
+ * زر الإضافة للسلة في المتناول دائماً على الشاشات الصغيرة. تعرضه ProductPage
+ * التي تملك منطق السلة الفعلي وتمرّره عبر الـ props.
+ */
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -5,13 +13,14 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useScrollThreshold } from "@/hooks/useScrollThreshold";
 
 interface StickyBuyBarProps {
-  price: number;
-  priceLabel: string;
-  onAddToCart: () => void;
-  disabled?: boolean;
-  isSoldOut?: boolean;
+  price: number;            // السعر الحالي للعرض (يتغيّر بتغيّر مقاس العبوة المختار)
+  priceLabel: string;       // عنوان فرعي أسفل السعر (مثل اسم المقاس المختار)
+  onAddToCart: () => void;  // معالج من المكوّن الأب ينفّذ عملية الإضافة للسلة
+  disabled?: boolean;       // تعطيل الزر (مثلاً عند عدم اختيار مقاس)
+  isSoldOut?: boolean;      // فرض حالة "نفد المخزون" بغض النظر عن الاختيار
 }
 
+/** شريط الشراء المثبّت في الأسفل؛ يظهر على الهاتف فقط بعد التمرير للأسفل. */
 export default function StickyBuyBar({
   price,
   priceLabel,
@@ -20,10 +29,12 @@ export default function StickyBuyBar({
   isSoldOut,
 }: StickyBuyBarProps) {
   const { t } = useLanguage();
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotion(); // تخطّي حركة الانزلاق إذا فضّل المستخدم تقليل الحركة
+  // لا نُظهر الشريط إلا بعد أن يمرّر المستخدم 500 بكسل من أعلى الصفحة.
   const visible = useScrollThreshold(500);
 
   return (
+    // AnimatePresence يتيح خروج الشريط بحركة عند عودة `visible` إلى false.
     <AnimatePresence>
       {visible && (
         <motion.div

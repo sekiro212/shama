@@ -1,3 +1,12 @@
+/**
+ * =============================================================================
+ * تبويب إدارة العطور (Perfumes) في لوحة الإدارة
+ * -----------------------------------------------------------------------------
+ * مكوّن عرضي يعرض العطور إمّا في جدول بيانات أو في شبكة بطاقات، مع بطاقات
+ * إحصائية وأدوات بحث وتصفية (حسب النوع والجنس وحالة المخزون). يتيح تعديل
+ * العطر أو حذفه أو تفعيله/تعطيله. يعتمد على الخطّاف usePerfumes للبيانات.
+ * =============================================================================
+ */
 import { useState, useMemo } from "react";
 import {
   Plus,
@@ -43,11 +52,18 @@ interface PerfumesTabProps {
   perfumesApi: ReturnType<typeof usePerfumes>;
 }
 
+// خيارات تصفية المخزون: الكل / متوفر / منخفض / نافد.
 type StockFilter = "all" | "inStock" | "lowStock" | "outOfStock";
 
+/**
+ * يعرض إدارة العطور مع بطاقات الإحصاء وأدوات التصفية وعرضي الجدول والشبكة.
+ * @param perfumesApi واجهة الخطّاف usePerfumes (البيانات، الفلاتر، ودوال الإجراءات).
+ */
 export function PerfumesTab({ perfumesApi }: PerfumesTabProps) {
   const { t, isRTL } = useLanguage();
+  // نمط العرض المحلي: جدول أو شبكة بطاقات.
   const [viewMode, setViewMode] = useState<"table" | "grid">("table");
+  // فلتر حالة المخزون المحلي (يُطبّق فوق الفلاتر القادمة من الخطّاف).
   const [stockFilter, setStockFilter] = useState<StockFilter>("all");
 
   const {
@@ -70,6 +86,8 @@ export function PerfumesTab({ perfumesApi }: PerfumesTabProps) {
     confirmDialogProps,
   } = perfumesApi;
 
+  // تطبيق فلتر المخزون فوق العطور المُصفّاة مسبقاً من الخطّاف.
+  // العتبات: متوفر = أكثر من 10، منخفض = من 1 إلى 10، نافد = 0.
   const displayPerfumes = useMemo(() => {
     if (stockFilter === "all") return filteredPerfumes;
     return filteredPerfumes.filter((p) => {
@@ -80,11 +98,13 @@ export function PerfumesTab({ perfumesApi }: PerfumesTabProps) {
     });
   }, [filteredPerfumes, stockFilter]);
 
+  // تعريف أعمدة جدول العطور: لكل عمود دالة cell ترسم محتوى الخلية.
   const columns: ColumnDef<Perfume>[] = [
     {
       id: "image",
       header: t("admin.table.image"),
       enableSorting: false,
+      // عمود الصورة: يعرض أول صورة للعطر، ويستبدلها بصورة بديلة عند غيابها أو فشل تحميلها.
       cell: ({ row }) => {
         const perfume = row.original;
         return (
@@ -138,6 +158,7 @@ export function PerfumesTab({ perfumesApi }: PerfumesTabProps) {
     {
       accessorKey: "stock_quantity",
       header: t("admin.table.stock"),
+      // عمود المخزون: يتلوّن الرقم حسب الكمية (أحمر نافد، برتقالي منخفض، أخضر متوفر).
       cell: ({ row }) => {
         const stock = row.original.stock_quantity;
         const color =
@@ -163,6 +184,7 @@ export function PerfumesTab({ perfumesApi }: PerfumesTabProps) {
       id: "actions",
       header: t("admin.table.actions"),
       enableSorting: false,
+      // عمود الإجراءات: قائمة منسدلة لتفعيل/تعطيل العطر وتعديله وحذفه.
       cell: ({ row }) => {
         const perfume = row.original;
         return (
@@ -207,6 +229,10 @@ export function PerfumesTab({ perfumesApi }: PerfumesTabProps) {
     },
   ];
 
+  /**
+   * تُرجع صنف اللون المناسب لكمية المخزون لاستخدامه في عرض الشبكة (Grid).
+   * نافد = أحمر، منخفض (≤ 10) = برتقالي، متوفر = أخضر.
+   */
   const getStockColor = (stock: number) => {
     if (stock === 0) return "text-red-500 font-semibold";
     if (stock <= 10) return "text-orange-500 font-semibold";
@@ -302,6 +328,7 @@ export function PerfumesTab({ perfumesApi }: PerfumesTabProps) {
             <SelectItem value="outOfStock" className="cursor-pointer">Out of Stock (0)</SelectItem>
           </SelectContent>
         </Select>
+        {/* مبدّل نمط العرض بين الجدول (List) والشبكة (Grid) */}
         <div className="flex items-center gap-1 border border-[#323D50]/15 dark:border-white/20 rounded-lg p-1">
           <Button
             variant={viewMode === "table" ? "default" : "ghost"}
@@ -340,6 +367,7 @@ export function PerfumesTab({ perfumesApi }: PerfumesTabProps) {
         </Button>
       </div>
 
+      {/* عرض الجدول عند اختيار نمط table، وإلا عرض الشبكة */}
       {viewMode === "table" ? (
         <DataTable
           columns={columns}
@@ -354,6 +382,7 @@ export function PerfumesTab({ perfumesApi }: PerfumesTabProps) {
         />
       ) : (
         <>
+          {/* عرض الشبكة: حالة فراغ مخصّصة ثم بطاقات العطور */}
           {displayPerfumes.length === 0 ? (
             <div className="glass-card border border-[#323D50]/10 dark:border-white/10 rounded-2xl p-12 flex flex-col items-center justify-center text-center">
               <Package className="w-12 h-12 text-[#6B7B8D] dark:text-white/40 mb-4" />
@@ -380,6 +409,7 @@ export function PerfumesTab({ perfumesApi }: PerfumesTabProps) {
                         (e.target as HTMLImageElement).src = PLACEHOLDER_IMAGE_URL;
                       }}
                     />
+                    {/* طبقة أزرار التعديل والحذف تظهر فوق الصورة عند تمرير المؤشر (hover) */}
                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                       <Button
                         size="sm"
@@ -433,6 +463,7 @@ export function PerfumesTab({ perfumesApi }: PerfumesTabProps) {
         </>
       )}
 
+      {/* نافذتا تأكيد: الأولى لإجراءات العطر (الحذف)، والثانية لإجراءات صور العطر */}
       <ConfirmDialog {...confirmDialogProps} />
       <ConfirmDialog {...perfumesApi.images.confirmDialogProps} />
     </div>

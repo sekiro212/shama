@@ -1,3 +1,10 @@
+/**
+ * ملف: AdminSidebar.tsx
+ * الدور: الشريط الجانبي للتنقّل في لوحة التحكم. يوفّر نسختين: نسخة سطح المكتب الثابتة
+ * القابلة للطيّ (AdminSidebar) ونسخة الجوال المنبثقة عبر لوحة جانبية (MobileAdminSidebar).
+ * يعرض روابط الأقسام مع شارات العدّ للعناصر المعلّقة (مراجعات/ذكريات)، إضافةً إلى أدوات
+ * تبديل السمة واللغة وتسجيل الخروج. يدعم الاتجاهين (RTL/LTR).
+ */
 import { useState, useEffect, useCallback } from "react";
 import { NavLink } from "react-router-dom";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
@@ -24,6 +31,7 @@ import {
   PanelLeft,
 } from "lucide-react";
 
+// مفتاح localStorage لحفظ حالة طيّ الشريط الجانبي بين الجلسات
 const STORAGE_KEY = "admin-sidebar-collapsed";
 
 interface NavItem {
@@ -33,6 +41,8 @@ interface NavItem {
   badgeKey?: string;
 }
 
+// إعداد روابط التنقّل: مصدر واحد للحقيقة لأقسام لوحة التحكم. لكل عنصر مساره وأيقونته
+// ومفتاح الترجمة، و badgeKey اختياري للأقسام التي تعرض شارة عدّ (المراجعات والذكريات المعلّقة)
 const navItems: NavItem[] = [
   { path: "/", icon: LayoutDashboard, labelKey: "admin.nav.overview" },
   { path: "/orders", icon: ShoppingCart, labelKey: "admin.nav.orders" },
@@ -43,6 +53,7 @@ const navItems: NavItem[] = [
   { path: "/coupons", icon: Ticket, labelKey: "admin.nav.coupons" },
 ];
 
+// تسميات احتياطية بالإنجليزية تُستخدم عند غياب مفتاح الترجمة، حتى لا يظهر المفتاح الخام للمستخدم
 const FALLBACK_LABELS: Record<string, string> = {
   "admin.nav.overview": "Overview",
   "admin.nav.orders": "Orders",
@@ -64,13 +75,22 @@ interface MobileAdminSidebarProps extends AdminSidebarProps {
   onOpenChange: (open: boolean) => void;
 }
 
+/**
+ * خطّاف مساعد يُعيد النص المترجَم لمفتاح ما.
+ * إذا أرجعت دالة الترجمة المفتاح نفسه (أي لا توجد ترجمة) يلجأ إلى التسمية الاحتياطية.
+ */
 function useLabel(key: string): string {
   const { t } = useLanguage();
   const translated = t(key);
+  // إن ساوى الناتج المفتاح نفسه فهذا يعني عدم وجود ترجمة، فنستخدم البديل الاحتياطي
   if (translated !== key) return translated;
   return FALLBACK_LABELS[key] ?? key;
 }
 
+/**
+ * يحسب قيمة شارة العدّ لعنصر تنقّل بحسب نوع شارته (badgeKey).
+ * يُعيد العدد فقط إذا كان موجبًا، وإلا undefined كي لا تظهر الشارة أصلًا.
+ */
 function getBadgeCount(
   badgeKey: string | undefined,
   pendingReviewCount?: number,
@@ -82,6 +102,11 @@ function getBadgeCount(
   return undefined;
 }
 
+/**
+ * عنصر رابط واحد في الشريط الجانبي.
+ * يعرض الأيقونة والتسمية وشارة العدّ، ويبرز الحالة النشطة عبر NavLink. في وضع الطيّ يظهر
+ * تلميح (tooltip) بالاسم لأن النص يكون مخفيًا.
+ */
 function SidebarNavItem({
   item,
   collapsed,
@@ -99,6 +124,7 @@ function SidebarNavItem({
   const linkContent = (
     <NavLink
       to={item.path}
+      // المطابقة الدقيقة (end) للمسار الجذر "/" فقط، حتى لا يبقى رابط النظرة العامة نشطًا في كل المسارات
       end={item.path === "/"}
       onClick={onClick}
       className={({ isActive }) =>
@@ -122,6 +148,7 @@ function SidebarNavItem({
           )}
         </>
       )}
+      {/* في وضع الطيّ تظهر الشارة كنقطة صغيرة فوق الأيقونة، وتُختصر الأعداد الكبيرة إلى "9+" */}
       {collapsed && badgeCount !== undefined && (
         <span className="absolute -top-1 -end-1 w-4 h-4 rounded-full bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center">
           {badgeCount > 9 ? "9+" : badgeCount}
@@ -146,6 +173,11 @@ function SidebarNavItem({
   return linkContent;
 }
 
+/**
+ * المحتوى المشترك للشريط الجانبي المستخدَم في كلٍّ من نسخة سطح المكتب ونسخة الجوال.
+ * يبني الترويسة، وقائمة الروابط، وتذييل المستخدم مع أزرار السمة واللغة وتسجيل الخروج.
+ * المعاملات collapsed و showToggle تتحكمان بهيئة العرض (مطويّ/مفرود، إظهار زر الطيّ).
+ */
 function SidebarContent({
   collapsed,
   onToggleCollapse,
@@ -218,6 +250,7 @@ function SidebarContent({
         </div>
       )}
 
+      {/* توليد روابط التنقّل من إعداد navItems، مع حساب شارة العدّ لكل عنصر حسب نوعه */}
       <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
         {navItems.map((item) => (
           <SidebarNavItem
@@ -360,7 +393,12 @@ function SidebarContent({
   );
 }
 
+/**
+ * الشريط الجانبي لنسخة سطح المكتب: ثابت على الجانب وقابل للطيّ.
+ * يحفظ حالة الطيّ في localStorage ويستعيدها عند إعادة التحميل.
+ */
 export default function AdminSidebar({ pendingReviewCount, pendingMemoryCount }: AdminSidebarProps) {
+  // قراءة حالة الطيّ المحفوظة سابقًا كقيمة ابتدائية (مع التحوّط من تعذّر الوصول إلى localStorage)
   const [collapsed, setCollapsed] = useState(() => {
     try {
       return localStorage.getItem(STORAGE_KEY) === "true";
@@ -369,6 +407,7 @@ export default function AdminSidebar({ pendingReviewCount, pendingMemoryCount }:
     }
   });
 
+  // حفظ حالة الطيّ عند كل تغيير لتبقى ثابتة بين الجلسات
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, String(collapsed));
@@ -398,6 +437,10 @@ export default function AdminSidebar({ pendingReviewCount, pendingMemoryCount }:
   );
 }
 
+/**
+ * الشريط الجانبي لنسخة الجوال: يظهر كلوحة منبثقة (Sheet) يتحكم فيها open/onOpenChange.
+ * يفتح من الجانب المناسب حسب اتجاه اللغة (يمين في العربية)، ويُغلق ذاتيًا عند الضغط على أي رابط.
+ */
 export function MobileAdminSidebar({
   open,
   onOpenChange,

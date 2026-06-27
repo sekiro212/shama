@@ -1,3 +1,10 @@
+// ===========================================================================
+// ImagesSection.tsx — قسم فرعي لمعرض صور نافذة نموذج العطر.
+// عرضي فقط (presentational): يعرض زر الرفع + شبكة الصور المصغّرة ويُبلِّغ عن
+// إجراءات المستخدم عبر دوال رد النداء (callbacks). يتعامل مع وضعين — التحرير يعرض
+// الصور المرفوعة مسبقًا (مع تعيين-أساسية/حذف)، أما الإنشاء فيعرض الملفات "المعلّقة"
+// المخزّنة محليًا التي لا تُرفع إلا بعد حفظ العطر.
+// ===========================================================================
 import { RefObject } from "react";
 import { Upload, Image as ImageIcon, Star, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,6 +28,16 @@ interface ImagesSectionProps {
   handleSetPrimaryImage: (imageId: string) => void;
 }
 
+/**
+ * يعرض معرض صور العطر داخل نافذة النموذج.
+ * الخصائص (props) الأساسية:
+ * - editingPerfume: عند تعيينه، تُعرض `perfumeImages` المحفوظة؛ وإلا تُعرض
+ *   `pendingImages` المخزّنة محليًا لعطر لم يُنشأ بعد
+ * - fileInputRef + handleImageUpload: توصيل حقل ملفات مخفي لاختيار الملفات
+ * - handleSetPrimaryImage / handleImageDelete / removePendingImage: إجراءات لكل
+ *   صورة مصغّرة؛ وتُشغّل settingPrimary / deletingImage / imageUploading مؤشّرات الانشغال
+ * كل منطق الرفع/الحذف موجود في الـ hook usePerfumeImages — وهذا للعرض فقط.
+ */
 export function ImagesSection({
   editingPerfume,
   perfumeImages,
@@ -58,6 +75,7 @@ export function ImagesSection({
         </Button>
       </div>
 
+      {/* حقل ملفات أصلي مخفي، يُطلَق عبر زر "إضافة صور" المرئي. */}
       <input
         ref={fileInputRef}
         type="file"
@@ -67,7 +85,7 @@ export function ImagesSection({
         className="hidden"
       />
 
-      {/* Show existing images for editing */}
+      {/* عرض الصور الموجودة عند التحرير */}
       {editingPerfume && perfumeImages.length > 0 && (
         <div className="grid grid-cols-3 gap-4">
           {perfumeImages.map((image) => (
@@ -125,7 +143,7 @@ export function ImagesSection({
         </div>
       )}
 
-      {/* Show pending images for new perfume */}
+      {/* عرض الصور المعلّقة لعطر جديد */}
       {!editingPerfume && pendingImages.length > 0 && (
         <div className="grid grid-cols-3 gap-4">
           {pendingImages.map((file, index) => (
@@ -139,6 +157,7 @@ export function ImagesSection({
                 className="w-full h-24 object-cover rounded-md"
               />
 
+              {/* معاينة من رابط كائن (object URL) في الذاكرة؛ أول ملف معلّق هو الأساسي. */}
               {index === 0 && (
                 <div className={`absolute top-1 ${isRTL ? "right-1" : "left-1"} bg-[#5B8DD9] text-white px-2 py-1 rounded-full text-xs flex items-center`}>
                   <Star className={`w-3 h-3 ${isRTL ? "ms-1" : "me-1"}`} />
@@ -167,7 +186,7 @@ export function ImagesSection({
         </div>
       )}
 
-      {/* No images message */}
+      {/* رسالة عدم وجود صور */}
       {((editingPerfume && perfumeImages.length === 0) ||
         (!editingPerfume && pendingImages.length === 0)) && (
         <div className="text-center py-8 text-[#6B7B8D] dark:text-white/40">

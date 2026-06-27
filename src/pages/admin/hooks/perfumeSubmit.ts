@@ -1,7 +1,16 @@
+// ===========================================================================
+// perfumeSubmit.ts — روتين تثبيت إنشاء/تحديث العطر.
+// دالة مساعدة غير متزامنة (async) خالصة (بلا React) مُستخرَجة من usePerfumes:
+// تتحقّق من النموذج، تكتب صف `perfumes` الرئيسي، ثم تزامن الجداول الفرعية المرتبطة
+// (الصور، العيّنات، أحجام القوارير) في Supabase.
+// ===========================================================================
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import type { Perfume, PerfumeSample, PerfumeBottleSize } from "../types";
 
+/** كل ما تحتاجه submitPerfume: قيم النموذج، وهدف التحرير، وسلاسل الروائح الخام
+ *  المفصولة بفواصل، ومصفوفات متغيّرات العيّنات/أحجام القوارير، وأي صور مخزّنة
+ *  لعطر لم يُنشأ بعد، ودالة الرفع، ودالة الترجمة. */
 interface SubmitArgs {
   formData: Omit<Perfume, "id" | "created_at" | "updated_at">;
   editingPerfume: Perfume | null;
@@ -15,6 +24,16 @@ interface SubmitArgs {
   t: (key: string) => string;
 }
 
+/**
+ * يثبّت عطرًا (إدراج عند الجديد، تحديث عند التحرير) إضافةً إلى جداول متغيّراته.
+ * يتحقّق أولًا من الحقول المطلوبة وقواعد أحجام القوارير، ويبني حمولة قاعدة
+ * البيانات (DB payload) (بتقسيم سلاسل الروائح إلى كائن JSON وفرض النوع "bottle"
+ * عند تفعيل أحجام القوارير)، ثم عند التحرير يحذف صفوف العيّنات/أحجام القوارير
+ * ويعيد إدراجها بحيث تطابق النموذج دائمًا. يُظهر كل خطوة عبر إشعارات toast.
+ *
+ * @param args - انظر SubmitArgs.
+ * @returns true عند النجاح، وfalse عند فشل التحقق (يرمي استثناءً عند أخطاء Supabase).
+ */
 export async function submitPerfume(args: SubmitArgs): Promise<boolean> {
   const {
     formData,
@@ -34,7 +53,7 @@ export async function submitPerfume(args: SubmitArgs): Promise<boolean> {
     return false;
   }
 
-  // Validate bottle sizes if enabled
+  // التحقق من أحجام القوارير إذا كانت مفعّلة
   if (formData.has_bottle_sizes && perfumeBottleSizes.length > 0) {
     for (const bottleSize of perfumeBottleSizes) {
       if (!bottleSize.price || bottleSize.price <= 0) {
@@ -48,12 +67,13 @@ export async function submitPerfume(args: SubmitArgs): Promise<boolean> {
     }
   }
 
-  // Ensure bottle size perfumes are type "bottle"
+  // ضمان أن تكون عطور أحجام القوارير من النوع "bottle"
   if (formData.has_bottle_sizes && formData.type !== "bottle") {
     toast.error(t("admin.toast.bottleSizeTypeError"));
     return false;
   }
 
+  // تحويل مدخلات الروائح المفصولة بفواصل إلى صيغة JSON التي يتوقّعها عمود قاعدة البيانات.
   const fragranceNotes = {
     top: topNotes.split(",").map((note) => note.trim()).filter(Boolean),
     middle: middleNotes.split(",").map((note) => note.trim()).filter(Boolean),
@@ -63,10 +83,12 @@ export async function submitPerfume(args: SubmitArgs): Promise<boolean> {
   const perfumeData = {
     ...formData,
     fragrance_notes: fragranceNotes,
-    // Ensure type is bottle when bottle sizes are enabled
+    // ضمان أن يكون النوع bottle عند تفعيل أحجام القوارير
     type: formData.has_bottle_sizes ? "bottle" : formData.type,
   };
 
+  // تحديث الصف الموجود عند التحرير، وإلا إدراج عطر جديد.
+  // (تُعيد ‎.select()‎ الصف المتأثّر حتى نتمكن من قراءة المعرّف (id) المولَّد له.)
   let result;
   if (editingPerfume) {
     result = await supabase
@@ -85,12 +107,13 @@ export async function submitPerfume(args: SubmitArgs): Promise<boolean> {
 
   console.log("Perfume created/updated:", result.data?.[0]);
 
-  // If creating a new perfume and there are pending images, upload them
+  // بالنسبة لعطر جديد كليًا، خُزِّنت الصور محليًا (لم يكن هناك معرّف بعد)؛ والآن
+  // بعد وجود الصف، تُرفع مقابل معرّفه (id) الجديد.
   if (!editingPerfume && pendingImages.length > 0 && result.data?.[0]?.id) {
     await uploadPendingImages(result.data[0].id);
   }
 
-  // Handle samples
+  // معالجة العيّنات
   if (
     formData.has_samples &&
     perfumeSamples.length > 0 &&
@@ -99,7 +122,8 @@ export async function submitPerfume(args: SubmitArgs): Promise<boolean> {
     const perfumeId = result.data[0].id;
 
     if (editingPerfume) {
-      // For editing: Delete existing samples first, then insert updated ones
+      // الحذف ثم إعادة الإدراج يُبقي جدول العيّنات مرآةً مطابقة للنموذج (أبسط من
+      // مقارنة الصفوف المضافة/المحذوفة/المعدّلة).
       const { error: deleteError } = await supabase
         .from("perfume_samples")
         .delete()
@@ -112,7 +136,7 @@ export async function submitPerfume(args: SubmitArgs): Promise<boolean> {
       }
     }
 
-    // Insert/update samples
+    // إدراج/تحديث العيّنات
     const samplesToInsert = perfumeSamples.map((sample) => ({
       perfume_id: perfumeId,
       size: sample.size,
@@ -132,7 +156,7 @@ export async function submitPerfume(args: SubmitArgs): Promise<boolean> {
       console.log("Samples saved successfully:", samplesToInsert.length);
     }
   } else if (editingPerfume && !formData.has_samples) {
-    // If editing and samples are disabled, delete all existing samples
+    // عند التحرير وتعطيل العيّنات، تُحذف كل العيّنات الموجودة
     const perfumeId = result.data?.[0]?.id;
     if (perfumeId) {
       const { error: deleteError } = await supabase
@@ -147,7 +171,7 @@ export async function submitPerfume(args: SubmitArgs): Promise<boolean> {
     }
   }
 
-  // Handle bottle sizes
+  // معالجة أحجام القوارير
   console.log("Bottle size handling debug:", {
     has_bottle_sizes: formData.has_bottle_sizes,
     perfumeBottleSizes_length: perfumeBottleSizes.length,
@@ -163,7 +187,7 @@ export async function submitPerfume(args: SubmitArgs): Promise<boolean> {
     const perfumeId = result.data[0].id;
 
     if (editingPerfume) {
-      // For editing: Delete existing bottle sizes first, then insert updated ones
+      // نفس استراتيجية المرآة المتّبعة مع العيّنات: مسح أحجام القوارير الموجودة، ثم إعادة الإدراج.
       const { error: deleteError } = await supabase
         .from("perfume_bottle_sizes")
         .delete()
@@ -176,7 +200,7 @@ export async function submitPerfume(args: SubmitArgs): Promise<boolean> {
       }
     }
 
-    // Insert/update bottle sizes
+    // إدراج/تحديث أحجام القوارير
     const bottleSizesToInsert = perfumeBottleSizes.map((bottleSize) => ({
       perfume_id: perfumeId,
       size: bottleSize.size,
@@ -203,7 +227,7 @@ export async function submitPerfume(args: SubmitArgs): Promise<boolean> {
       );
     }
   } else if (editingPerfume && !formData.has_bottle_sizes) {
-    // If editing and bottle sizes are disabled, delete all existing bottle sizes
+    // عند التحرير وتعطيل أحجام القوارير، تُحذف كل أحجام القوارير الموجودة
     const perfumeId = result.data?.[0]?.id;
     if (perfumeId) {
       const { error: deleteError } = await supabase

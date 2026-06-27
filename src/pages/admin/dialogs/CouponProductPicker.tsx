@@ -1,3 +1,11 @@
+/**
+ * CouponProductPicker.tsx
+ * -----------------------
+ * مكوّن فرعي لنموذج الكوبون. يتيح للمسؤول حصر الكوبون بمجموعة من العطور المحدّدة
+ * (نطاق "specific_products"). يعرض المنتجات المختارة مسبقًا كشارات (badges) قابلة
+ * للإزالة، ومربّع بحث، وقائمة منتجات قابلة للتمرير والبحث يمكن تفعيل/تعطيل كل منها.
+ * تُخزَّن المعرّفات (IDs) المختارة في حالة نموذج الكوبون باسم `scope_product_ids`.
+ */
 import { Search, X, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +22,15 @@ interface CouponProductPickerProps {
   toggleCouponScopeProduct: (id: string) => void;
 }
 
+/**
+ * يعرض واجهة اختيار المنتجات للكوبونات المحصورة بمنتجات.
+ * الخصائص (props) الأساسية:
+ * - couponForm: حالة نموذج الكوبون الحالية (تستخدم `scope_product_ids`)
+ * - perfumes: قائمة المنتجات الكاملة، تُستخدم لتحويل المعرّف (ID) إلى اسم منتج
+ * - productPickerSearch / setProductPickerSearch: قيمة مربّع البحث + دالة الضبط
+ * - filteredPickerProducts: المنتجات المطابقة لاستعلام البحث الحالي
+ * - toggleCouponScopeProduct: يُضيف/يُزيل معرّف منتج من التحديد
+ */
 export function CouponProductPicker({
   couponForm,
   perfumes,
@@ -32,9 +49,11 @@ export function CouponProductPicker({
       <p className="text-xs text-[#6B7B8D] dark:text-white/50">
         {t("admin.coupons.selectProductsHint")}
       </p>
+      {/* رقائق (chips) للمنتجات المختارة حاليًا؛ النقر على رقاقة يُزيلها. */}
       {couponForm.scope_product_ids.length > 0 && (
         <div className="flex flex-wrap gap-2 p-2 rounded-xl bg-[#5B8DD9]/5 border border-[#5B8DD9]/20">
           {couponForm.scope_product_ids.map((id) => {
+            // تحويل المعرّف (ID) المخزَّن إلى منتج فعلي؛ يُتخطّى إن لم يعد موجودًا.
             const p = perfumes.find((pp) => pp.id === id);
             if (!p) return null;
             return (
@@ -72,6 +91,7 @@ export function CouponProductPicker({
           </div>
         ) : (
           filteredPickerProducts.map((p) => {
+            // يُعدّ المنتج "مختارًا" إذا كان معرّفه (ID) موجودًا في قائمة النطاق.
             const selected = couponForm.scope_product_ids.includes(p.id);
             return (
               <button

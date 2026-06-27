@@ -1,3 +1,15 @@
+/**
+ * FragranceTimeline.tsx
+ * ---------------------------------------------------------------------------
+ * أداة تفاعلية تعرض "كيف يتطور العطر مع مرور الوقت" داخل صفحة المنتج (ProductPage).
+ * يُطلق العطر رائحته على ثلاث مراحل — النوتات العليا (top) أولاً، ثم نوتات القلب
+ * (middle)، ثم النوتات الأساسية (base). يعرض هذا المكوّن هذه المراحل الثلاث على
+ * مسار متحرك. الضغط على نقطة/بطاقة مرحلة يوسّع وصفاً مكتوباً بالذكاء الاصطناعي
+ * يشرح كيف تكون رائحة تلك المرحلة.
+ *
+ * ثنائي اللغة: التسميات والأوقات لها نسخ عربية، ومواضع النقاط تُعكَس عندما تكون
+ * الواجهة من اليمين إلى اليسار (RTL).
+ */
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -5,12 +17,16 @@ import { generateTimelineDescriptions } from "@/services/aiService";
 
 interface FragranceTimelineProps {
   productName: string;
+  /** نوتات العطر مجمّعة حسب المرحلة (بالإنجليزية). */
   notes: { top: string[]; middle: string[]; base: string[] };
+  /** ترجمة عربية اختيارية للنوتات، تُعرض عندما تكون language === "ar". */
   notesAr?: { top: string[]; middle: string[]; base: string[] };
 }
 
 type PhaseKey = "top" | "middle" | "base";
 
+// إعداد ثابت للمراحل الثلاث: تسمية ثنائية اللغة + النافذة الزمنية التقريبية التي
+// تكون فيها كل مرحلة محسوسة، إضافةً إلى موضع نقطتها على المسار.
 const PHASES: {
   key: PhaseKey;
   label: string;
@@ -45,22 +61,34 @@ const PHASES: {
   },
 ];
 
+/**
+ * يعرض الخط الزمني المتحرك للمراحل الثلاث لعطر واحد.
+ * @param productName - اسم المنتج، يُمرَّر للذكاء الاصطناعي لتوليد أوصاف المراحل
+ * @param notes - النوتات الإنجليزية لكل مرحلة
+ * @param notesAr - النوتات العربية الاختيارية لكل مرحلة
+ */
 export default function FragranceTimeline({
   productName,
   notes,
   notesAr,
 }: FragranceTimelineProps) {
   const { isRTL, language } = useLanguage();
+  // أي بطاقة/نقطة مرحلة موسَّعة حالياً (null = كل المراحل مطوية).
   const [activePhase, setActivePhase] = useState<PhaseKey | null>(null);
+  // النص المولَّد بالذكاء الاصطناعي الذي يصف كل مرحلة؛ يبقى null حتى يكتمل الجلب.
   const [descriptions, setDescriptions] = useState<{
     top: string;
     middle: string;
     base: string;
   } | null>(null);
 
+  // اعرض النوتات العربية فقط عندما تكون العربية مفعّلة وتوجد ترجمة مُمرَّرة.
   const displayNotes =
     language === "ar" && notesAr ? notesAr : notes;
 
+  // اجلب أوصاف المراحل من الذكاء الاصطناعي كلما تغيّر المنتج أو اللغة.
+  // يحمي المتغيّر `cancelled` من قيام استجابة متأخرة بتحديث مكوّن أُزيل من الشجرة
+  // (أو من طلب قديم بعد أن بدّل المستخدم المنتج/اللغة).
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
@@ -99,11 +127,14 @@ export default function FragranceTimeline({
                 : "border-[#5B8DD9] bg-white dark:bg-[#1a2235] hover:scale-125"
             }`}
             style={{
+              // اعكس الموضع الأفقي للنقطة في وضع RTL ليُقرأ المسار من اليمين
+              // إلى اليسار (مثال: 10% تصبح 90%).
               left: isRTL
                 ? `${100 - parseInt(phase.dotPosition)}%`
                 : phase.dotPosition,
               transform: "translate(-50%, -50%)",
             }}
+            // تبديل: الضغط على المرحلة المفعّلة يطويها، وإلا يفتحها.
             onClick={() =>
               setActivePhase(activePhase === phase.key ? null : phase.key)
             }
@@ -139,6 +170,7 @@ export default function FragranceTimeline({
                 {isRTL ? phase.timeAr : phase.time}
               </div>
 
+              {/* اعرض أول 3 نوتات فقط كرقائق؛ والبقية تُختصر في شارة "N+" */}
               <div className="flex flex-wrap gap-1 mb-2">
                 {phaseNotes.slice(0, 3).map((note) => (
                   <span
@@ -155,6 +187,7 @@ export default function FragranceTimeline({
                 )}
               </div>
 
+              {/* وصف الذكاء الاصطناعي ينفتح بحركة (height 0 ← auto) للمرحلة المفعّلة فقط */}
               <AnimatePresence>
                 {isActive && descriptions && (
                   <motion.p

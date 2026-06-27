@@ -1,3 +1,10 @@
+// ===========================================================================
+// usePerfumes.ts — hook للبيانات والتعديلات لمورد "Perfumes" في الإدارة.
+// أكبر hook للمنتجات: يمتلك قائمة العطور، ومرشّحات البحث/النوع/الجنس، وكامل حالة
+// نموذج الإضافة/التحرير (بما فيها روائح العطر، ومصفوفات متغيّرات العيّنات وأحجام
+// القوارير)، وعمليات CRUD. يُفوَّض التثبيت إلى submitPerfume؛ ومعالجة الصور إلى
+// usePerfumeImages.
+// ===========================================================================
 import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
@@ -10,6 +17,18 @@ import { getPerfumeImages } from "@/services/imageService";
 import { submitPerfume } from "./perfumeSubmit";
 import { useConfirmDialog } from "./useConfirmDialog";
 
+/**
+ * usePerfumes — الحالة والإجراءات الداعمة لتبويب Perfumes في الإدارة ونموذجه.
+ *
+ * يدير: قائمة العطور المحمَّلة + علم التحميل، ومرشّحات البحث/النوع/الجنس، وحالة
+ * النافذة + النموذج للإضافة/التحرير (بما في ذلك مدخلات الروائح المفصولة بفواصل
+ * ومصفوفات متغيّرات العيّنات/أحجام القوارير)، وأعلام الانشغال لكل إجراء. يكشف
+ * معالِجات التحميل/الإرسال/التحرير/الحذف/التبديل إضافةً إلى قائمة مشتقّة
+ * `filteredPerfumes`.
+ *
+ * @returns كائن من حالة العطور والبيانات المشتقّة ومعالِجات التعديل التي
+ *          يستهلكها تبويب Perfumes ونافذة النموذج وAdminPage.
+ */
 export function usePerfumes() {
   const { t } = useLanguage();
   const { confirm, confirmDialogProps } = useConfirmDialog();
@@ -50,6 +69,8 @@ export function usePerfumes() {
   const [togglingStatus, setTogglingStatus] = useState<string | null>(null);
   const [generatingDescription, setGeneratingDescription] = useState(false);
 
+  // جلب كل العطور (الأحدث أولًا)، ثم تعبئة كل منها بصور معرضه من جدول
+  // perfume_images المنفصل.
   const loadPerfumes = async () => {
     try {
       setLoading(true);
@@ -60,6 +81,7 @@ export function usePerfumes() {
 
       if (error) throw error;
 
+      // جلب صور كل صف بالتوازي حتى لا يعطّل استعلام بطيء واحد البقية.
       const perfumesWithImages = await Promise.all(
         (data || []).map(async (perfume) => {
           const images = await getPerfumeImages(perfume.id);
@@ -91,6 +113,8 @@ export function usePerfumes() {
     }));
   };
 
+  // كتابة وصف بالذكاء الاصطناعي بنقرة واحدة: إرسال الاسم + الروائح المُحلَّلة +
+  // الجنس إلى خدمة الذكاء الاصطناعي ووضع النص المُعاد مباشرةً في حقل الوصف.
   const handleGenerateDescription = async () => {
     if (!formData.name) {
       toast.error(t("admin.toast.enterPerfumeName"));
@@ -130,6 +154,8 @@ export function usePerfumes() {
     setPerfumeBottleSizes([]);
   };
 
+  // تفويض الإدراج/التحديث الفعلي إلى submitPerfume؛ وعند النجاح إغلاق النافذة،
+  // وإعادة تعيين النموذج، وإعادة تحميل القائمة لتعكس التغيير.
   const handleSubmit = async () => {
     try {
       setSubmitLoading(true);
@@ -244,6 +270,9 @@ export function usePerfumes() {
     setPerfumeBottleSizes(updatedBottleSizes);
   };
 
+  // فتح النموذج معبّأً مسبقًا من عطر موجود: نسخ الحقول العددية (scalar) إلى
+  // formData، وتسطيح مصفوفات الروائح عائدةً إلى سلاسل مفصولة بفواصل، وتحميل صوره/
+  // عيّناته/أحجام قواريره تحميلًا كسولًا (lazily).
   const handleEdit = (perfume: Perfume) => {
     console.log("Editing perfume:", perfume);
     setEditingPerfume(perfume);
@@ -279,6 +308,7 @@ export function usePerfumes() {
     setIsDialogOpen(true);
   };
 
+  // طلب التأكيد أولًا، ثم حذف الصف نهائيًا (hard-delete) وإعادة تحميل القائمة.
   const handleDelete = async (id: string) => {
     const confirmed = await confirm({
       title: t("admin.confirmDialog.deletePerfume.title"),
@@ -304,6 +334,7 @@ export function usePerfumes() {
     }
   };
 
+  // قلب علم is_active للعطر (إظهاره/إخفاؤه في واجهة المتجر).
   const toggleStatus = async (id: string, currentStatus: boolean) => {
     try {
       setTogglingStatus(id);
@@ -328,6 +359,7 @@ export function usePerfumes() {
     }
   };
 
+  // ترشيح من جهة العميل: بحث بالاسم + النوع + الجنس، مدموجة بمنطق AND.
   const filteredPerfumes = perfumes.filter((perfume) => {
     const matchesSearch = perfume.name
       .toLowerCase()

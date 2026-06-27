@@ -34,6 +34,13 @@ import ShippingSection, {
 import PaymentSection, {
   type PaymentMethod,
 } from "@/pages/checkout/PaymentSection";
+import PlutuOtpDialog from "@/components/checkout/PlutuOtpDialog";
+import {
+  isPlutuGateway,
+  isOtpGateway,
+  cardInitiate,
+  type PlutuGateway,
+} from "@/services/plutuService";
 
 // خريطة تربط كل نوع خطأ في كود الخصم بمفتاح الترجمة المناسب لعرضه للمستخدم
 const PROMO_ERROR_KEY: Record<PromoValidationError, string> = {
@@ -54,9 +61,13 @@ export default function CheckoutPage() {
   const navigate = useNavigate();
   const { items, getTotalPrice, clearCart, appliedPromo, applyPromo, clearPromo } =
     useCart();
-  const { user } = useAuth();
-  const { t } = useLanguage();
+  const { user, loading: authLoading } = useAuth();
+  const { t, isRTL } = useLanguage();
   const shouldReduceMotion = useReducedMotion();
+
+  // حالة نافذة الدفع برمز OTP (أدفلي/سداد): تُفتح بعد إنشاء الطلب وتنتظر التأكيد
+  const [otpOrderId, setOtpOrderId] = useState<string | null>(null);
+  const [otpGateway, setOtpGateway] = useState<PlutuGateway | null>(null);
 
   const [formData, setFormData] = useState<ShippingFormData>(EMPTY_SHIPPING);
   const [shippingValid, setShippingValid] = useState(false);
@@ -64,6 +75,11 @@ export default function CheckoutPage() {
   const [transferProofUrl, setTransferProofUrl] = useState<string | null>(null);
   const [subCity, setSubCity] = useState<VanexSubCity | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // يصبح true فور إنشاء الطلب بنجاح؛ يمنع حارس "السلة الفارغة" من اعتراض الانتقال
+  // إلى صفحة تأكيد الطلب عندما نفرّغ السلة عمدًا بعد الدفع.
+  // Set once an order is placed so emptying the cart doesn't trigger the
+  // empty-cart redirect and clobber the navigate() to the success page.
+  const [orderPlaced, setOrderPlaced] = useState(false);
 
   // رسوم التوصيل تُؤخذ من المدينة الفرعية المختارة (Vanex)، وتساوي صفرًا قبل الاختيار
   const deliveryFee = subCity?.price ?? 0;
@@ -71,13 +87,26 @@ export default function CheckoutPage() {
   // أثر جانبي: عند تحميل الصفحة والسلة فارغة نعرض تنبيهًا للمستخدم
   // If cart is empty when page mounts, toast + redirect
   useEffect(() => {
-    if (items.length === 0) {
+    if (items.length === 0 && !orderPlaced) {
       toast.info(t("checkout.emptyCart"));
     }
-  }, [items.length, t]);
+  }, [items.length, orderPlaced, t]);
 
-  // حماية: منع الوصول لصفحة الدفع بسلة فارغة عبر إعادة التوجيه للمجموعة
-  if (items.length === 0) {
+  // أثناء تهيئة جلسة المصادقة لا نعرض شيئًا لتجنّب وميض النموذج أو إعادة توجيه خاطئة.
+  if (authLoading) {
+    return <div className="min-h-[60dvh]" aria-hidden="true" />;
+  }
+
+  // حماية: يجب تسجيل الدخول لإتمام الطلب. الزوّار غير المسجّلين يُحوّلون إلى صفحة
+  // الدخول مع حفظ وجهة العودة (/checkout) ليعودوا إلى الدفع بعد الدخول.
+  // Require authentication to check out; bounce guests to login and return them after.
+  if (!user) {
+    return <Navigate to="/login" replace state={{ from: "/checkout" }} />;
+  }
+
+  // حماية: منع الوصول لصفحة الدفع بسلة فارغة عبر إعادة التوجيه للمجموعة.
+  // يُستثنى ما بعد إتمام الطلب بنجاح، إذ تُفرَّغ السلة عمدًا قبل الانتقال لصفحة النجاح.
+  if (items.length === 0 && !orderPlaced) {
     return <Navigate to="/collection" replace />;
   }
 
@@ -172,6 +201,7 @@ export default function CheckoutPage() {
         discount_amount: discount,
         delivery_fee: deliveryFee,
         payment_method: paymentMethod,
+        payment_gateway: isPlutuGateway(paymentMethod) ? paymentMethod : null,
         transfer_proof_url:
           paymentMethod === "bank_transfer" ? transferProofUrl : null,
         total: finalTotal + deliveryFee,
@@ -216,8 +246,41 @@ export default function CheckoutPage() {
         );
       }
 
-      // نجاح: تفريغ السلة والانتقال إلى صفحة تأكيد الطلب بمعرّف الطلب الجديد
+      // مسار الدفع الإلكتروني عبر Plutu: الطلب أُنشئ كـ "غير مدفوع"، ويُعلَّم
+      // مدفوعًا فقط من الدالة الطرفية بعد تأكيد Plutu.
+      if (isPlutuGateway(paymentMethod)) {
+        if (isOtpGateway(paymentMethod)) {
+          // بوابات OTP (أدفلي/سداد): نفتح نافذة إدخال الرمز ولا نُفرّغ السلة بعد
+          setOtpOrderId(inserted.id);
+          setOtpGateway(paymentMethod);
+          setSubmitting(false);
+          return;
+        }
+        // بوابات البطاقة/التحويل: نطلب رابط الدفع ثم نعيد توجيه المتصفّح
+        try {
+          const { redirect_url } = await cardInitiate({
+            orderId: inserted.id,
+            gateway: paymentMethod,
+            lang: isRTL ? "ar" : "en",
+            mobileNumber: formData.phone,
+          });
+          setOrderPlaced(true);
+          clearCart();
+          window.location.href = redirect_url;
+        } catch (err) {
+          console.error("Plutu card initiate error:", err);
+          toast.error(
+            err instanceof Error ? err.message : t("cart.orderFailed"),
+          );
+          setSubmitting(false);
+        }
+        return;
+      }
+
+      // نجاح (COD / تحويل مصرفي): نعلّم أن الطلب تم لمنع حارس السلة الفارغة من
+      // اعتراض الانتقال، ثم نفرّغ السلة وننتقل إلى صفحة تأكيد الطلب
       toast.success(t("cart.orderSuccess"));
+      setOrderPlaced(true);
       clearCart();
       navigate(`/order-success/${inserted.id}`);
     } catch (err) {
@@ -337,6 +400,29 @@ export default function CheckoutPage() {
           </motion.aside>
         </div>
       </div>
+
+      {/* نافذة الدفع برمز OTP (أدفلي/سداد) */}
+      {otpOrderId && otpGateway && (
+        <PlutuOtpDialog
+          open={!!otpOrderId}
+          orderId={otpOrderId}
+          gateway={otpGateway}
+          onPaid={() => {
+            setOtpOrderId(null);
+            setOtpGateway(null);
+            toast.success(t("cart.orderSuccess"));
+            const id = otpOrderId;
+            setOrderPlaced(true);
+            clearCart();
+            navigate(`/order-success/${id}`);
+          }}
+          onClose={() => {
+            // إغلاق دون إتمام الدفع: الطلب يبقى غير مدفوع وقابلاً لإعادة المحاولة
+            setOtpOrderId(null);
+            setOtpGateway(null);
+          }}
+        />
+      )}
     </div>
   );
 }

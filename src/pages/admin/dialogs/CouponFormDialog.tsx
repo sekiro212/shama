@@ -1,3 +1,13 @@
+/**
+ * CouponFormDialog.tsx
+ * --------------------
+ * نموذج نافذة لإنشاء أو تحرير كوبون خصم (رمز ترويجي / promo code).
+ * تأتي كل حالة النموذج ومعالج الإرسال من الـ hook `useCoupons` (يُمرَّر باسم
+ * `couponsApi`) — وهذا المكوّن طبقة عرض (presentation) محضة.
+ * يلتقط: الرمز، نوع/قيمة الخصم، الحد الأقصى الاختياري للخصم (للنِّسَب المئوية)،
+ * الحد الأدنى لإجمالي الطلب، النطاق (كل المنتجات مقابل منتجات محدّدة)، تاريخ
+ * الانتهاء، حدود الاستخدام، ومفتاح التفعيل/التعطيل.
+ */
 import { X, Calendar, Search, Check } from "lucide-react";
 import {
   Dialog,
@@ -28,11 +38,18 @@ interface CouponFormDialogProps {
   perfumes: Perfume[];
 }
 
+/**
+ * يعرض نافذة إنشاء/تحرير الكوبون.
+ * الخصائص (props) الأساسية:
+ * - couponsApi: ناتج الـ hook `useCoupons` الكامل (حالة النموذج + التعديلات)
+ * - perfumes: قائمة المنتجات، يستخدمها مُحدِّد نطاق المنتجات المحدّدة
+ */
 export function CouponFormDialog({
   couponsApi,
   perfumes,
 }: CouponFormDialogProps) {
   const { t, isRTL } = useLanguage();
+  // تفكيك حالة النموذج والمعالِجات من الـ hook الخاص بالكوبونات.
   const {
     isCouponDialogOpen,
     setIsCouponDialogOpen,
@@ -55,6 +72,7 @@ export function CouponFormDialog({
       open={isCouponDialogOpen}
       onOpenChange={(open) => {
         setIsCouponDialogOpen(open);
+        // عند إغلاق النافذة، إعادة تعيين النموذج إلى حالة نظيفة.
         if (!open) {
           setEditingCoupon(null);
           setCouponForm(initialCouponForm);
@@ -77,6 +95,7 @@ export function CouponFormDialog({
             <Label className="text-[#323D50] dark:text-white/80">
               {t("admin.coupons.code")} *
             </Label>
+            {/* يُحوَّل رمز الكوبون قسرًا إلى أحرف كبيرة بحيث لا تتأثر الرموز بحالة الأحرف. */}
             <Input
               value={couponForm.code}
               onChange={(e) =>
@@ -141,6 +160,7 @@ export function CouponFormDialog({
             </div>
           </div>
 
+          {/* سقف الحد الأقصى للخصم لا معنى له إلا مع الخصومات بالنسبة المئوية. */}
           {couponForm.discount_type === "percentage" && (
             <div className="space-y-2">
               <Label className="text-[#323D50] dark:text-white/80">
@@ -190,6 +210,7 @@ export function CouponFormDialog({
             <Label className="text-[#323D50] dark:text-white/80">
               {t("admin.coupons.scope")} *
             </Label>
+            {/* تبديل النطاق إلى "all_products" يمسح أي معرّفات منتجات (IDs) مختارة سابقًا. */}
             <Select
               value={couponForm.scope}
               onValueChange={(v) =>
@@ -215,6 +236,8 @@ export function CouponFormDialog({
             </Select>
           </div>
 
+          {/* لا يظهر مُحدِّد المنتجات إلا عندما يكون نطاق الكوبون محصورًا بمنتجات محدّدة.
+              (هذه الكتلة تكرّر واجهة CouponProductPicker المستقلة بشكل مضمّن.) */}
           {couponForm.scope === "specific_products" && (
             <div className="space-y-2">
               <Label className="text-[#323D50] dark:text-white/80">
@@ -310,6 +333,7 @@ export function CouponFormDialog({
                   }
                   className="glass bg-white dark:bg-white/5 border-[#323D50]/15 dark:border-white/20 text-[#323D50] dark:text-white"
                 />
+                {/* زر المسح يُزيل تاريخ الانتهاء (السلسلة الفارغة = لا ينتهي أبدًا). */}
                 {couponForm.expires_at && (
                   <Button
                     type="button"
@@ -370,6 +394,7 @@ export function CouponFormDialog({
             <Label className="text-[#323D50] dark:text-white/80 cursor-pointer">
               {t("admin.coupons.isActive")}
             </Label>
+            {/* مفتاح تبديل مخصّص يقلب حالة تفعيل الكوبون. */}
             <button
               type="button"
               onClick={() =>
@@ -390,6 +415,7 @@ export function CouponFormDialog({
             </button>
           </div>
 
+          {/* رسالة خطأ التحقق/الحفظ التي يعيدها الـ hook الخاص بـ useCoupons. */}
           {couponFormError && (
             <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-sm text-red-500">
               {couponFormError}
@@ -404,6 +430,7 @@ export function CouponFormDialog({
             >
               {t("admin.coupons.cancel")}
             </Button>
+            {/* يرسل النموذج؛ يتحقّق الـ hook ثم يُدرج الكوبون أو يحدّثه. */}
             <LoadingButton
               loading={couponSubmitLoading}
               loadingText={t("admin.coupons.saving")}

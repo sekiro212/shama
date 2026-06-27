@@ -1,3 +1,14 @@
+/**
+ * ===================================================================
+ * صفحة الدخول والتسجيل (Login) — المسار: /login
+ * -------------------------------------------------------------------
+ * صفحة موحّدة بأوضاع متعددة (mode): تسجيل الدخول، إنشاء حساب، التحقق برمز
+ * OTP، نسيت كلمة المرور، التحقق من رمز الاستعادة، وتعيين كلمة مرور جديدة.
+ * تعتمد مصادقة Supabase عبر useAuth، وتدعم الدخول عبر Google. بعد نجاح
+ * الدخول تعيد التوجيه إلى الصفحة التي جاء منها المستخدم. تدعم العربية
+ * والإنجليزية مع وعي باتجاه RTL.
+ * ===================================================================
+ */
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -12,8 +23,14 @@ import {
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 
+// الأوضاع الممكنة للصفحة؛ تتحكم بالعنوان والأيقونة والنموذج المعروض
 type PageMode = "signin" | "signup" | "verify-otp" | "forgot-password" | "reset-otp" | "new-password";
 
+/**
+ * المكوّن الرئيسي لصفحة الدخول/التسجيل.
+ * يدير الوضع الحالي وحقول النماذج وخانات رمز التحقق ومؤقّت إعادة الإرسال،
+ * ويستدعي دوال المصادقة المناسبة لكل وضع.
+ */
 export default function LoginPage() {
   const [mode, setMode] = useState<PageMode>("signin");
   const [email, setEmail] = useState("");
@@ -24,6 +41,7 @@ export default function LoginPage() {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+  // مراجع لحقول رمز التحقق الستة لنقل التركيز تلقائيًا بينها أثناء الكتابة
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const { user, signIn, signUp, signInWithGoogle, verifyOtp, resetPassword, updatePassword } = useAuth();
@@ -31,14 +49,18 @@ export default function LoginPage() {
   const { t, isRTL } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
+  // الوجهة التي سيُعاد إليها المستخدم بعد الدخول (من حالة التوجيه، أو الرئيسية)
   const from = (location.state as { from?: string })?.from || "/";
 
+  // أثر جانبي: إذا أصبح المستخدم مسجّلًا أعد توجيهه تلقائيًا — إلا أثناء
+  // أوضاع التحقق برمز/كلمة مرور جديدة حيث قد توجد جلسة مؤقتة لم تكتمل بعد
   useEffect(() => {
     if (user && mode !== "verify-otp" && mode !== "reset-otp" && mode !== "new-password") {
       navigate(from, { replace: true });
     }
   }, [user, navigate, from, mode]);
 
+  // مؤقّت العدّ التنازلي لإعادة إرسال رمز التحقق (ينقص ثانيةً كل ثانية)
   // Resend cooldown timer
   useEffect(() => {
     if (resendCooldown <= 0) return;
@@ -46,8 +68,13 @@ export default function LoginPage() {
     return () => clearTimeout(timer);
   }, [resendCooldown]);
 
+  // تفريغ خانات رمز التحقق الستة
   const resetOtpFields = () => setOtp(["", "", "", "", "", ""]);
 
+  /**
+   * تحديث خانة رمز التحقق: يقبل رقمًا واحدًا فقط، ويرفض غير الأرقام،
+   * وينقل التركيز تلقائيًا للخانة التالية بعد إدخال رقم.
+   */
   const handleOtpChange = (index: number, value: string) => {
     if (value.length > 1) value = value.slice(-1);
     if (value && !/^\d$/.test(value)) return;
@@ -61,12 +88,17 @@ export default function LoginPage() {
     }
   };
 
+  // الضغط على Backspace في خانة فارغة يعيد التركيز إلى الخانة السابقة
   const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
     if (e.key === "Backspace" && !otp[index] && index > 0) {
       otpRefs.current[index - 1]?.focus();
     }
   };
 
+  /**
+   * لصق الرمز كاملًا: يستخرج حتى ٦ أرقام من النص الملصوق ويوزّعها على الخانات
+   * ثم ينقل التركيز للخانة المناسبة.
+   */
   const handleOtpPaste = (e: React.ClipboardEvent) => {
     e.preventDefault();
     const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
@@ -80,8 +112,10 @@ export default function LoginPage() {
     otpRefs.current[focusIndex]?.focus();
   };
 
+  // الرمز الكامل المُجمّع من الخانات الستة
   const otpCode = otp.join("");
 
+  /** تسجيل الدخول بالبريد وكلمة المرور عبر Supabase. */
   // Sign In
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,6 +130,10 @@ export default function LoginPage() {
     setLoading(false);
   };
 
+  /**
+   * إنشاء حساب جديد: يتحقق من الحقول وتطابق كلمتي المرور وطولها،
+   * ثم عند النجاح ينتقل لوضع التحقق برمز OTP ويبدأ مؤقّت إعادة الإرسال.
+   */
   // Sign Up → go to OTP
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,6 +153,7 @@ export default function LoginPage() {
     setLoading(false);
   };
 
+  /** التحقق من رمز OTP الخاص بإنشاء الحساب (نوع "signup"). */
   // Verify signup OTP
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,6 +169,7 @@ export default function LoginPage() {
     setLoading(false);
   };
 
+  /** نسيت كلمة المرور: يرسل رمز استعادة للبريد وينتقل لوضع التحقق من الرمز. */
   // Forgot password → send code
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -147,6 +187,7 @@ export default function LoginPage() {
     setLoading(false);
   };
 
+  /** التحقق من رمز الاستعادة (نوع "recovery") ثم الانتقال لتعيين كلمة مرور جديدة. */
   // Verify reset OTP → go to new password
   const handleVerifyResetOtp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -163,6 +204,7 @@ export default function LoginPage() {
     setLoading(false);
   };
 
+  /** تعيين كلمة مرور جديدة بعد التحقق، ثم إعادة التوجيه إلى وجهة الدخول. */
   // Set new password
   const handleNewPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -180,6 +222,10 @@ export default function LoginPage() {
     setLoading(false);
   };
 
+  /**
+   * إعادة إرسال رمز التحقق: يختار الدالة المناسبة حسب الوضع الحالي
+   * (تسجيل جديد أم استعادة كلمة مرور)، ولا يعمل أثناء العدّ التنازلي.
+   */
   // Resend OTP
   const handleResend = async () => {
     if (resendCooldown > 0) return;
@@ -195,8 +241,10 @@ export default function LoginPage() {
     setLoading(false);
   };
 
+  // تجنّب وميض النموذج: لا نعرض شيئًا إن كان المستخدم مسجّلًا (سيُعاد توجيهه)
   if (user && mode !== "verify-otp" && mode !== "reset-otp" && mode !== "new-password") return null;
 
+  // خريطة تربط كل وضع بمعالج إرسال النموذج الخاص به
   // Determine form handler
   const formHandlers: Record<PageMode, (e: React.FormEvent) => Promise<void>> = {
     signin: handleSignIn,
@@ -207,6 +255,7 @@ export default function LoginPage() {
     "new-password": handleNewPassword,
   };
 
+  // العنوان المعروض أعلى البطاقة بحسب الوضع الحالي
   const getTitle = () => {
     switch (mode) {
       case "signin": return t("auth.welcomeBack");
@@ -218,6 +267,7 @@ export default function LoginPage() {
     }
   };
 
+  // النص التوضيحي أسفل العنوان بحسب الوضع (يتضمّن البريد في أوضاع الرمز)
   const getDescription = () => {
     switch (mode) {
       case "signin": return t("auth.signInDesc");
@@ -229,6 +279,7 @@ export default function LoginPage() {
     }
   };
 
+  // الأيقونة المعروضة داخل الدائرة العلوية بحسب الوضع الحالي
   const getIcon = () => {
     switch (mode) {
       case "signin": return <LogIn className="w-8 h-8 text-white" />;
@@ -240,6 +291,10 @@ export default function LoginPage() {
     }
   };
 
+  /**
+   * مكوّن خانات رمز التحقق الستة.
+   * يبقى اتجاهه LTR دائمًا (الأرقام تُدخل من اليسار لليمين) حتى في الواجهة العربية.
+   */
   // OTP input component
   const OtpInputs = () => (
     <div className="flex justify-center gap-2 sm:gap-3" dir="ltr">
@@ -470,6 +525,7 @@ export default function LoginPage() {
             </motion.form>
           </AnimatePresence>
 
+          {/* الدخول عبر Google يظهر فقط في وضعي تسجيل الدخول/إنشاء الحساب */}
           {/* Google Sign In (only on signin/signup) */}
           {(mode === "signin" || mode === "signup") && (
             <>

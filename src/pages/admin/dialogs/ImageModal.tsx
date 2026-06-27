@@ -1,3 +1,10 @@
+/**
+ * ImageModal.tsx
+ * --------------
+ * نافذة بسيطة تعرض صورة منتج واحدة بحجم أكبر.
+ * تُستخدم في عرض الطلبات بلوحة الإدارة لمعاينة صورة عنصر الطلب (وإثبات التحويل
+ * البنكي). النص ثنائي اللغة عبر دالة الترجمة `t()`.
+ */
 import {
   Dialog,
   DialogContent,
@@ -13,6 +20,12 @@ interface ImageModalProps {
   imageUrl: string | null;
 }
 
+/**
+ * يعرض معاينة مكبّرة للصورة داخل نافذة.
+ * الخصائص (props) الأساسية:
+ * - open / onOpenChange: التحكّم في ظهور النافذة والإبلاغ عنه
+ * - imageUrl: الصورة المراد عرضها (القيمة null تُخفي منطقة الصورة)
+ */
 export function ImageModal({ open, onOpenChange, imageUrl }: ImageModalProps) {
   const { t } = useLanguage();
 
@@ -31,6 +44,7 @@ export function ImageModal({ open, onOpenChange, imageUrl }: ImageModalProps) {
               src={imageUrl}
               alt="Product"
               className="max-w-full max-h-96 object-contain rounded-lg border border-[#323D50]/15 dark:border-white/20"
+              // صورة بديلة احتياطية إذا فشل تحميل رابط الصورة (URL).
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
                 target.src =

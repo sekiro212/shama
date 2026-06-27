@@ -1,3 +1,14 @@
+/**
+ * ===========================================================================
+ * مشهد التوصيل (Delivery Scene)
+ * ---------------------------------------------------------------------------
+ * مشهد من الفيديو الإعلاني (Remotion) يُبرز خدمة التوصيل داخل ليبيا.
+ * يرسم خريطة ليبيا بحدودها (مرسومة كـ SVG path) تظهر تدريجياً، ثم تتحرك
+ * شاحنة توصيل على مسار منحنٍ من طرابلس إلى بنغازي مروراً بخليج سرت، مع
+ * إبراز المدن (طرابلس، مصراتة، بنغازي، سبها) ونبض نقطة الوصول.
+ * الهدف: طمأنة المشاهد بأن التوصيل يغطي المدن الليبية.
+ * ===========================================================================
+ */
 import { AbsoluteFill, useCurrentFrame, interpolate, spring, useVideoConfig } from "remotion";
 import { dir, isRtl, t, type Lang } from "../i18n";
 import { getFonts } from "../fonts";
@@ -10,6 +21,9 @@ type Props = {
   primaryColor: string;
 };
 
+// مسار حدود ليبيا (SVG path): مُستنبط من حدود Natural Earth المبسّطة ومُسقط
+// على إطار رؤية (viewBox) بأبعاد 600×440. تُترجم إحداثيات المدن (خط الطول/العرض)
+// إلى إحداثيات SVG. (الشرح التفصيلي بالإنجليزية أدناه محفوظ كما هو.)
 // Libya outline traced from Natural Earth simplified borders, projected to a
 // 600×440 viewBox. Coast curves around the Gulf of Sirte; eastern border with
 // Egypt is near-vertical; southern border traces Sudan/Chad/Niger; west to
@@ -51,42 +65,53 @@ const LIBYA_PATH = [
   "Z",
 ].join(" ");
 
+// إحداثيات المدن (خط العرض/الطول → SVG):
 // Cities (lat/lon → SVG):
-const TRIPOLI = { x: 218, y: 66 };
-const MISRATA = { x: 257, y: 76 };
-const BENGHAZI = { x: 359, y: 95 };
-const SABHA = { x: 243, y: 192 };
+const TRIPOLI = { x: 218, y: 66 };   // طرابلس (نقطة الانطلاق)
+const MISRATA = { x: 257, y: 76 };   // مصراتة (نقطة وسطية)
+const BENGHAZI = { x: 359, y: 95 };  // بنغازي (نقطة الوصول)
+const SABHA = { x: 243, y: 192 };    // سبها (مرجع داخلي في الجنوب)
 
+/**
+ * مكوّن مشهد التوصيل.
+ * props: لغة العرض واللونان الذهبي والأساسي للعلامة.
+ */
 export const DeliveryScene: React.FC<Props> = ({ language, goldColor, primaryColor }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const fonts = getFonts(language);
   const rtl = isRtl(language);
 
+  // تلاشي ظهور النص السفلي بين الإطارين 56 و70
   const subOpacity = interpolate(frame, [56, 70], [0, 1], { extrapolateRight: "clamp" });
 
+  // حركة دخول الخريطة (تظهر وتتكبّر قليلاً) بدءاً من الإطار 8
   const mapEnter = spring({
     frame: frame - 8,
     fps,
     config: { damping: 18, stiffness: 90, mass: 0.8 },
   });
 
+  // تقدّم رسم حدود الخريطة من 0 إلى 1 (يُحرّك تأثير "الرسم التدريجي" عبر stroke-dashoffset)
   // Outline draw-on (stroke-dashoffset trick approximated with opacity)
   const outlineProgress = interpolate(frame, [10, 36], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
 
+  // تقدّم رحلة الشاحنة من 0 إلى 1 على المسار طرابلس ← خليج سرت ← بنغازي
   // Truck travels Tripoli → Misrata → curve south through Gulf → Benghazi
   const pathProgress = interpolate(frame, [22, 70], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
 
+  // منحنى بيزييه تربيعي من طرابلس عبر نقطة تحكّم في قاع الخليج إلى بنغازي.
+  // المعادلة B(t) تُعطي موقع الشاحنة عند كل قيمة من pathProgress.
   // Quadratic bezier from Tripoli through bay-bottom control point to Benghazi.
   // B(t) = (1-t)² P0 + 2(1-t)t P1 + t² P2
   const t01 = pathProgress;
-  const ctrl = { x: 295, y: 145 };
+  const ctrl = { x: 295, y: 145 }; // نقطة التحكّم في المنحنى
   const truckX =
     (1 - t01) * (1 - t01) * TRIPOLI.x +
     2 * (1 - t01) * t01 * ctrl.x +
@@ -96,6 +121,7 @@ export const DeliveryScene: React.FC<Props> = ({ language, goldColor, primaryCol
     2 * (1 - t01) * t01 * ctrl.y +
     t01 * t01 * BENGHAZI.y;
 
+  // زاوية الميل (المماس) لتدوير الشاحنة باتجاه حركتها — تُحسب من مشتقة المنحنى
   // Tangent angle for truck rotation (derivative of bezier)
   const dx =
     2 * (1 - t01) * (ctrl.x - TRIPOLI.x) + 2 * t01 * (BENGHAZI.x - ctrl.x);
@@ -105,9 +131,11 @@ export const DeliveryScene: React.FC<Props> = ({ language, goldColor, primaryCol
 
   return (
     <AbsoluteFill style={{ direction: dir(language) }}>
+      {/* الخلفية المتحركة المشتركة */}
       <SceneBackdrop primaryColor={primaryColor} goldColor={goldColor} seed={5.1} intensity={1} />
 
       <AbsoluteFill style={{ alignItems: "center", justifyContent: "center", direction: dir(language), gap: 32 }}>
+      {/* عنوان المشهد بحركة نصّية صاعدة (KineticText) */}
       <KineticText
         mode="rise"
         delay={0}
@@ -126,6 +154,7 @@ export const DeliveryScene: React.FC<Props> = ({ language, goldColor, primaryCol
         {t("delivery_title", language)}
       </KineticText>
 
+      {/* حاوية الخريطة (SVG) — تظهر عبر mapEnter وتُثبّت اتجاهها LTR */}
       <div
         style={{
           opacity: mapEnter,
@@ -203,6 +232,7 @@ export const DeliveryScene: React.FC<Props> = ({ language, goldColor, primaryCol
             opacity={interpolate(outlineProgress, [0.7, 1], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })}
           />
 
+          {/* مسار الرحلة طرابلس ← بنغازي — يُرسم تدريجياً عبر strokeDashoffset المرتبط بـ pathProgress */}
           {/* Route Tripoli → Benghazi */}
           <path
             d={`M ${TRIPOLI.x} ${TRIPOLI.y} Q ${ctrl.x} ${ctrl.y} ${BENGHAZI.x} ${BENGHAZI.y}`}
@@ -268,6 +298,7 @@ export const DeliveryScene: React.FC<Props> = ({ language, goldColor, primaryCol
             {language === "ar" ? "بنغازي" : "Benghazi"}
           </text>
 
+          {/* الشاحنة — تظهر فقط أثناء التنقّل، وتُوضع وتُدار وفق truckX/truckY/truckAngle */}
           {/* Truck — shown while in transit */}
           <g
             transform={`translate(${truckX}, ${truckY}) rotate(${truckAngle})`}
@@ -284,6 +315,7 @@ export const DeliveryScene: React.FC<Props> = ({ language, goldColor, primaryCol
         </svg>
       </div>
 
+      {/* النص التوضيحي السفلي — يظهر بعد اكتمال الرحلة عبر subOpacity */}
       <div
         style={{
           opacity: subOpacity,

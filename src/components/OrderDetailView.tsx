@@ -1,3 +1,17 @@
+/**
+ * ===============================================================
+ * OrderDetailView.tsx — عرض تفاصيل طلب واحد
+ * ---------------------------------------------------------------
+ * يعرض كل تفاصيل الطلب: الرقم والحالة وشريط زمني لمراحل الطلب،
+ * قائمة العناصر، تتبّع الشحن عبر Vanex (يُجلَب تلقائيًا عند توفّر
+ * رمز الطرد)، بيانات الشحن، طريقة الدفع (مع إيصال التحويل)، وملخّص
+ * الإجماليات. يأتي بنمطين: "account" (داخل حساب المستخدم) و"tracking"
+ * (صفحة تتبّع الطلب مع زر رجوع).
+ *
+ * مكان الاستخدام: صفحة "طلباتي" وصفحة تتبّع الطلب.
+ * يدعم الاتجاهين العربي (RTL) والإنجليزي (LTR) وتنسيق التواريخ بحسب اللغة.
+ * ===============================================================
+ */
 import { useEffect, useState } from "react";
 import {
   MapPin,
@@ -31,6 +45,7 @@ import {
 } from "@/services/vanexService";
 import { toast } from "sonner";
 
+// خريطة تربط كل حالة طلب بأصناف التنسيق (ألوان الشارة) المناسبة لها
 const STATUS_PILL: Record<string, string> = {
   pending: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30",
   confirmed: "bg-sky-500/15 text-sky-600 dark:text-sky-400 border-sky-500/30",
@@ -47,6 +62,12 @@ interface OrderDetailViewProps {
   onBack?: () => void;
 }
 
+/**
+ * المكوّن الرئيسي لعرض تفاصيل الطلب.
+ * @param order كائن الطلب المراد عرضه.
+ * @param variant نمط العرض: "account" داخل حساب المستخدم، أو "tracking" في صفحة التتبّع.
+ * @param onBack دالة اختيارية للرجوع (تظهر كزرّ في نمط tracking فقط).
+ */
 export default function OrderDetailView({
   order,
   variant,
@@ -60,12 +81,14 @@ export default function OrderDetailView({
   const [vanexLoading, setVanexLoading] = useState(false);
   const [receiptOpen, setReceiptOpen] = useState(false);
 
+  // جلب بيانات تتبّع Vanex تلقائيًا متى توفّر رمز الطرد للطلب
   // Auto-fetch Vanex tracking whenever the order has a package code
   useEffect(() => {
     if (!order.vanex_package_code) {
       setVanexTracking(null);
       return;
     }
+    // علم cancelled يمنع تحديث الحالة إذا أُلغي الطلب/تغيّر المكوّن قبل وصول الاستجابة (تفادي تسريب الذاكرة)
     let cancelled = false;
     setVanexLoading(true);
     trackVanexPackage(order.vanex_package_code)
@@ -80,13 +103,46 @@ export default function OrderDetailView({
     };
   }, [order.id, order.vanex_package_code]);
 
-  const handleCopy = (value: string, field: string) => {
-    navigator.clipboard.writeText(value);
-    setCopiedField(field);
-    toast.success(t("cart.copied"));
-    setTimeout(() => setCopiedField(null), 1800);
+  // نسخ قيمة إلى الحافظة وإظهار علامة "تم النسخ" مؤقتًا بجوار الحقل المنسوخ.
+  // نستخدم Clipboard API عند توفّره (سياق آمن HTTPS)، ونرجع إلى execCommand
+  // كحلّ بديل، ونلتقط أي خطأ كي لا يفشل النسخ بصمت (المشكلة السابقة).
+  const handleCopy = async (value: string, field: string) => {
+    const fallbackCopy = () => {
+      const ta = document.createElement("textarea");
+      ta.value = value;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.top = "-9999px";
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+      if (!ok) throw new Error("execCommand copy failed");
+    };
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(value);
+      } else {
+        fallbackCopy();
+      }
+      setCopiedField(field);
+      toast.success(t("cart.copied"));
+      setTimeout(() => setCopiedField(null), 1800);
+    } catch {
+      // محاولة أخيرة بالطريقة البديلة قبل إظهار الخطأ
+      try {
+        fallbackCopy();
+        setCopiedField(field);
+        toast.success(t("cart.copied"));
+        setTimeout(() => setCopiedField(null), 1800);
+      } catch {
+        toast.error(t("cart.copyFailed"));
+      }
+    }
   };
 
+  // تنسيق التاريخ بحسب اللغة الحالية: التقويم الليبي العربي (ar-LY) أو الإنجليزي (en-US)
   const formatDate = (value?: string) => {
     if (!value) return "—";
     return new Date(value).toLocaleDateString(
@@ -109,15 +165,18 @@ export default function OrderDetailView({
     );
   };
 
+  // نسخة مختصرة من معرّف الطلب الطويل لعرضها كرقم طلب
   const shortId = order.id.slice(0, 8);
   const statusClass = STATUS_PILL[order.status] ?? STATUS_PILL.pending;
 
+  // المجموع الفرعي للعناصر = مجموع (السعر × الكمية) لكل عنصر
   const itemsSubtotal = Array.isArray(order.items)
     ? order.items.reduce(
         (sum, item) => sum + (item.price ?? 0) * (item.quantity ?? 0),
         0
       )
     : 0;
+  // استنتاج قيمة الخصم من الفرق بين (الفرعي + التوصيل) والإجمالي الفعلي المخزَّن، مع منع القيم السالبة
   const discount = Math.max(0, itemsSubtotal + (order.delivery_fee ?? 0) - (order.total ?? 0));
   const deliveryFee = order.delivery_fee ?? 0;
 
@@ -160,7 +219,7 @@ export default function OrderDetailView({
                 type="button"
                 onClick={() => handleCopy(order.id, "id")}
                 aria-label={t("orderDetails.copyOrderId")}
-                className="inline-flex items-center gap-1 text-[11px] tracking-widest uppercase text-[#6B7B8D] dark:text-white/50 hover:text-warm transition-colors"
+                className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] tracking-widest uppercase text-[#6B7B8D] dark:text-white/50 hover:text-warm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-warm/50 transition-colors"
               >
                 {copiedField === "id" ? (
                   <Check className="w-3 h-3 text-green-500" />
@@ -276,7 +335,7 @@ export default function OrderDetailView({
                   onClick={() =>
                     handleCopy(order.vanex_package_code!, "vanex")
                   }
-                  className="inline-flex items-center gap-2 font-mono text-xs bg-warm/10 border border-warm/30 rounded-full px-3 py-1.5 text-[#323D50] dark:text-[#F5F5F5] hover:bg-warm/20 transition-colors"
+                  className="inline-flex items-center gap-2 font-mono text-xs bg-warm/10 border border-warm/30 rounded-full px-3 py-1.5 text-[#323D50] dark:text-[#F5F5F5] hover:bg-warm/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-warm/50 transition-colors"
                 >
                   {order.vanex_package_code}
                   {copiedField === "vanex" ? (
@@ -490,6 +549,10 @@ export default function OrderDetailView({
   );
 }
 
+/**
+ * بطاقة صغيرة لعرض إحصائية تتبّع واحدة (مثل: الحالة الحالية، الموقع،
+ * موعد التسليم المتوقّع) بعنوان وقيمة.
+ */
 function TrackingStat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl bg-white/40 dark:bg-white/5 border border-[#323D50]/10 dark:border-white/10 p-3">
@@ -503,6 +566,14 @@ function TrackingStat({ label, value }: { label: string; value: string }) {
   );
 }
 
+/**
+ * سطر تفصيلي في بطاقة الشحن: أيقونة + قيمة، مع زرّ نسخ اختياري.
+ * @param icon الأيقونة المعروضة على يمين/يسار السطر.
+ * @param value النصّ المعروض.
+ * @param mono عرض القيمة بخطّ أحادي المسافة (للأرقام مثل الهاتف).
+ * @param onCopy دالة النسخ الاختيارية؛ يظهر زرّ النسخ فقط عند تمريرها.
+ * @param copied هل تمّ النسخ للتوّ؟ (لإظهار علامة الصحّ).
+ */
 function DetailLine({
   icon: Icon,
   value,
@@ -516,9 +587,10 @@ function DetailLine({
   onCopy?: () => void;
   copied?: boolean;
 }) {
+  const { t } = useLanguage();
   return (
-    <div className="flex items-start gap-2.5">
-      <Icon className="w-3.5 h-3.5 text-warm shrink-0 mt-[3px]" />
+    <div className="flex items-center gap-2.5">
+      <Icon className="w-3.5 h-3.5 text-warm shrink-0" />
       <span
         className={`flex-1 text-[#323D50] dark:text-white/90 break-words ${
           mono ? "font-mono tabular-nums" : "font-display"
@@ -530,14 +602,15 @@ function DetailLine({
         <button
           type="button"
           onClick={onCopy}
-          aria-label="Copy"
-          className="w-6 h-6 rounded-md flex items-center justify-center text-[#6B7B8D] dark:text-white/50 hover:bg-warm/10 hover:text-warm transition-colors"
+          aria-label={t("orderDetails.copy")}
+          className="shrink-0 inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-display tracking-wide text-warm bg-warm/10 hover:bg-warm/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-warm/50 transition-colors"
         >
           {copied ? (
             <Check className="w-3.5 h-3.5 text-green-500" />
           ) : (
             <Copy className="w-3.5 h-3.5" />
           )}
+          <span>{t("orderDetails.copy")}</span>
         </button>
       )}
     </div>

@@ -1,3 +1,16 @@
+/**
+ * ===============================================================
+ * CartSidebar.tsx — سلّة التسوّق الجانبية المنزلقة
+ * ---------------------------------------------------------------
+ * لوحة جانبية (Sheet) تعرض عناصر السلّة مع إمكانية تعديل الكمية،
+ * حذف العناصر، تطبيق رمز خصم (promo code)، عرض ملخّص الطلب
+ * (المجموع الفرعي، الخصم، الإجمالي)، والانتقال لإتمام الشراء.
+ * تتحقّق أيضًا من توفّر الكمية في المخزون قبل السماح بالمتابعة.
+ *
+ * مكان الاستخدام: تُفتح من زر السلّة في الهيدر عبر الخاصية isOpen.
+ * تدعم الاتجاهين العربي (RTL) والإنجليزي (LTR).
+ * ===============================================================
+ */
 import {
   Plus,
   Minus,
@@ -35,6 +48,7 @@ interface CartSidebarProps {
   onClose: () => void;
 }
 
+// خريطة تربط كل سبب فشل في رمز الخصم بمفتاح الترجمة المناسب لعرض رسالة مفهومة للمستخدم
 const PROMO_ERROR_KEY: Record<PromoValidationError, string> = {
   INVALID_CODE: "cart.promoCode.errors.invalidCode",
   INACTIVE: "cart.promoCode.errors.inactive",
@@ -45,7 +59,13 @@ const PROMO_ERROR_KEY: Record<PromoValidationError, string> = {
   NOT_APPLICABLE: "cart.promoCode.errors.notApplicable",
 };
 
+/**
+ * المكوّن الرئيسي للسلّة الجانبية.
+ * @param isOpen هل اللوحة الجانبية مفتوحة حاليًا؟
+ * @param onClose دالة تُستدعى لإغلاق اللوحة.
+ */
 export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
+  // سياق السلّة: العناصر ودوال التعديل والحذف وحساب الإجمالي ورمز الخصم المطبَّق
   const {
     items,
     removeFromCart,
@@ -65,12 +85,14 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
   const [promoLoading, setPromoLoading] = useState(false);
   const [promoError, setPromoError] = useState<string | null>(null);
 
+  // حسابات الملخّص: المجموع الفرعي، قيمة الخصم (إن وُجد رمز صالح)، والإجمالي النهائي
   const cartSubtotal = getTotalPrice();
   const cartDiscount = appliedPromo?.valid ? appliedPromo.discount : 0;
   const cartFinalTotal = appliedPromo?.valid
     ? appliedPromo.finalTotal
     : cartSubtotal;
 
+  // تحويل رمز خطأ الخصم إلى نصّ مُترجَم؛ مع استبدال الحدّ الأدنى للطلب في رسالة BELOW_MIN_ORDER
   const translatePromoError = (
     error: PromoValidationError | undefined,
     context?: { minOrder?: number }
@@ -83,6 +105,7 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
     return translated;
   };
 
+  // التحقّق من رمز الخصم عبر الخدمة وتطبيقه إن كان صالحًا، أو عرض رسالة الخطأ المناسبة
   const handleApplyPromo = async () => {
     const code = promoInput.trim();
     if (!code || items.length === 0) return;
@@ -113,6 +136,7 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
     setPromoError(null);
   };
 
+  // تغيير كمية عنصر مع منع تجاوز المخزون المتاح وعرض تنبيه إن طُلبت كمية أكبر منه
   const handleQuantityChange = (
     itemId: string,
     size: string,
@@ -128,11 +152,13 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
     updateQuantity(itemId, size, newQuantity);
   };
 
+  // هل كل عناصر السلّة ضمن حدود المخزون؟ شرط للسماح بإتمام الشراء
   const isStockAvailable = () =>
     items.every(
       (item) => !item.stock_quantity || item.quantity <= item.stock_quantity
     );
 
+  // إرجاع العناصر التي تجاوزت كميّتها المخزون المتاح لعرضها في رسالة الخطأ
   const getStockErrorItems = () =>
     items.filter(
       (item) => item.stock_quantity && item.quantity > item.stock_quantity
@@ -146,6 +172,7 @@ export default function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
+      {/* جهة انزلاق اللوحة تتبع اتجاه اللغة: من اليسار في العربية ومن اليمين في الإنجليزية */}
       <SheetContent
         side={isRTL ? "left" : "right"}
         className="bg-[#F8F9FB] dark:bg-[#1a2235] dark:border-white/10 border-[#323D50]/10 w-full sm:w-[480px] lg:w-[540px] px-4 sm:px-6"

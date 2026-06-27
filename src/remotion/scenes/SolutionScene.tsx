@@ -1,3 +1,14 @@
+/**
+ * ===========================================================================
+ * مشهد "الحل" (Solution Scene)
+ * ---------------------------------------------------------------------------
+ * مشهد من الفيديو الإعلاني (Remotion) يقدّم الحل لمشكلة الشراء الأعمى:
+ * توفّر عيّنات بأحجام متعددة (3 مل، 10 مل، 30 مل). يعرض عنواناً مع خط ذهبي
+ * يتمدد تحته، ثم ثلاث قوارير بأحجام/ارتفاعات متدرّجة تظهر بالتتابع مع طفو
+ * خفيف ولمعة ضوئية، ثم نص توضيحي سفلي.
+ * الهدف: إبراز أن العميل يستطيع التجربة بعيّنة قبل شراء الزجاجة الكاملة.
+ * ===========================================================================
+ */
 import { AbsoluteFill, useCurrentFrame, interpolate, spring, useVideoConfig } from "remotion";
 import { dir, isRtl, t, type Lang } from "../i18n";
 import { getFonts } from "../fonts";
@@ -11,32 +22,42 @@ type Props = {
   primaryColor: string;
 };
 
+// أحجام العيّنات وارتفاع كل قارورة بالبكسل (الأكبر حجماً = الأعلى)
 const SAMPLES = [
   { ml: "3ml", height: 220 },
   { ml: "10ml", height: 280 },
   { ml: "30ml", height: 340 },
 ];
 
+/**
+ * مكوّن مشهد الحل.
+ * props: اللغة واللونان الذهبي والأساسي للعلامة.
+ */
 export const SolutionScene: React.FC<Props> = ({ language, goldColor, primaryColor }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const fonts = getFonts(language);
   const rtl = isRtl(language);
 
+  // تلاشي ظهور النص السفلي بين الإطارين 54 و68
   const subOpacity = interpolate(frame, [54, 68], [0, 1], { extrapolateRight: "clamp" });
 
+  // عرض الخط الذهبي تحت العنوان يتمدد من 0 إلى 320 بمنحنى تباطؤ (ease-out رباعي)
   const underlineWidth = interpolate(frame, [20, 48], [0, 320], {
     extrapolateRight: "clamp",
     easing: (x) => 1 - Math.pow(1 - x, 4),
   });
 
+  // في وضع RTL يُعكس ترتيب القوارير لتظل متدرّجة بصرياً بالاتجاه الصحيح
   const ordered = rtl ? [...SAMPLES].reverse() : SAMPLES;
 
   return (
     <AbsoluteFill style={{ direction: dir(language) }}>
+      {/* الخلفية المتحركة المشتركة */}
       <SceneBackdrop primaryColor={primaryColor} goldColor={goldColor} seed={1.4} intensity={1} />
 
       <AbsoluteFill style={{ alignItems: "center", justifyContent: "center", direction: dir(language) }}>
+      {/* عنوان المشهد بحركة نصّية صاعدة */}
       <KineticText
         mode="rise"
         delay={0}
@@ -55,6 +76,7 @@ export const SolutionScene: React.FC<Props> = ({ language, goldColor, primaryCol
         {t("solution_title", language)}
       </KineticText>
 
+      {/* الخط الذهبي المتوهّج تحت العنوان — يتمدد عرضه عبر underlineWidth */}
       <div
         style={{
           marginTop: 18,
@@ -78,11 +100,13 @@ export const SolutionScene: React.FC<Props> = ({ language, goldColor, primaryCol
         }}
       >
         {ordered.map((s, i) => {
+          // كل قارورة تدخل بتأخير 9 إطارات عن سابقتها (تأثير التتابع)
           const enter = spring({
             frame: frame - 12 - i * 9,
             fps,
             config: { damping: 14, stiffness: 100, mass: 0.7 },
           });
+          // طفو خفيف ومستمر عبر دالة الجيب، بفارق طور لكل قارورة لتبدو غير متزامنة
           // gentle continuous float, phase-offset per vial
           const float = Math.sin((frame + i * 20) / 22) * 5;
           return (
@@ -124,6 +148,7 @@ export const SolutionScene: React.FC<Props> = ({ language, goldColor, primaryCol
                     border: "1px solid rgba(245,245,245,0.12)",
                   }}
                 />
+                {/* لمعة ضوئية تمرّ على كل قارورة بتأخير متدرّج حسب ترتيبها */}
                 <LightSweep delay={26 + i * 8} duration={30} bandWidth={60} color="rgba(255,240,200,0.5)" />
               </div>
               <div
@@ -143,6 +168,7 @@ export const SolutionScene: React.FC<Props> = ({ language, goldColor, primaryCol
         })}
       </div>
 
+      {/* النص التوضيحي السفلي — يظهر بعد ظهور القوارير عبر subOpacity */}
       <div
         style={{
           opacity: subOpacity,

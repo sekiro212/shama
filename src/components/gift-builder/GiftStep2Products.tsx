@@ -1,7 +1,23 @@
+/**
+ * ====================================================================
+ * GiftStep2Products — الخطوة الثانية من معالج بناء الهدية
+ * --------------------------------------------------------------------
+ * تعرض قائمة العطور التي اقترحها الذكاء الاصطناعي بناءً على وصف الخطوة
+ * الأولى، وتتيح للمستخدم اختيار حتى أربعة عطور (4 كحد أقصى) لتكوين الهدية.
+ * تدعم اللغتين العربية والإنجليزية مع اتجاه RTL عبر useLanguage().
+ * ====================================================================
+ */
 import { Check, ChevronRight, ChevronLeft } from "lucide-react";
 import { Product } from "@/services/productsService";
 import { useLanguage } from "@/contexts/LanguageContext";
 
+/**
+ * خصائص المكوّن:
+ * - products: العطور المقترحة من AI لعرضها للاختيار.
+ * - selected: العطور المختارة حاليًا (مُدارة من المكوّن الأب).
+ * - onToggle: إضافة/إزالة عطر من قائمة الاختيار عند النقر.
+ * - onNext / onBack: التنقّل بين خطوات المعالج.
+ */
 interface Props {
   products: Product[];
   selected: Product[];
@@ -10,9 +26,13 @@ interface Props {
   onBack: () => void;
 }
 
+/**
+ * المكوّن الرئيسي لخطوة اختيار العطور ضمن الهدية.
+ */
 export default function GiftStep2Products({ products, selected, onToggle, onNext, onBack }: Props) {
   const { t, isRTL } = useLanguage();
 
+  // دالة مساعدة: تتحقّق ممّا إذا كان العطر مُدرَجًا ضمن العطور المختارة
   const isSelected = (p: Product) => selected.some((s) => s.id === p.id);
 
   return (
@@ -29,6 +49,7 @@ export default function GiftStep2Products({ products, selected, onToggle, onNext
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-80 overflow-y-auto pr-1">
         {products.map((product) => {
           const sel = isSelected(product);
+          // تعطيل العطور غير المختارة عند بلوغ الحد الأقصى (4 عطور)
           const disabled = !sel && selected.length >= 4;
           return (
             <button
@@ -68,6 +89,8 @@ export default function GiftStep2Products({ products, selected, onToggle, onNext
         })}
       </div>
 
+      {/* أزرار التنقّل: «رجوع» (سهمه يُقلَب في RTL) و«التالي» المُعطَّل
+          ما لم يُختَر عطر واحد على الأقل */}
       <div className="flex gap-3">
         <button
           onClick={onBack}

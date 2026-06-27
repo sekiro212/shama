@@ -1,3 +1,17 @@
+/**
+ * ===============================================================
+ * SearchDialog.tsx — نافذة البحث عن المنتجات
+ * ---------------------------------------------------------------
+ * نافذة منبثقة (Dialog) للبحث، تجمع نوعين من النتائج:
+ *   1) نتائج نصّية فورية مطابقة لاسم/خصائص المنتَج.
+ *   2) نتائج ذكية من الذكاء الاصطناعي (AI) مع نسبة تطابُق وسبب الترشيح.
+ * تعرض حالة فارغة فيها عمليات بحث سريعة مقترحة، وحالة "لا نتائج"،
+ * ومؤشّرات تحميل. يمكن فتحها/إغلاقها باختصار لوحة المفاتيح ⌘K / Ctrl+K.
+ *
+ * مكان الاستخدام: تُفتح من زر البحث في الهيدر عبر الخاصية open.
+ * تدعم الاتجاهين العربي (RTL) والإنجليزي (LTR).
+ * ===============================================================
+ */
 import { useEffect, useRef, ComponentType } from "react";
 import { useNavigate } from "react-router-dom";
 import { Sparkles, Search, X, ArrowRight, Moon, Trees, Gift, Sun, Tag } from "lucide-react";
@@ -15,6 +29,7 @@ interface SearchDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+// عمليات بحث سريعة مقترحة تظهر في الحالة الفارغة؛ كل عنصر يحمل استعلامًا جاهزًا وأيقونة
 const QUICK_SEARCHES: { label: string; query: string; Icon: Icon }[] = [
   { label: "Night out", query: "elegant perfume for night", Icon: Moon },
   { label: "Woody & warm", query: "woody warm perfume", Icon: Trees },
@@ -23,13 +38,20 @@ const QUICK_SEARCHES: { label: string; query: string; Icon: Icon }[] = [
   { label: "Under 300 LYD", query: "perfume under 300 lyd", Icon: Tag },
 ];
 
+/**
+ * المكوّن الرئيسي لنافذة البحث.
+ * @param open هل النافذة مفتوحة؟
+ * @param onOpenChange دالة تغيير حالة الفتح/الإغلاق.
+ */
 export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) {
   const navigate = useNavigate();
   const { t, isRTL } = useLanguage();
+  // خطّاف البحث: نصّ الاستعلام، النتائج النصّية، نتائج الذكاء الاصطناعي، وحالتا التحميل لكلٍّ منهما
   const { query, setQuery, results, aiResults, isSearching, isAiSearching, reset } = useSearch();
   const inputRef = useRef<HTMLInputElement>(null);
   const reduce = useReducedMotion();
 
+  // عند الإغلاق: تصفير حالة البحث؛ وعند الفتح: تركيز حقل الكتابة تلقائيًا
   useEffect(() => {
     if (!open) {
       reset();
@@ -38,6 +60,7 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
     }
   }, [open, reset]);
 
+  // اختصار لوحة المفاتيح ⌘K (أو Ctrl+K) لفتح/إغلاق نافذة البحث من أي مكان في الموقع
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
@@ -49,17 +72,20 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [open, onOpenChange]);
 
+  // اختيار نتيجة: إغلاق النافذة والانتقال إلى صفحة المنتَج
   const handleSelect = (productId: string) => {
     onOpenChange(false);
     navigate(`/product/${productId}`);
   };
 
+  // تنفيذ بحث سريع جاهز من اقتراحات الحالة الفارغة
   const handleQuickSearch = (q: string) => {
     setQuery(q);
     inputRef.current?.focus();
   };
 
   const hasResults = results.length > 0 || aiResults.length > 0;
+  // "لا نتائج" تُعرَض فقط بعد كتابة استعلام وانتهاء البحثين (النصّي والذكي) دون أي نتيجة
   const showEmpty = query.trim() && !hasResults && !isSearching && !isAiSearching;
   const totalCount = results.length + aiResults.length;
 
@@ -286,6 +312,11 @@ export default function SearchDialog({ open, onOpenChange }: SearchDialogProps) 
 
 /* ── Sub-components ── */
 
+/**
+ * صفّ نتيجة بحث نصّية واحدة: صورة مصغّرة، الاسم، السعر/النوع/الحجم،
+ * وشارة "نفد" إن كان المخزون صفرًا. الضغط ينقل لصفحة المنتَج.
+ * تنعكس محاذاة العناصر في الوضع العربي (RTL).
+ */
 function TextResultRow({
   product, index, isRTL, soldOutLabel, onSelect,
 }: {
@@ -334,6 +365,10 @@ function TextResultRow({
   );
 }
 
+/**
+ * صفّ نتيجة ذكاء اصطناعي واحدة: يشبه الصفّ النصّي لكنه يضيف نسبة
+ * التطابُق (matchScore) وسبب الترشيح (reason) القادمَين من نموذج AI.
+ */
 function AIResultRow({
   result, index, isRTL, matchLabel, soldOutLabel, onSelect,
 }: {
@@ -344,6 +379,7 @@ function AIResultRow({
   soldOutLabel: string;
   onSelect: (id: string) => void;
 }) {
+  // لون شارة النسبة حسب قوّة التطابُق: أخضر للتطابُق العالي (≥85٪) ولون العلامة فيما دون ذلك
   const scoreColor =
     result.matchScore >= 85
       ? "text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 dark:text-emerald-400"

@@ -1,3 +1,12 @@
+/**
+ * ===================================================================
+ * صفحة العيّنات (Samples) — المسار: /samples
+ * -------------------------------------------------------------------
+ * تعرض العطور التي تتوفّر لها عيّنات (has_samples) مع إمكانية اختيار حجم
+ * العيّنة وإضافتها إلى السلة. تجلب العطور من جدول perfumes ثم تجمع لكل
+ * عطر صوره وعيّناته بالتوازي. تدعم العربية والإنجليزية مع وعي باتجاه RTL.
+ * ===================================================================
+ */
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { TestTube, ShoppingBag, Star, Sparkles, ChevronRight, Droplet, Clock, Package } from "lucide-react";
@@ -9,17 +18,25 @@ import { useCart } from "@/contexts/CartContext";
 import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
 
+// عطر مع قائمة عيّناته المتاحة (يُستخدم داخليًا في هذه الصفحة)
 interface ProductWithSamples extends Product {
   samples: PerfumeSample[];
 }
 
+/**
+ * المكوّن الرئيسي لصفحة العيّنات.
+ * يجلب العطور التي تملك عيّنات، ويدير اختيار حجم العيّنة لكل عطر
+ * وإضافتها إلى السلة.
+ */
 export default function SamplesPage() {
   const { t, isRTL } = useLanguage();
   const [products, setProducts] = useState<ProductWithSamples[]>([]);
   const [loading, setLoading] = useState(true);
+  // يربط معرّف العطر بمعرّف العيّنة المختارة له (productId -> sampleId)
   const [selectedSamples, setSelectedSamples] = useState<Record<string, string>>({}); // productId -> sampleId
   const { addToCart, isItemInCart } = useCart();
 
+  // أثر جانبي يعمل مرة واحدة عند التحميل: جلب العطور النشطة التي تملك عيّنات
   useEffect(() => {
     const load = async () => {
       try {
@@ -32,6 +49,7 @@ export default function SamplesPage() {
 
         if (error || !data) return;
 
+        // لكل عطر نجلب صوره وعيّناته بالتوازي ثم نحوّله لشكل التطبيق (camelCase)
         const withDetails = await Promise.all(
           data.map(async (p) => {
             const [images, samples] = await Promise.all([
@@ -63,6 +81,7 @@ export default function SamplesPage() {
           })
         );
 
+        // نُبقي فقط العطور التي لها عيّنة واحدة على الأقل فعليًا
         setProducts(withDetails.filter((p) => p.samples.length > 0));
       } finally {
         setLoading(false);
@@ -71,6 +90,7 @@ export default function SamplesPage() {
     load();
   }, []);
 
+  // إرجاع العيّنة المختارة لعطر ما، أو أول عيّنة افتراضيًا إن لم يُختر شيء
   const getSelectedSample = (product: ProductWithSamples): PerfumeSample | undefined => {
     const sampleId = selectedSamples[product.id];
     return sampleId
@@ -78,14 +98,20 @@ export default function SamplesPage() {
       : product.samples[0];
   };
 
+  // تسجيل العيّنة المختارة للعطر المحدّد في حالة الاختيار
   const handleSelectSample = (productId: string, sampleId: string) => {
     setSelectedSamples((prev) => ({ ...prev, [productId]: sampleId }));
   };
 
+  /**
+   * إضافة العيّنة المختارة إلى السلة بعد التحقق من توفّرها في المخزون.
+   * يُمرَّر معرّف العيّنة كهوية، مع وسم الحجم لتمييزها داخل السلة.
+   */
   const handleAddToCart = (product: ProductWithSamples) => {
     const sample = getSelectedSample(product);
     if (!sample) return;
 
+    // منع الإضافة إذا كانت العيّنة غير متوفّرة في المخزون
     if (sample.stock_quantity === 0) {
       toast.error(t("samples.outOfStock"));
       return;
@@ -196,6 +222,7 @@ export default function SamplesPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
             {products.map((product) => {
               const selectedSample = getSelectedSample(product);
+              // التحقق إن كانت العيّنة المختارة لهذا العطر موجودة بالسلة لتغيير حالة الزر
               const inCart = selectedSample
                 ? isItemInCart(product.id, `${selectedSample.size} Sample`)
                 : false;

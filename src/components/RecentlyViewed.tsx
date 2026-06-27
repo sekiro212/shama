@@ -1,13 +1,22 @@
+/**
+ * RecentlyViewed.tsx
+ * ------------------
+ * شريط أفقي للمنتجات التي فتحها الزائر مؤخراً. يظهر في صفحة المنتج / الرئيسية
+ * لتشجيع إعادة التفاعل. يُقرأ سجل المشاهدة من الـ hook المسمّى useRecentlyViewed
+ * (المحفوظ في localStorage)، لذا لا يحتوي هذا المكوّن على أي منطق جلب بيانات.
+ */
 import { Link } from "react-router-dom";
 import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Clock } from "lucide-react";
 import { cdnImg } from "@/lib/cdnImage";
 
+/** يعرض شريط المنتجات المُشاهَدة مؤخراً، أو لا شيء إذا كان السجل فارغاً. */
 export default function RecentlyViewed() {
   const { items } = useRecentlyViewed();
   const { t, isRTL } = useLanguage();
 
+  // لا نعرض شيئاً عند خلو السجل — لتفادي ظهور قسم/عنوان فارغ.
   if (items.length === 0) return null;
 
   return (
@@ -23,6 +32,7 @@ export default function RecentlyViewed() {
             to={`/product/${item.id}`}
             className="flex-shrink-0 glass-card bg-white dark:bg-white/5 border border-[#323D50]/10 dark:border-white/10 rounded-xl p-3 hover:bg-white/10 transition-all duration-300 hover:scale-105 w-40"
           >
+            {/* cdnImg() يعيد صياغة الرابط لطلب نسخة مُصغَّرة بصيغة WebP من شبكة الصور (CDN) */}
             <img
               src={cdnImg(item.image, { width: 320, format: "webp" })}
               alt={item.name}

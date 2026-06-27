@@ -1,13 +1,28 @@
+/**
+ * MarketingVideoSection.tsx
+ * ---------------------------------------------------------------------------
+ * قسم في الصفحة الرئيسية يشغّل الفيديو التسويقي العمودي للعلامة (المُنتَج بشكل
+ * منفصل عبر Remotion). يُشغَّل الفيديو تلقائياً وهو صامت (لأن المتصفحات تمنع
+ * التشغيل التلقائي مع الصوت)، وتتيح طبقة الضغط للمستخدم إعادة تشغيله مع الصوت.
+ * ثنائي اللغة: يختار ملف الفيديو العربي أو الإنجليزي بحسب لغة الواجهة.
+ */
 import { useRef, useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 
+/**
+ * يعرض الفيديو التسويقي ذاتي التشغيل مع طبقة "اضغط للتشغيل بالصوت".
+ */
 export default function MarketingVideoSection() {
   const { t, isRTL } = useLanguage();
   const videoRef = useRef<HTMLVideoElement>(null);
+  // يبدأ صامتاً ليسمح المتصفح بالتشغيل التلقائي؛ يصبح false بمجرد إلغاء الكتم.
   const [muted, setMuted] = useState(true);
 
+  // بدّل ملف الفيديو العربي/الإنجليزي بناءً على اللغة المفعّلة.
   const src = isRTL ? "/shama-ar.mp4" : "/shama-en.mp4";
 
+  // أعد تشغيل المقطع من البداية مع تفعيل الصوت (إيماءة المستخدم تستوفي سياسة
+  // التشغيل التلقائي مع الصوت في المتصفح). نتجاهل رفض الوعد من play().
   const handleUnmute = () => {
     const v = videoRef.current;
     if (!v) return;
@@ -41,6 +56,9 @@ export default function MarketingVideoSection() {
             backgroundColor: "#0A0A0A",
           }}
         >
+            {/* يجبر key={src} React على إعادة تركيب عنصر <video> عند تغيّر اللغة
+                (وبالتالي ملف المصدر)، حتى يُحمَّل المقطع الجديد بشكل سليم.
+                تظهر أزرار التحكم controls فقط بعد إلغاء الكتم. */}
             <video
               ref={videoRef}
               key={src}
@@ -54,6 +72,7 @@ export default function MarketingVideoSection() {
               controls={!muted}
             />
 
+            {/* طبقة ضغط تغطي الفيديو بالكامل — تظهر فقط أثناء الكتم؛ الضغط عليها يلغي الكتم */}
             {muted && (
               <button
                 type="button"

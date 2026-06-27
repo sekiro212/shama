@@ -1,3 +1,12 @@
+/**
+ * BottleSizesSection.tsx
+ * ----------------------
+ * قسم فرعي من نموذج العطر لإدارة متغيّرات أحجام القوارير الكاملة (مثل 30ml–200ml،
+ * لكلٍّ منها سعره ومخزونه). يبدّل مربّع اختيار (checkbox) ما إذا كان للعطر متغيّرات
+ * أحجام أصلًا؛ وعند التفعيل يمكن للمسؤول إضافة/تحرير/إزالة الصفوف. كل صف هو مدخل
+ * واحد في مصفوفة `perfumeBottleSizes` (تعكس جدول perfume_bottle_sizes في قاعدة
+ * البيانات). معالِجات الإضافة/الإزالة/التحديث تأتي من الـ hook الخاص بـ usePerfumes.
+ */
 import { Plus, Trash2, Package } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,6 +35,14 @@ interface BottleSizesSectionProps {
   ) => void;
 }
 
+/**
+ * يعرض محرّر متغيّرات أحجام القوارير.
+ * الخصائص (props) الأساسية:
+ * - hasBottleSizes / onHasBottleSizesChange: مفتاح "وجود متغيّرات" + دالة ضبطه
+ * - perfumeBottleSizes: مصفوفة صفوف أحجام العطر الحالية
+ * - bottleSizes: قائمة خيارات الأحجام المسموح بها للقائمة المنسدلة
+ * - addBottleSize / removeBottleSize / updateBottleSize: معالِجات تعديل الصفوف
+ */
 export function BottleSizesSection({
   hasBottleSizes,
   onHasBottleSizesChange,
@@ -52,6 +69,7 @@ export function BottleSizesSection({
         </Label>
       </div>
 
+      {/* لا يظهر محرّر المتغيّرات إلا بعد تعليم العطر بأن له متغيّرات أحجام. */}
       {hasBottleSizes && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -70,6 +88,7 @@ export function BottleSizesSection({
             </Button>
           </div>
 
+          {/* صف قابل للتحرير لكل متغيّر حجم قارورة (قائمة منسدلة للحجم + السعر + المخزون + الحذف). */}
           {perfumeBottleSizes.length > 0 ? (
             <div className="space-y-3">
               {perfumeBottleSizes.map((bottleSize, index) => (
@@ -110,6 +129,7 @@ export function BottleSizesSection({
                     placeholder={t("admin.bottleSizes.pricePlaceholder")}
                   />
 
+                  {/* يُحلَّل المخزون إلى عدد صحيح؛ والمُدخل الفارغ/غير الصالح يرجع إلى 0. */}
                   <Input
                     type="number"
                     value={bottleSize.stock_quantity}

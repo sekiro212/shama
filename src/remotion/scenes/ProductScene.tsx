@@ -1,3 +1,13 @@
+/**
+ * ===========================================================================
+ * مشهد المنتجات (Product Scene)
+ * ---------------------------------------------------------------------------
+ * مشهد من الفيديو الإعلاني (Remotion) يستعرض المنتجات داخل بطاقة أنيقة.
+ * يعرض ثلاثة منتجات بالتتابع (كلٌّ لمدة محددة)، مع صورة العطر وتأثير حركة
+ * بطيئة (ken burns) وطفو خفيف، إضافةً إلى الاسم والسعر وسعر العيّنة وزر
+ * "أضف عيّنة". الهدف: إبراز المنتجات وإمكانية تجربتها بعيّنة قبل الشراء الكامل.
+ * ===========================================================================
+ */
 import { AbsoluteFill, useCurrentFrame, interpolate, spring, useVideoConfig, Img, staticFile } from "remotion";
 
 const resolveAsset = (url: string) => (url.startsWith("/") ? staticFile(url.slice(1)) : url);
@@ -15,15 +25,20 @@ type Props = {
   products: Product[];
 };
 
-const SLOT_START = 16;
-const PRODUCT_DUR = 42;
+const SLOT_START = 16;   // إطار بدء عرض أول منتج
+const PRODUCT_DUR = 42;  // عدد الإطارات المخصّصة لعرض كل منتج
 
+/**
+ * مكوّن مشهد المنتجات.
+ * props: اللغة، اللونان الذهبي والأساسي، وقائمة المنتجات (يُعرض منها 3).
+ */
 export const ProductScene: React.FC<Props> = ({ language, goldColor, primaryColor, products }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const fonts = getFonts(language);
   const rtl = isRtl(language);
 
+  // حركة دخول البطاقة (تنزلق للأعلى وتتكبّر قليلاً) بدءاً من الإطار 8
   const cardEnter = spring({
     frame: frame - 8,
     fps,
@@ -31,24 +46,30 @@ export const ProductScene: React.FC<Props> = ({ language, goldColor, primaryColo
   });
 
   const productSlots = products.slice(0, 3);
+  // رقم المنتج المعروض حالياً = الزمن المنقضي مقسوماً على مدة المنتج الواحد (مع تثبيت الحد الأعلى)
   const slotIndex = Math.min(productSlots.length - 1, Math.floor(Math.max(0, frame - SLOT_START) / PRODUCT_DUR));
+  // الزمن المحلي داخل عرض المنتج الحالي (يُعاد من الصفر مع كل منتج)
   const slotLocal = Math.max(0, frame - SLOT_START - slotIndex * PRODUCT_DUR);
+  // شفافية المنتج: يظهر تدريجياً في البداية ويختفي تدريجياً في النهاية (دخول/خروج)
   const slotOpacity = interpolate(slotLocal, [0, 8, PRODUCT_DUR - 8, PRODUCT_DUR], [0, 1, 1, 0], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
   const product = productSlots[slotIndex];
 
+  // تأثير "ken burns": تكبير بطيء تدريجي للزجاجة طوال مدة بقائها على الشاشة.
   // Slow ken-burns drift on the bottle while it's on screen.
   const kb = interpolate(slotLocal, [0, PRODUCT_DUR], [0, 1], { extrapolateRight: "clamp" });
-  const imgScale = 1.04 + kb * 0.06;
-  const imgFloat = Math.sin(frame / 20) * 6;
+  const imgScale = 1.04 + kb * 0.06; // مقدار التكبير
+  const imgFloat = Math.sin(frame / 20) * 6; // طفو رأسي خفيف ومستمر عبر دالة الجيب
 
   return (
     <AbsoluteFill style={{ direction: dir(language) }}>
+      {/* الخلفية المتحركة المشتركة */}
       <SceneBackdrop primaryColor={primaryColor} goldColor={goldColor} seed={3.9} intensity={1} />
 
       <AbsoluteFill style={{ alignItems: "center", justifyContent: "center", direction: dir(language), gap: 40 }}>
+      {/* عنوان المشهد بحركة نصّية صاعدة */}
       <KineticText
         mode="rise"
         delay={0}
@@ -68,6 +89,7 @@ export const ProductScene: React.FC<Props> = ({ language, goldColor, primaryColo
         {t("product_title", language)}
       </KineticText>
 
+      {/* بطاقة المنتج — تظهر عبر حركة cardEnter وتبقى ثابتة بينما يتبدّل محتواها */}
       <div
         style={{
           opacity: cardEnter,
@@ -91,6 +113,7 @@ export const ProductScene: React.FC<Props> = ({ language, goldColor, primaryColo
             overflow: "hidden",
           }}
         >
+          {/* صورة العطر — تتبدّل مع كل منتج، مع طفو (imgFloat) وتكبير بطيء (imgScale) */}
           {product && (
             <Img
               src={resolveAsset(product.imageUrl)}
@@ -104,6 +127,7 @@ export const ProductScene: React.FC<Props> = ({ language, goldColor, primaryColo
               }}
             />
           )}
+          {/* لمعة ذهبية تمسّ الزجاج في كل مرة يستقرّ فيها منتج جديد (التأخير محسوب حسب رقم المنتج) */}
           {/* gold light catches the glass each time a bottle settles */}
           <LightSweep delay={SLOT_START + slotIndex * PRODUCT_DUR + 6} duration={34} bandWidth={26} />
         </div>
@@ -118,6 +142,7 @@ export const ProductScene: React.FC<Props> = ({ language, goldColor, primaryColo
         >
           {product && (
             <>
+              {/* اسم المنتج بحسب اللغة المختارة */}
               <div
                 style={{
                   opacity: slotOpacity,
@@ -132,6 +157,7 @@ export const ProductScene: React.FC<Props> = ({ language, goldColor, primaryColo
                 {product.name[language]}
               </div>
 
+              {/* سعر الزجاجة الكاملة (مع عكس اتجاه الصف في وضع RTL) */}
               <div
                 style={{
                   opacity: slotOpacity,
@@ -162,6 +188,7 @@ export const ProductScene: React.FC<Props> = ({ language, goldColor, primaryColo
                 </span>
               </div>
 
+              {/* شريط العيّنة: يعرض سعر العيّنة ابتداءً من، وزر "أضف عيّنة" */}
               <div
                 style={{
                   opacity: slotOpacity,

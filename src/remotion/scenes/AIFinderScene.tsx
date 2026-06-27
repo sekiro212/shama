@@ -1,3 +1,14 @@
+/**
+ * ===========================================================================
+ * مشهد "الباحث الذكي" (AI Finder Scene)
+ * ---------------------------------------------------------------------------
+ * أحد مشاهد الفيديو الإعلاني المبنية برمجياً عبر Remotion.
+ * يعرض هذا المشهد واجهة متصفح (BrowserChrome) لموقع shama.ly، حيث تظهر
+ * عبارة بحث وكأنها تُكتب حرفاً بحرف (تأثير الكتابة) ثم تظهر نتائج المنتجات
+ * المقترحة من الذكاء الاصطناعي على شكل بطاقات تتدرج في الظهور.
+ * الهدف: إبراز ميزة البحث الذكي في المتجر.
+ * ===========================================================================
+ */
 import { AbsoluteFill, useCurrentFrame, interpolate, spring, useVideoConfig, staticFile } from "remotion";
 
 const resolveAsset = (url: string) => (url.startsWith("/") ? staticFile(url.slice(1)) : url);
@@ -14,37 +25,51 @@ type Props = {
   products: Product[];
 };
 
+// الإطار (frame) الذي يبدأ عنده تأثير الكتابة
 const TYPE_START = 16;
-const TYPE_SPEED = 0.85; // chars per frame
+const TYPE_SPEED = 0.85; // عدد الحروف المكتوبة في كل إطار (chars per frame)
 
+/**
+ * مكوّن مشهد الباحث الذكي.
+ * props: لغة العرض، اللون الذهبي واللون الأساسي للعلامة، وقائمة المنتجات
+ * التي ستُعرض كنتائج بحث.
+ */
 export const AIFinderScene: React.FC<Props> = ({ language, goldColor, primaryColor, products }) => {
+  // الإطار الحالي ضمن المشهد (يُستخدم كمحرّك لكل الحركات)
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const fonts = getFonts(language);
   const rtl = isRtl(language);
 
+  // حركة دخول نافذة المتصفح باستخدام spring (ارتداد ناعم عند الظهور)
   const chromeEnter = spring({
     frame,
     fps,
     config: { damping: 18, stiffness: 90, mass: 0.8 },
   });
 
+  // تلاشي ظهور النص العلوي (الوسم) تدريجياً بين الإطارين 6 و22
   const labelOpacity = interpolate(frame, [6, 22], [0, 1], { extrapolateRight: "clamp" });
 
+  // النص الكامل المراد كتابته، ثم حساب عدد الحروف الظاهرة حتى الآن بحسب الإطار
   const typed = t("ai_typed", language);
   const charsToShow = Math.max(0, Math.min(typed.length, Math.floor((frame - TYPE_START) * TYPE_SPEED)));
   const typedSubstring = typed.slice(0, charsToShow);
-  const doneTyping = charsToShow >= typed.length;
+  const doneTyping = charsToShow >= typed.length; // هل اكتملت كتابة النص؟
 
+  // وميض مؤشر الكتابة: يظهر ويختفي كل 8 إطارات
   const cursorVisible = Math.floor(frame / 8) % 2 === 0;
 
+  // توقيت بدء ظهور بطاقات النتائج: بعد انتهاء الكتابة بأربعة إطارات
   const resultsStart = TYPE_START + Math.ceil(typed.length / TYPE_SPEED) + 4;
 
   return (
     <AbsoluteFill style={{ direction: dir(language) }}>
+      {/* الخلفية المتحركة المشتركة لكل المشاهد */}
       <SceneBackdrop primaryColor={primaryColor} goldColor={goldColor} seed={2.7} intensity={1.05} />
 
       <AbsoluteFill style={{ alignItems: "center", justifyContent: "center", direction: dir(language) }}>
+      {/* النص العلوي (الوسم) — يتلاشى ظهوره عبر labelOpacity */}
       <div
         style={{
           opacity: labelOpacity,
@@ -60,6 +85,7 @@ export const AIFinderScene: React.FC<Props> = ({ language, goldColor, primaryCol
         {t("ai_label", language)}
       </div>
 
+      {/* حاوية نافذة المتصفح — تنزلق للأعلى وتتكبّر قليلاً عند الدخول وفق chromeEnter */}
       <div
         style={{
           opacity: chromeEnter,
@@ -77,6 +103,7 @@ export const AIFinderScene: React.FC<Props> = ({ language, goldColor, primaryCol
               direction: dir(language),
             }}
           >
+            {/* صندوق البحث — يتوهّج إطاره بالذهبي عند اكتمال الكتابة (doneTyping) */}
             <div
               style={{
                 position: "relative",
@@ -113,7 +140,9 @@ export const AIFinderScene: React.FC<Props> = ({ language, goldColor, primaryCol
                   textAlign: rtl ? "right" : "left",
                 }}
               >
+                {/* النص المكتوب حتى الآن */}
                 {typedSubstring}
+                {/* مؤشر الكتابة الوامض — يظهر فقط أثناء الكتابة (قبل اكتمالها) */}
                 <span
                   style={{
                     display: "inline-block",
@@ -150,7 +179,9 @@ export const AIFinderScene: React.FC<Props> = ({ language, goldColor, primaryCol
                 gap: 16,
               }}
             >
+              {/* بطاقات نتائج البحث (أول 3 منتجات) */}
               {products.slice(0, 3).map((p, i) => {
+                // كل بطاقة تدخل بتأخير 7 إطارات عن سابقتها لتأثير التتابع (stagger)
                 const cardEnter = spring({
                   frame: frame - resultsStart - i * 7,
                   fps,
@@ -200,6 +231,7 @@ export const AIFinderScene: React.FC<Props> = ({ language, goldColor, primaryCol
         </BrowserChrome>
       </div>
 
+      {/* التعليق الختامي أسفل النافذة — يظهر بعد استقرار النتائج */}
       <div
         style={{
           opacity: interpolate(frame, [resultsStart + 20, resultsStart + 34], [0, 1], { extrapolateRight: "clamp" }),

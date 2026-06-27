@@ -1,6 +1,14 @@
+// ===========================================================================
+// types.ts — تعريفات الأنواع (TYPE) المشتركة لتطبيق الإدارة.
+// مكان مركزي لأشكال البيانات (التي تعكس جداول Supabase) التي تتبادلها
+// hooks الإدارة وألسنتها ونوافذها: العطور ومتغيّراتها،
+// وطلبات الهدايا المخصّصة، وحالة نموذج الكوبون.
+// ===========================================================================
+
 import { PerfumeImage } from "@/services/imageService";
 import { DiscountType, PromoScope } from "@/services/promoCodesService";
 
+/** متغيّر بحجم عيّنة لعطر (مثلاً 3ml–30ml) بسعره/مخزونه الخاص. */
 export interface PerfumeSample {
   id: string;
   size: string;
@@ -9,6 +17,7 @@ export interface PerfumeSample {
   is_active: boolean;
 }
 
+/** متغيّر بحجم زجاجة كاملة لعطر (مثلاً 30ml–200ml) بسعره/مخزونه الخاص. */
 export interface PerfumeBottleSize {
   id: string;
   size: string;
@@ -17,6 +26,11 @@ export interface PerfumeBottleSize {
   is_active: boolean;
 }
 
+/**
+ * Perfume — سجل المنتج الرئيسي (يقابل جدول `perfumes`).
+ * الحقول ثنائية اللغة مقترنة (`*` إنجليزي / `*_ar` عربي). و`images` و`samples`
+ * و`bottle_sizes` علاقات اختيارية تُحمَّل إلى جانب المنتج.
+ */
 export interface Perfume {
   id: string;
   name: string;
@@ -49,6 +63,11 @@ export interface Perfume {
   bottle_sizes?: PerfumeBottleSize[];
 }
 
+/**
+ * CustomGiftOrder — طلب صندوق هدية يبنيه العميل (المناسبة، التغليف، لون
+ * الصندوق، وبطاقة رسالة اختيارية وصورة معاينة مولّدة بالذكاء الاصطناعي) إضافةً إلى حالته
+ * وسعره الإجمالي.
+ */
 export interface CustomGiftOrder {
   id: string;
   user_id: string | null;
@@ -66,6 +85,11 @@ export interface CustomGiftOrder {
   created_at: string;
 }
 
+/**
+ * CouponFormState — شكل نموذج إنشاء/تعديل الكوبون. تُحفظ الحقول الرقمية
+ * كنصوص لأنها مرتبطة بمدخلات نصّية وتُحلَّل عند الإرسال؛
+ * ويقيّد `scope_product_ids` الكوبون عندما يستهدف `scope` منتجات معيّنة.
+ */
 export interface CouponFormState {
   code: string;
   discount_type: DiscountType;
@@ -75,7 +99,7 @@ export interface CouponFormState {
   scope: PromoScope;
   scope_product_ids: string[];
   is_active: boolean;
-  expires_at: string; // YYYY-MM-DD or ""
+  expires_at: string; // YYYY-MM-DD أو ""
   usage_limit: string;
   usage_limit_per_user: string;
 }

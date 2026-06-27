@@ -1,3 +1,12 @@
+/**
+ * =============================================================================
+ * تبويب طلبات الهدايا المخصّصة (Custom Gift Orders) في لوحة الإدارة
+ * -----------------------------------------------------------------------------
+ * مكوّن عرضي يعرض كل طلب هدية كبطاقة تحتوي على المعاينة المولّدة بالذكاء
+ * الاصطناعي، واسم المستلم، وتفاصيل المناسبة والتغليف ولون الصندوق والمنتجات
+ * وبطاقة الرسالة. يتيح للمدير تحديث حالة كل طلب مباشرة من البطاقة.
+ * =============================================================================
+ */
 import {
   Gift,
   Cake,
@@ -32,6 +41,7 @@ interface GiftOrdersTabProps {
   giftOrdersApi: ReturnType<typeof useGiftOrders>;
 }
 
+// خريطة ربط كل مناسبة بالأيقونة المناسبة لها لعرضها على البطاقة.
 const OCCASION_ICONS: Record<string, LucideIcon> = {
   birthday: Cake,
   eid: Moon,
@@ -40,12 +50,14 @@ const OCCASION_ICONS: Record<string, LucideIcon> = {
   just_because: Gift,
 };
 
+// إعدادات أنماط التغليف: لكل نمط أيقونته واسمه المعروض.
 const WRAPPING_CONFIG: Record<string, { icon: LucideIcon; label: string }> = {
   ribbon: { icon: Sparkles, label: "Ribbon" },
   luxury_tissue: { icon: Package, label: "Luxury Tissue" },
   luxury_bag: { icon: ShoppingBag, label: "Gift Bag" },
 };
 
+// خريطة ألوان صناديق الهدايا إلى قيم HEX لعرض نقطة اللون الفعلية.
 const BOX_COLOR_HEX: Record<string, string> = {
   black: "#1a1a1a",
   gold: "#D4AF37",
@@ -53,11 +65,20 @@ const BOX_COLOR_HEX: Record<string, string> = {
   rose_gold: "#B76E79",
 };
 
+/**
+ * يعرض قائمة بطاقات طلبات الهدايا المخصّصة مع إمكانية تحديث حالة كل طلب.
+ * @param giftOrdersApi واجهة الخطّاف useGiftOrders (البيانات، حالة التحميل، إعادة الجلب).
+ */
 export function GiftOrdersTab({ giftOrdersApi }: GiftOrdersTabProps) {
   const { t } = useLanguage();
   const { giftOrders, setGiftOrders, giftOrdersLoading, fetchGiftOrders } =
     giftOrdersApi;
 
+  /**
+   * تحدّث حالة طلب هدية في قاعدة البيانات ثم تزامن الحالة محلياً.
+   * عند الفشل يظهر إشعار خطأ ولا يتغيّر شيء؛ وعند النجاح تُحدَّث القائمة
+   * تحديثاً متفائلاً (optimistic) دون إعادة جلب كامل من الخادم.
+   */
   const handleStatusChange = async (orderId: string, newStatus: string) => {
     const { error } = await supabase
       .from("custom_gift_orders")
@@ -66,6 +87,7 @@ export function GiftOrdersTab({ giftOrdersApi }: GiftOrdersTabProps) {
     if (error) {
       toast.error("Failed to update status");
     } else {
+      // تحديث الطلب المطابق للمعرّف فقط داخل المصفوفة المحلية مع الإبقاء على البقية.
       setGiftOrders((prev) =>
         prev.map((o) =>
           o.id === orderId ? { ...o, status: newStatus } : o
@@ -99,6 +121,7 @@ export function GiftOrdersTab({ giftOrdersApi }: GiftOrdersTabProps) {
         </Button>
       </div>
 
+      {/* حالة التحميل: عرض بطاقات هيكلية وامضة (skeleton) ريثما تصل البيانات */}
       {giftOrdersLoading ? (
         <div className="space-y-6">
           {[1, 2].map((i) => (
@@ -109,6 +132,7 @@ export function GiftOrdersTab({ giftOrdersApi }: GiftOrdersTabProps) {
           ))}
         </div>
       ) : giftOrders.length === 0 ? (
+        /* حالة الفراغ: لا توجد طلبات هدايا بعد */
         <EmptyState
           icon={Gift}
           title="No custom gift orders yet"
@@ -117,7 +141,9 @@ export function GiftOrdersTab({ giftOrdersApi }: GiftOrdersTabProps) {
       ) : (
         <div className="space-y-6">
           {giftOrders.map((order) => {
+            // اختيار أيقونة المناسبة من الخريطة، مع أيقونة هدية افتراضية عند عدم التطابق.
             const OccasionIcon = OCCASION_ICONS[order.occasion] ?? Gift;
+            // استخراج إعدادات نمط التغليف، مع قيم احتياطية إن كان النمط غير معرّف.
             const wrappingConfig = WRAPPING_CONFIG[order.wrapping_style];
             const WrappingIcon = wrappingConfig?.icon ?? Package;
             const wrappingLabel =
@@ -128,6 +154,7 @@ export function GiftOrdersTab({ giftOrdersApi }: GiftOrdersTabProps) {
                 key={order.id}
                 className="glass-card rounded-2xl overflow-hidden hover:shadow-md transition-shadow"
               >
+                {/* عرض صورة المعاينة المولّدة بالذكاء الاصطناعي إن وُجدت */}
                 {order.generated_image_url && (
                   <div className="relative">
                     <img
@@ -166,6 +193,7 @@ export function GiftOrdersTab({ giftOrdersApi }: GiftOrdersTabProps) {
                       )}
                     </div>
                     <div className="flex-shrink-0 flex flex-col items-end gap-2">
+                      {/* شارة الحالة الحالية + قائمة منسدلة لتغييرها فوراً */}
                       <StatusBadge status={order.status} type="order" />
                       <Select
                         value={order.status}
@@ -191,9 +219,11 @@ export function GiftOrdersTab({ giftOrdersApi }: GiftOrdersTabProps) {
                     </div>
                   </div>
 
+                  {/* شارات تفاصيل الطلب: المناسبة، لون الصندوق، نمط التغليف */}
                   <div className="flex flex-wrap gap-2">
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium glass dark:border-white/10 border-[#323D50]/10 dark:text-white/80 text-[#323D50]">
                       <OccasionIcon className="w-3.5 h-3.5" />
+                      {/* استبدال الشرطة السفلية بمسافة لعرض اسم المناسبة بشكل مقروء */}
                       {order.occasion.replace("_", " ")}
                     </span>
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium glass dark:border-white/10 border-[#323D50]/10 dark:text-white/80 text-[#323D50]">

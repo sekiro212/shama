@@ -158,8 +158,20 @@ export default function ShippingSection({
           return;
         }
 
-        // 3) No history — seed the account email so the order links to the account.
-        if (user.email) onChange({ ...EMPTY_SHIPPING, email: user.email });
+        // 3) No history — prefill name from the Google/account profile (editable)
+        //    and seed the account email so the order links to the account.
+        //    تعبئة الاسم تلقائيًا من حساب Google: نأخذ given_name/family_name إن
+        //    توفّرا، وإلا نُقسّم الاسم الكامل (full_name/name) على أول مسافة.
+        //    تبقى الحقول قابلة للتعديل من المستخدم.
+        const meta = (user.user_metadata ?? {}) as Record<string, string>;
+        const fullName = (meta.full_name || meta.name || "").trim();
+        const [firstFromFull, ...restFromFull] = fullName.split(/\s+/);
+        onChange({
+          ...EMPTY_SHIPPING,
+          firstName: meta.given_name || firstFromFull || "",
+          lastName: meta.family_name || restFromFull.join(" ") || "",
+          email: user.email || "",
+        });
       })
       .catch(() => {
         // Silent — fall back to empty form
@@ -394,7 +406,7 @@ export default function ShippingSection({
               >
                 <SelectTrigger
                   id="city"
-                  className="glass dark:bg-white/5 bg-white/80 border-[#323D50]/15 dark:border-white/15 focus:border-warm focus:ring-warm/30 rounded-xl h-12"
+                  className="bg-white/80 dark:bg-white/[0.06] border-[#323D50]/20 dark:border-white/20 focus:border-warm focus:ring-2 focus:ring-warm/30 rounded-xl h-12 transition-colors"
                 >
                   <SelectValue
                     placeholder={
@@ -444,7 +456,7 @@ export default function ShippingSection({
                   >
                     <SelectTrigger
                       id="subCity"
-                      className="glass dark:bg-white/5 bg-white/80 border-[#323D50]/15 dark:border-white/15 focus:border-warm focus:ring-warm/30 rounded-xl h-12"
+                      className="bg-white/80 dark:bg-white/[0.06] border-[#323D50]/20 dark:border-white/20 focus:border-warm focus:ring-2 focus:ring-warm/30 rounded-xl h-12 transition-colors"
                     >
                       <SelectValue placeholder={t("cart.enterPlaceName")} />
                     </SelectTrigger>
@@ -473,7 +485,7 @@ export default function ShippingSection({
                       })
                     }
                     placeholder={t("checkout.form.placeNamePlaceholder")}
-                    className="glass dark:bg-white/5 bg-white/80 border-[#323D50]/15 dark:border-white/15 focus:border-warm focus:ring-warm/30 rounded-xl h-12"
+                    className="bg-white/80 dark:bg-white/[0.06] border-[#323D50]/20 dark:border-white/20 focus:border-warm focus:ring-2 focus:ring-warm/30 rounded-xl h-12 transition-colors"
                   />
                 )}
               </div>
@@ -541,6 +553,7 @@ function Field({
   required,
   touched,
 }: FieldProps) {
+  const { t } = useLanguage();
   // إظهار الخطأ فقط للحقول المطلوبة الفارغة التي تفاعل معها المستخدم
   const showError = required && touched && !value.trim();
   return (
@@ -560,7 +573,12 @@ function Field({
         aria-invalid={showError || undefined}
         autoComplete={AUTOCOMPLETE_BY_ID[id]}
         inputMode={INPUTMODE_BY_TYPE[type]}
-        className="glass dark:bg-white/5 bg-white/80 border-[#323D50]/15 dark:border-white/15 focus:border-warm focus:ring-warm/30 rounded-xl h-12"
+        placeholder={label}
+        className={`bg-white/80 dark:bg-white/[0.06] rounded-xl h-12 transition-colors placeholder:text-[#6B7B8D]/60 dark:placeholder:text-white/30 focus:border-warm focus:ring-2 focus:ring-warm/30 ${
+          showError
+            ? "border-red-500/60 dark:border-red-500/60"
+            : "border-[#323D50]/20 dark:border-white/20"
+        }`}
       />
       {showError && (
         <p
@@ -568,7 +586,7 @@ function Field({
           aria-live="polite"
           className="text-xs text-red-500 dark:text-red-400"
         >
-          {label}
+          {t("cart.fieldRequired").replace("{field}", label)}
         </p>
       )}
     </div>

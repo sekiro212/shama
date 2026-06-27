@@ -1,11 +1,22 @@
+/**
+ * ===========================================================================
+ * الملف: PhoneFrame.tsx
+ * الدور: مكوّن عرض (component) يحاكي إطار هاتف ذكي.
+ * يلفّ المحتوى الممرَّر داخل هيكل هاتف بحوافّ مدوّرة و"نتوء" الكاميرا العلوي
+ * (notch)، ليُعرض محتوى الموقع كأنه يعمل على شاشة جوال.
+ * ===========================================================================
+ */
 import React from "react";
 
+// خصائص المكوّن: المحتوى الداخلي وعرض الهاتف.
 type Props = {
   children: React.ReactNode;
   width?: number;
 };
 
+/** يلفّ المحتوى داخل إطار هاتف بنسبة شاشة 19.5:9 ونتوء كاميرا علوي. */
 export const PhoneFrame: React.FC<Props> = ({ children, width = 480 }) => {
+  // حساب الارتفاع من العرض بنسبة شاشة الهواتف الحديثة 19.5:9.
   const height = Math.round((width * 19.5) / 9);
   return (
     <div
@@ -29,17 +40,18 @@ export const PhoneFrame: React.FC<Props> = ({ children, width = 480 }) => {
           position: "relative",
         }}
       >
+        {/* نتوء الكاميرا (notch) في أعلى منتصف الشاشة */}
         <div
           style={{
             position: "absolute",
             top: 14,
             left: "50%",
-            transform: "translateX(-50%)",
+            transform: "translateX(-50%)", // توسيط النتوء أفقياً
             width: 110,
             height: 28,
             background: "#000",
             borderRadius: 999,
-            zIndex: 10,
+            zIndex: 10, // فوق المحتوى
           }}
         />
         {children}

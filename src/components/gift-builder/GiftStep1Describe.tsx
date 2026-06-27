@@ -1,6 +1,24 @@
+/**
+ * ====================================================================
+ * GiftStep1Describe — الخطوة الأولى من معالج بناء الهدية (Gift Wizard)
+ * --------------------------------------------------------------------
+ * تتيح هذه الخطوة للمستخدم وصف الشخص أو المناسبة التي يريد الهدية لأجلها
+ * بنص حر، ثم تُرسَل هذه الكلمات إلى الذكاء الاصطناعي (AI) لاقتراح عطور
+ * مناسبة في الخطوة التالية. تحتوي كذلك على «رقائق» (chips) جاهزة لتعبئة
+ * الوصف بنقرة واحدة.
+ * تدعم اللغتين العربية والإنجليزية مع اتجاه RTL عبر useLanguage().
+ * ====================================================================
+ */
 import { Sparkles, ChevronRight } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 
+/**
+ * خصائص المكوّن:
+ * - value: النص الحالي لوصف الهدية (مُدار من المكوّن الأب).
+ * - onChange: دالة لتحديث الوصف عند الكتابة أو اختيار رقاقة جاهزة.
+ * - onNext: دالة الانتقال إلى الخطوة التالية (طلب الاقتراحات من AI).
+ * - isLoading: مؤشر انشغال أثناء جلب الاقتراحات من الذكاء الاصطناعي.
+ */
 interface Props {
   value: string;
   onChange: (value: string) => void;
@@ -8,6 +26,7 @@ interface Props {
   isLoading: boolean;
 }
 
+// مفاتيح الترجمة للرقائق الجاهزة (الأمثلة السريعة) التي تملأ خانة الوصف بنقرة
 const CHIP_KEYS = [
   "giftBuilder.chip1",
   "giftBuilder.chip2",
@@ -16,6 +35,9 @@ const CHIP_KEYS = [
   "giftBuilder.chip5",
 ];
 
+/**
+ * المكوّن الرئيسي لخطوة وصف الهدية: حقل نص + رقائق + زر المتابعة.
+ */
 export default function GiftStep1Describe({ value, onChange, onNext, isLoading }: Props) {
   const { t, isRTL } = useLanguage();
 
@@ -30,6 +52,7 @@ export default function GiftStep1Describe({ value, onChange, onNext, isLoading }
         </p>
       </div>
 
+      {/* حقل النص الحر لوصف الهدية؛ يُضبط اتجاهه (dir) حسب لغة الواجهة لدعم RTL */}
       <textarea
         className="w-full glass-card rounded-2xl p-4 dark:text-[#F5F5F5] text-[#323D50] dark:bg-white/5 bg-white border dark:border-white/10 border-[#323D50]/10 resize-none focus:outline-none focus:ring-2 focus:ring-[#5B8DD9] text-base"
         rows={4}
@@ -40,6 +63,7 @@ export default function GiftStep1Describe({ value, onChange, onNext, isLoading }
         dir={isRTL ? "rtl" : "ltr"}
       />
 
+      {/* الرقائق الجاهزة: نقرها يستبدل وصف الهدية كاملًا بنص المثال المختار */}
       <div className="flex flex-wrap gap-2">
         {CHIP_KEYS.map((key) => (
           <button
@@ -52,6 +76,8 @@ export default function GiftStep1Describe({ value, onChange, onNext, isLoading }
         ))}
       </div>
 
+      {/* زر المتابعة: مُعطَّل ما لم يُدخَل وصف، أو أثناء جلب الاقتراحات من AI.
+          عند التحميل يظهر مؤشّر دوران، وإلا يظهر سهم متابعة يُقلَب في RTL */}
       <button
         onClick={onNext}
         disabled={!value.trim() || isLoading}

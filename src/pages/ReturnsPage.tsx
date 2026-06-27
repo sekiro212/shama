@@ -1,7 +1,21 @@
+/**
+ * ============================================================================
+ * صفحة "سياسة الإرجاع والاستبدال" (Returns) — المسار: /returns
+ * ----------------------------------------------------------------------------
+ * صفحة ثابتة توضّح شروط الإرجاع: مدّة الإرجاع، حالة المنتج المقبولة، آلية
+ * الاسترداد، المنتجات غير القابلة للإرجاع، وكيفية بدء طلب الإرجاع.
+ * تنتهي بمربّع تنبيه (callout) يطمئن العميل بشأن ضمان الجودة.
+ * النصوص ثنائية اللغة عبر دالة الترجمة t().
+ * ============================================================================
+ */
 import { motion, useReducedMotion } from "framer-motion";
 import { ShieldCheck } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 
+/**
+ * المكوّن الرئيسي لصفحة سياسة الإرجاع.
+ * ملاحظة: الأقسام مكتوبة يدويًا (وليست عبر تكرار) مع ترقيم ثابت من 01 إلى 05.
+ */
 export default function ReturnsPage() {
   const { t } = useLanguage();
   const reduce = useReducedMotion();
@@ -72,6 +86,7 @@ export default function ReturnsPage() {
             <p>{t("returns.start.body")}</p>
           </section>
 
+          {/* مربّع تنبيه ختامي بأيقونة درع يؤكّد التزام المتجر بضمان الجودة */}
           <aside
             role="note"
             className="mt-8 flex items-start gap-4 rounded-2xl border border-warm/40 bg-warm/10 dark:bg-warm/15 p-5"

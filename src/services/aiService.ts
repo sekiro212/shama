@@ -1,16 +1,40 @@
+/**
+ * aiService.ts
+ * -----------------------------------------------------------------------------
+ * الوحدة المركزية لكل ميزات الذكاء الاصطناعي في المتجر. كل الطلبات تمر عبر
+ * OpenRouter (بوابة HTTP واحدة تتصل بعدة مزودي نماذج LLM) باستخدام دالة
+ * fetch() الأصلية. المسؤوليات تشمل:
+ *   - روبوت المحادثة المستشار (chatWithAI / ...Stream) بنسختين: بث ومن دون بث
+ *   - البحث في الكتالوج بالذكاء الاصطناعي (aiSearch / smartSearch)
+ *   - توليد النصوص التسويقية (generateProductDescription ونص الـ timeline)
+ *   - مراجعة (تدقيق) تقييمات العملاء (evaluateReview)
+ *   - توصيات اختبار العطور وبطاقات "بصمة العطر" (Scent DNA)
+ *   - توليد صور الهدايا عند الطلب (generateGiftImage)
+ *
+ * ملاحظات تصميمية للقارئ:
+ *   - يُحقَن كتالوج المنتجات داخل الـ prompt كنص عادي حتى لا يوصي النموذج إلا
+ *     بمنتجات حقيقية ومتوفرة فعلاً (انظر buildProductContext).
+ *   - كل مهمة تختار نموذجاً مناسباً عبر ثوابت *_MODEL في الأسفل.
+ *   - كل دالة عامة تفشل "بهدوء": عند أي خطأ تُرجع قيمة بديلة آمنة
+ *     (مصفوفة فارغة / رسالة لطيفة) بدل رمي استثناء، حتى لا تتعطل الواجهة.
+ */
 import { fetchProducts, Product } from "./productsService";
 
 export interface SmartSearchResult {
   product: Product;
-  reason: string;      // 1-2 sentence explanation of why this perfume matches
-  matchScore: number;  // integer 60-99
+  reason: string;      // جملة أو جملتان تشرحان سبب تطابق هذا العطر
+  matchScore: number;  // عدد صحيح بين 60 و 99
 }
 
-// --- OpenRouter configuration ---
+// --- إعدادات OpenRouter ---
+// مفتاح الـ API يأتي من متغير بيئة Vite (يجب أن يبدأ بـ VITE_ لكي يُتاح داخل حزمة المتصفح).
 const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+// النموذج الافتراضي للأغراض العامة: روبوت المحادثة، البحث، الأوصاف، الاختبار.
 const OPENROUTER_MODEL = "openai/gpt-5.2";
+// نموذج مخصّص لتدقيق التقييمات — يُستخدم مصنّف أكثر صرامة في قرارات الأمان.
 const OPENROUTER_MODERATION_MODEL = "anthropic/claude-sonnet-4-6";
+// الترويستان HTTP-Referer / X-Title هما اصطلاح من OpenRouter لنسب التطبيق في لوحتهم.
 const OPENROUTER_HEADERS: Record<string, string> = {
   "Content-Type": "application/json",
   "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
@@ -18,16 +42,27 @@ const OPENROUTER_HEADERS: Record<string, string> = {
   "X-Title": "Shama Perfumes",
 };
 
-/** Strip Qwen3 thinking blocks from output */
+/**
+ * تزيل أي كتل تفكير <think>...</think> التي تُخرجها بعض النماذج قبل إجابتها
+ * الحقيقية، حتى لا يرى المستخدم المونولوج الداخلي للنموذج.
+ * @param text المخرَج الخام من النموذج.
+ * @returns نص منظّف بعد إزالة كتل التفكير وتشذيب الفراغات.
+ */
 function stripThinkTags(text: string): string {
   return text.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
 }
 
-/** Non-streaming OpenRouter call */
+/**
+ * تنفّذ طلب إكمال محادثة واحداً (بدون بث) إلى OpenRouter.
+ * @param messages رسائل المحادثة (system/user/assistant) المراد إرسالها.
+ * @param config درجة الحرارة، الحد الأقصى للـ tokens، ونموذج اختياري بديل (الافتراضي OPENROUTER_MODEL).
+ * @returns نص المساعد (بعد إزالة كتل التفكير)، أو null إذا غاب المفتاح أو فشل الطلب.
+ */
 async function callOpenRouter(
   messages: { role: string; content: string }[],
   config: { temperature: number; maxTokens: number; model?: string }
 ): Promise<string | null> {
+  // لا يوجد مفتاح API -> نتصرّف كأن "الذكاء الاصطناعي غير متاح" بدل إطلاق خطأ.
   if (!OPENROUTER_API_KEY) return null;
 
   const response = await fetch(OPENROUTER_URL, {
@@ -48,11 +83,19 @@ async function callOpenRouter(
   }
 
   const data = await response.json();
+  // OpenRouter يتبع نفس بنية استجابة OpenAI: choices[0].message.content.
   const text = data.choices?.[0]?.message?.content?.trim();
   return text ? stripThinkTags(text) : null;
 }
 
-/** Streaming OpenRouter call — yields content chunks */
+/**
+ * نسخة البث من callOpenRouter. تقرأ جسم استجابة Server-Sent-Events (SSE)
+ * وتُخرج كل جزء نصي فور وصوله، حتى يستطيع روبوت المحادثة عرض النص حرفاً
+ * بحرف. كما تُصفّي كتل <think> أثناء البث (انظر المنطق في الأسطر أدناه).
+ * @param messages رسائل المحادثة المراد إرسالها.
+ * @param config درجة الحرارة والحد الأقصى للـ tokens.
+ * @yields أجزاء النص المرئية (محتوى كتل التفكير مكتوم).
+ */
 async function* callOpenRouterStream(
   messages: { role: string; content: string }[],
   config: { temperature: number; maxTokens: number }
@@ -78,25 +121,27 @@ async function* callOpenRouterStream(
 
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
-  let sseBuffer = "";
-  let inThinkBlock = false;
-  let thinkAccum = "";
+  let sseBuffer = "";       // يجمّع البايتات الخام حتى تكتمل أسطر كاملة
+  let inThinkBlock = false; // صحيح طالما نحن داخل مقطع <think>...</think>
+  let thinkAccum = "";      // يخزّن المحتوى مؤقتاً ريثما نعثر على وسم الإغلاق </think>
 
   try {
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
 
+      // نفكّ ترميز جزء الشبكة ونقسّمه أسطراً؛ قد ينتهي الجزء في منتصف سطر.
       sseBuffer += decoder.decode(value, { stream: true });
       const lines = sseBuffer.split("\n");
-      sseBuffer = lines.pop() || ""; // keep incomplete last line
+      sseBuffer = lines.pop() || ""; // نحتفظ بالسطر الأخير غير المكتمل
 
       for (const line of lines) {
         const trimmed = line.trim();
+        // أسطر بيانات SSE تأتي بصيغة "data: {json}"؛ نتجاهل ما عداها.
         if (!trimmed || !trimmed.startsWith("data: ")) continue;
 
         const payload = trimmed.slice(6).trim();
-        if (payload === "[DONE]") return;
+        if (payload === "[DONE]") return; // علامة نهاية البث في OpenRouter
 
         try {
           const parsed = JSON.parse(payload);
@@ -141,18 +186,29 @@ async function* callOpenRouterStream(
   }
 }
 
-// Cache for product context
+// تخزين مؤقت في الذاكرة لنص الكتالوج المُجهَّز. إعادة بنائه تستدعي قاعدة البيانات
+// وتنسّق 100 منتج، لذا نعيد استخدامه طوال CACHE_TTL لإبقاء روبوت المحادثة سريعاً
+// وتقليل الحِمل. هذا الكاش على مستوى الوحدة (مشترك بين كل المستدعين).
 let cachedProductContext: string | null = null;
 let cacheTimestamp = 0;
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const CACHE_TTL = 5 * 60 * 1000; // 5 دقائق
 
+/**
+ * تبني (وتخزّن مؤقتاً) لقطة نصية من كتالوج المنتجات تُحقَن في prompts الذكاء
+ * الاصطناعي. وجود الكتالوج الحي داخل الـ prompt يُجبر النموذج على التوصية
+ * بمنتجات حقيقية فقط بأسعارها وحالة توفرها الحالية.
+ * @returns نص الكتالوج مفصولاً بأسطر؛ وعند فشل قاعدة البيانات يُرجع آخر قيمة
+ *          مخزّنة أو رسالة بديلة "غير متاح".
+ */
 export async function buildProductContext(): Promise<string> {
   const now = Date.now();
+  // نقدّم القيمة من الكاش طالما ما زالت حديثة.
   if (cachedProductContext && now - cacheTimestamp < CACHE_TTL) {
     return cachedProductContext;
   }
 
   try {
+    // نجلب أول 100 منتج (الصفحة 1) كالكتالوج الذي يمكن للذكاء الاصطناعي التوصية منه.
     const { products } = await fetchProducts(1, 100);
     const context = products
       .map((p: Product) => {
@@ -173,10 +229,13 @@ export async function buildProductContext(): Promise<string> {
     cacheTimestamp = now;
     return context;
   } catch {
+    // عند الفشل نفضّل كاشاً قديماً على لا شيء؛ وإلا رسالة محايدة.
     return cachedProductContext || "Product catalog is temporarily unavailable.";
   }
 }
 
+// شخصية وقواعد روبوت المحادثة. يُلحَق نص الكتالوج الحي بعد هذا النص مباشرة
+// حتى لا يستطيع المساعد التوصية إلا بمنتجات موجودة فعلاً.
 const SYSTEM_PROMPT = `You are Shama's AI Perfume Consultant — a knowledgeable, friendly, and elegant fragrance expert for Shama Luxury Perfume Store (a Libyan perfume brand).
 
 Your role:
@@ -194,6 +253,14 @@ Your role:
 PRODUCT CATALOG:
 `;
 
+/**
+ * دور محادثة واحد بدون بث. يبني الـ system prompt (الشخصية + الكتالوج الحي)،
+ * يعيد تشغيل المحادثة السابقة، يضيف رسالة المستخدم الجديدة، ويُرجع الرد كاملاً
+ * دفعة واحدة.
+ * @param userMessage آخر رسالة من العميل.
+ * @param conversationHistory الأدوار السابقة؛ يُحوَّل دورنا "model" إلى "assistant" الخاص بـ OpenAI.
+ * @returns رد المساعد، أو نص بديل لطيف عند أي فشل.
+ */
 export async function chatWithAI(
   userMessage: string,
   conversationHistory: { role: "user" | "model"; text: string }[]
@@ -206,9 +273,11 @@ export async function chatWithAI(
     const productContext = await buildProductContext();
     const systemInstruction = SYSTEM_PROMPT + productContext;
 
+    // نُجمّع قائمة الرسائل: تعليمات النظام، ثم السجل، ثم الرسالة الجديدة.
     const messages = [
       { role: "system", content: systemInstruction },
       ...conversationHistory.map((msg) => ({
+        // نحوّل دورنا الداخلي "model" إلى دور "assistant" الخاص بالـ API.
         role: msg.role === "model" ? "assistant" : "user",
         content: msg.text,
       })),
@@ -223,6 +292,13 @@ export async function chatWithAI(
   }
 }
 
+/**
+ * نسخة البث من chatWithAI تستخدمها واجهة المحادثة الحية. نفس طريقة بناء الـ
+ * prompt، لكنها تُخرج الرد تدريجياً لإحداث تأثير الكتابة الحية.
+ * @param userMessage آخر رسالة من العميل.
+ * @param conversationHistory الأدوار السابقة ("model" -> "assistant").
+ * @yields أجزاء نص الرد؛ ونص بديل واحد عند الفشل.
+ */
 export async function* chatWithAIStream(
   userMessage: string,
   conversationHistory: { role: "user" | "model"; text: string }[]
@@ -256,11 +332,18 @@ export async function* chatWithAIStream(
   }
 }
 
+/**
+ * بحث خفيف بلغة طبيعية: يسأل النموذج عن أسماء المنتجات المطابقة للاستعلام،
+ * ثم يربط تلك الأسماء بكائنات Product حقيقية من قاعدة البيانات.
+ * @param query نص بحث حر من العميل (مثل "شيء منعش للصيف").
+ * @returns المنتجات المطابقة (حتى 6 تقريباً)، أو [] إذا كان الذكاء مُعطّلاً أو لا تطابق.
+ */
 export async function aiSearch(query: string): Promise<Product[]> {
   if (!OPENROUTER_API_KEY) return [];
 
   try {
     const productContext = await buildProductContext();
+    // درجة حرارة منخفضة (0.3) تجعل النموذج أكثر حسماً فيُرجع أسماء JSON نظيفة.
     const prompt = `Given this perfume catalog:\n${productContext}\n\nA customer searches for: "${query}"\n\nReturn ONLY a JSON array of product names that best match this query (max 6). Consider fragrance notes, gender, price, and description. Example: ["Product Name 1", "Product Name 2"]\n\nReturn ONLY the JSON array, nothing else.`;
 
     const text = await callOpenRouter(
@@ -269,11 +352,14 @@ export async function aiSearch(query: string): Promise<Product[]> {
     );
 
     const raw = text?.trim() || "[]";
+    // نستخرج أول مصفوفة JSON حتى لو غلّفها النموذج بنص إضافي.
     const match = raw.match(/\[[\s\S]*\]/);
     if (!match) return [];
 
     const names: string[] = JSON.parse(match[0]);
     const { products } = await fetchProducts(1, 100);
+    // نطابق الأسماء بمرونة (دون حساسية لحالة الأحرف، واحتواء جزئي في الاتجاهين)
+    // حتى تظل الاختلافات اللفظية البسيطة من النموذج تُحلّ إلى منتجات حقيقية.
     return products.filter((p) =>
       names.some(
         (name) => p.name.toLowerCase().includes(name.toLowerCase()) || name.toLowerCase().includes(p.name.toLowerCase())
@@ -285,12 +371,19 @@ export async function aiSearch(query: string): Promise<Product[]> {
   }
 }
 
+/**
+ * بحث أغنى من aiSearch: يُرجع لكل تطابق سبباً مقروءاً للبشر ودرجة تطابق بين
+ * 60 و 99، مرتّبة من الأفضل أولاً. يشغّل بطاقات نتائج "البحث الذكي".
+ * @param query نص بحث حر من العميل (عربي أو إنجليزي).
+ * @returns مصفوفة {product, reason, matchScore} مرتّبة تنازلياً بالدرجة؛ [] عند الفشل/عدم التطابق.
+ */
 export async function smartSearch(query: string): Promise<SmartSearchResult[]> {
   if (!OPENROUTER_API_KEY) return [];
 
   if (!query.trim()) return [];
 
   try {
+    // نجلب نص الكتالوج وقائمة المنتجات الحقيقية بالتوازي.
     const [productContext, { products }] = await Promise.all([
       buildProductContext(),
       fetchProducts(1, 100),
@@ -333,19 +426,22 @@ Example format:
     try {
       parsed = JSON.parse(match[0]);
     } catch {
+      // JSON غير صالح من النموذج -> نعتبره "لا نتائج" بدل أن ننهار.
       return [];
     }
 
     const results: SmartSearchResult[] = parsed
       .map((item) => {
+        // نحوّل كل عنصر سمّاه الذكاء الاصطناعي إلى منتج حقيقي (تطابق تام، ثم احتواء جزئي).
         const product = products.find(
           (p) =>
             p.name.trim().toLowerCase() === item.name.trim().toLowerCase() ||
             p.name.toLowerCase().includes(item.name.toLowerCase()) ||
             item.name.toLowerCase().includes(p.name.toLowerCase())
         );
-        if (!product) return null;
+        if (!product) return null; // نُسقط الأسماء المُتوهَّمة غير الموجودة
 
+        // نقيّد الدرجة دفاعياً ضمن 0-99 ونجعلها 60 افتراضياً إذا أغفلها النموذج.
         const matchScore =
           typeof item.matchScore === "number" && isFinite(item.matchScore)
             ? Math.min(99, Math.max(0, item.matchScore))
@@ -357,8 +453,8 @@ Example format:
 
         return { product, reason, matchScore };
       })
-      .filter((r): r is SmartSearchResult => r !== null)
-      .sort((a, b) => b.matchScore - a.matchScore);
+      .filter((r): r is SmartSearchResult => r !== null) // نزيل القيم null المُسقَطة
+      .sort((a, b) => b.matchScore - a.matchScore);      // الأفضل تطابقاً أولاً
 
     return results;
   } catch (error) {
@@ -367,6 +463,14 @@ Example format:
   }
 }
 
+/**
+ * تولّد نصاً تسويقياً للمنتج اعتماداً على اسمه ومكوّناته العطرية وجنسه.
+ * تستخدمها صفحة العطور في لوحة الإدارة لكتابة الوصف بنقرة واحدة.
+ * @param name اسم المنتج.
+ * @param notes هرم العطر (مصفوفات النوتات العليا/الوسطى/القاعدية).
+ * @param gender الجنس المستهدف (اختياري)؛ الافتراضي "unisex" داخل الـ prompt.
+ * @returns وصف من 2-3 جمل، أو نص بديل توضيحي عند الفشل.
+ */
 export async function generateProductDescription(
   name: string,
   notes: { top: string[]; middle: string[]; base: string[] },
@@ -377,6 +481,7 @@ export async function generateProductDescription(
   }
 
   try {
+    // نستخدم درجة حرارة أعلى (0.8) هنا لجعل النص التسويقي أكثر إبداعاً.
     const prompt = `Write a luxurious, evocative marketing description for a perfume with these details:
 - Name: ${name}
 - Gender: ${gender || "unisex"}
@@ -403,11 +508,21 @@ export interface ReviewEvaluation {
   reason: string;
 }
 
+/**
+ * تدقيق محتوى تقييمات العملاء بالذكاء الاصطناعي. يصنّف التقييم إما "approved"
+ * (آمن للنشر التلقائي) أو "pending" (يحتاج مراجعة بشرية). مصمَّم ليفشل بأمان:
+ * عند أي شك أو مفتاح مفقود أو خطأ يُرجع "pending" حتى لا يُنشَر شيء ضار تلقائياً.
+ * @param rating عدد النجوم (1-5) الذي منحه العميل.
+ * @param comment نص التقييم.
+ * @param productName اسم المنتج المُقيَّم (للسياق).
+ * @returns كائن {decision, reason} حيث reason شرح إنجليزي قصير.
+ */
 export async function evaluateReview(
   rating: number,
   comment: string,
   productName: string
 ): Promise<ReviewEvaluation> {
+  // لا ذكاء اصطناعي مُهيّأ -> نلجأ للمراجعة اليدوية (لا نوافق تلقائياً بشكل أعمى).
   if (!OPENROUTER_API_KEY) {
     return { decision: "pending", reason: "AI moderator unavailable — manual review required." };
   }
@@ -448,6 +563,7 @@ Classify. JSON only.`;
         { role: "user", content: userPrompt },
       ],
       {
+        // درجة حرارة 0 لقرار حاسم وثابت، ونستخدم نموذج التدقيق المخصّص.
         temperature: 0,
         maxTokens: 250,
         model: OPENROUTER_MODERATION_MODEL,
@@ -458,11 +574,13 @@ Classify. JSON only.`;
       return { decision: "pending", reason: "AI moderator did not respond — manual review required." };
     }
 
+    // نزيل أسوار markdown المحتملة (```json) قبل محاولة تحليل الـ JSON.
     const cleaned = text
       .replace(/^```(?:json)?\s*/i, "")
       .replace(/\s*```\s*$/i, "")
       .trim();
 
+    // نلتقط أول كائن JSON من النص حتى لو رافقته مقدمات نصية.
     const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       try {
@@ -470,6 +588,7 @@ Classify. JSON only.`;
           decision?: string;
           reason?: string;
         };
+        // أي قيمة غير "approved" تُعامَل كـ "pending" (الافتراض الآمن).
         const decision = parsed.decision === "approved" ? "approved" : "pending";
         const reason =
           typeof parsed.reason === "string" && parsed.reason.trim()
@@ -483,6 +602,7 @@ Classify. JSON only.`;
       }
     }
 
+    // خطة احتياطية: إذا تعذّر تحليل JSON نبحث عن الكلمة "approved" مع غياب "pending".
     const raw = cleaned.toLowerCase();
     const approvedMatch = /\bapproved\b/.test(raw) && !/\bpending\b/.test(raw);
     return {
@@ -497,6 +617,12 @@ Classify. JSON only.`;
   }
 }
 
+/**
+ * تُرجع أفضل 3 توصيات عطور بناءً على إجابات اختبار العطور.
+ * تبني وصف الميزانية وصيغة الشراء من الإجابات ثم تطلب من النموذج إخراج JSON.
+ * @param answers قاموس إجابات الاختبار (occasion, scentFamily, intensity, gender, format, budget).
+ * @returns مصفوفة من {name, matchScore, reason}، أو [] عند الفشل.
+ */
 export async function getQuizRecommendations(
   answers: Record<string, string>
 ): Promise<
@@ -506,6 +632,7 @@ export async function getQuizRecommendations(
 
   try {
     const productContext = await buildProductContext();
+    // نحوّل قيمة "format" إلى وصف نصي يفهمه النموذج (عينات فقط / زجاجة كاملة / كلاهما).
     const formatLabel =
       answers.format === "sample"
         ? "samples only"
@@ -513,6 +640,7 @@ export async function getQuizRecommendations(
         ? "full bottle only"
         : "open to both samples and full bottles";
 
+    // نصوغ سياق الميزانية حسب صيغة الشراء؛ replace يحوّل "10_20" إلى "10 20" للقراءة.
     const budgetContext =
       answers.format === "sample"
         ? `Budget for samples: ${answers.budget.replace(/_/g, " ")} LYD`
@@ -545,6 +673,7 @@ Return ONLY valid JSON array, nothing else. Example:
     );
 
     const raw = text?.trim() || "[]";
+    // نستخرج مصفوفة JSON من رد النموذج.
     const match = raw.match(/\[[\s\S]*\]/);
     if (!match) return [];
 
@@ -555,14 +684,23 @@ Return ONLY valid JSON array, nothing else. Example:
   }
 }
 
+/**
+ * تولّد صورة هدية باستخدام نموذج توليد الصور من Gemini.
+ * ترسل طلباً متعدد الوسائط (نص + صور المنتجات كمرجع بصري) وتستخرج رابط الصورة
+ * الناتجة (عادةً data URL بترميز base64).
+ * @param prompt الوصف النصي المفصّل للمشهد المراد توليده.
+ * @param productImageUrls روابط صور المنتجات لاستخدامها كمرجع بصري (تُؤخذ أول 3 فقط).
+ * @returns رابط/داتا الصورة المولّدة، أو null عند الفشل أو غياب المفتاح.
+ */
 export async function generateGiftImage(
   prompt: string,
   productImageUrls: string[]
 ): Promise<string | null> {
   if (!OPENROUTER_API_KEY) return null;
 
-  // Build multimodal content: detailed text prompt + product images as visual reference
+  // نبني محتوى متعدد الوسائط: نص الـ prompt المفصّل + صور المنتجات كمرجع بصري.
   const content: object[] = [{ type: "text", text: prompt }];
+  // نكتفي بأول 3 صور لتقليل حجم الطلب والتكلفة.
   productImageUrls.slice(0, 3).forEach((url) => {
     content.push({ type: "image_url", image_url: { url } });
   });

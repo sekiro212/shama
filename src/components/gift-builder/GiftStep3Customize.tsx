@@ -1,3 +1,13 @@
+/**
+ * ====================================================================
+ * GiftStep3Customize — الخطوة الثالثة من معالج بناء الهدية
+ * --------------------------------------------------------------------
+ * تتيح تخصيص شكل الهدية: المناسبة، لون الصندوق، نمط التغليف، اسم
+ * المُهدى إليه، تاريخ التسليم، وبطاقة الرسالة. تُستخدم هذه الخيارات لاحقًا
+ * في توليد صورة الهدية عبر الذكاء الاصطناعي ولإتمام الطلب.
+ * تدعم اللغتين العربية والإنجليزية مع اتجاه RTL عبر useLanguage().
+ * ====================================================================
+ */
 import { ChevronRight, ChevronLeft } from "lucide-react";
 import { GiftCustomization, GiftOccasion, GiftBoxColor, GiftWrappingStyle } from "@/types/giftBuilder";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -5,6 +15,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
+/**
+ * خصائص المكوّن:
+ * - value: كائن خيارات التخصيص الحالية (مناسبة، لون، تغليف...).
+ * - onChange: دالة لتحديث كائن التخصيص بالكامل.
+ * - onNext / onBack: التنقّل بين خطوات المعالج.
+ * - isLoading: مؤشّر انشغال أثناء توليد صورة الهدية بالذكاء الاصطناعي.
+ */
 interface Props {
   value: GiftCustomization;
   onChange: (value: GiftCustomization) => void;
@@ -13,12 +30,17 @@ interface Props {
   isLoading?: boolean;
 }
 
+/**
+ * المكوّن الرئيسي لخطوة تخصيص الهدية.
+ */
 export default function GiftStep3Customize({ value, onChange, onNext, onBack, isLoading = false }: Props) {
   const { t, isRTL } = useLanguage();
 
+  // دالة مساعدة مُعمَّمة: تحدّث مفتاحًا واحدًا داخل كائن التخصيص مع الحفاظ على بقية الحقول
   const set = <K extends keyof GiftCustomization>(key: K, val: GiftCustomization[K]) =>
     onChange({ ...value, [key]: val });
 
+  // قائمة المناسبات المتاحة؛ القيمة (value) ثابتة بالإنجليزية والعنوان (label) مُترجَم
   const occasions: { value: GiftOccasion; label: string }[] = [
     { value: "birthday", label: t("giftBuilder.occasionBirthday") },
     { value: "eid", label: t("giftBuilder.occasionEid") },
@@ -27,6 +49,7 @@ export default function GiftStep3Customize({ value, onChange, onNext, onBack, is
     { value: "just_because", label: t("giftBuilder.occasionJustBecause") },
   ];
 
+  // ألوان صندوق الهدية؛ يحمل كل خيار قيمة منطقية، ولونًا سداسيًا (hex) للعرض، وعنوانًا مُترجَمًا
   const boxColors: { value: GiftBoxColor; hex: string; label: string }[] = [
     { value: "black", hex: "#1a1a1a", label: t("giftBuilder.colorBlack") },
     { value: "gold", hex: "#D4AF37", label: t("giftBuilder.colorGold") },
@@ -34,6 +57,7 @@ export default function GiftStep3Customize({ value, onChange, onNext, onBack, is
     { value: "rose_gold", hex: "#B76E79", label: t("giftBuilder.colorRoseGold") },
   ];
 
+  // أنماط التغليف المتاحة للهدية (شريطة، ورق فاخر، حقيبة فاخرة)
   const wrappings: { value: GiftWrappingStyle; label: string }[] = [
     { value: "ribbon", label: t("giftBuilder.wrappingRibbon") },
     { value: "luxury_tissue", label: t("giftBuilder.wrappingTissue") },
@@ -129,6 +153,7 @@ export default function GiftStep3Customize({ value, onChange, onNext, onBack, is
       </div>
 
       {/* Delivery Date */}
+      {/* تاريخ التسليم: لا يُسمح باختيار تاريخ سابق لليوم الحالي (قيمة min = تاريخ اليوم) */}
       <div>
         <Label className="dark:text-white/80 text-[#6B7B8D] mb-2 block font-medium">
           {t("giftBuilder.deliveryDate")}
@@ -166,6 +191,7 @@ export default function GiftStep3Customize({ value, onChange, onNext, onBack, is
           <ChevronLeft className={`h-5 w-5 ${isRTL ? "rotate-180" : ""}`} />
           {t("giftBuilder.back")}
         </button>
+        {/* زر «التالي» الذي يبدأ توليد صورة الهدية؛ يظهر مؤشّر تحميل أثناء العملية */}
         <button
           onClick={onNext}
           disabled={isLoading}

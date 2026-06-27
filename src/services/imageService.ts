@@ -1,3 +1,11 @@
+/**
+ * ===========================================================================
+ * ملف: imageService.ts
+ * الغرض: إدارة صور العطور في تخزين Supabase (حاوية perfume-images) وجدول perfume_images.
+ * يوفّر عمليات: الرفع، الحذف، الجلب، تعيين الصورة الأساسية، تغيير الترتيب، والتحقق من الملفات.
+ * ملاحظة: كل صورة لها سجل في الجدول يحمل بياناتها الوصفية (metadata) إضافة إلى الملف في التخزين.
+ * ===========================================================================
+ */
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 
@@ -15,16 +23,24 @@ export interface PerfumeImage {
   updated_at: string;
 }
 
-// Upload image to Supabase Storage and save metadata to database
+/**
+ * رفع صورة عطر إلى التخزين وحفظ بياناتها الوصفية في جدول perfume_images.
+ * @param perfumeId معرّف العطر الذي تتبع له الصورة.
+ * @param file ملف الصورة المراد رفعه.
+ * @param isPrimary هل تُعيّن هذه الصورة كصورة أساسية للعطر (افتراضيًا false).
+ * @returns سجل الصورة بعد الحفظ، أو null عند حدوث خطأ.
+ */
 export const uploadPerfumeImage = async (
   perfumeId: string,
   file: File,
   isPrimary: boolean = false
 ): Promise<PerfumeImage | null> => {
   try {
+    // مسار الملف: مجلد باسم معرّف العطر + طابع زمني للتفرّد مع الحفاظ على الامتداد الأصلي
     const fileExt = file.name.split(".").pop();
     const fileName = `${perfumeId}/${Date.now()}.${fileExt}`;
 
+    // رفع الملف إلى حاوية التخزين perfume-images
     // Upload file to Supabase Storage
     const { error: uploadError } = await supabase.storage
       .from("perfume-images")
@@ -39,12 +55,12 @@ export const uploadPerfumeImage = async (
       return null;
     }
 
-    // Get public URL for the uploaded image
+    // الحصول على الرابط العام للصورة المرفوعة لتخزينه في الجدول
     const {
       data: { publicUrl },
     } = supabase.storage.from("perfume-images").getPublicUrl(fileName);
 
-    // Get display order (next available order)
+    // حساب ترتيب العرض: جلب أعلى ترتيب موجود لإسناد الترتيب التالي للصورة الجديدة
     const { data: existingImages, error: fetchError } = await supabase
       .from("perfume_images")
       .select("display_order")
@@ -54,15 +70,16 @@ export const uploadPerfumeImage = async (
 
     if (fetchError) {
       console.error("Error fetching existing images:", fetchError);
-      // Continue with default order
+      // المتابعة بالترتيب الافتراضي عند فشل الجلب
     }
 
+    // إن وُجدت صور سابقة يكون الترتيب = أعلى ترتيب + 1، وإلا 0 لأول صورة
     const displayOrder =
       existingImages && existingImages.length > 0
         ? existingImages[0].display_order + 1
         : 0;
 
-    // If this is set as primary, update other images to not be primary
+    // عند تعيين هذه الصورة كأساسية، يجب إلغاء صفة "أساسية" عن بقية صور العطر أولًا
     if (isPrimary) {
       await supabase
         .from("perfume_images")
@@ -70,7 +87,7 @@ export const uploadPerfumeImage = async (
         .eq("perfume_id", perfumeId);
     }
 
-    // Save image metadata to database
+    // حفظ البيانات الوصفية للصورة (الرابط، الاسم، الحجم، النوع...) في جدول perfume_images
     const { data: imageData, error: dbError } = await supabase
       .from("perfume_images")
       .insert([
@@ -90,7 +107,7 @@ export const uploadPerfumeImage = async (
 
     if (dbError) {
       console.error("Database error:", dbError);
-      // Clean up uploaded file if database save fails
+      // تنظيف الملف المرفوع إذا فشل الحفظ في قاعدة البيانات لتجنّب الملفات اليتيمة
       await supabase.storage.from("perfume-images").remove([fileName]);
       toast.error("Failed to save image metadata");
       return null;
@@ -107,10 +124,15 @@ export const uploadPerfumeImage = async (
   }
 };
 
-// Delete image from storage and database
+/**
+ * حذف صورة عطر من التخزين ومن قاعدة البيانات معًا.
+ * إذا كانت الصورة المحذوفة هي الأساسية، تُعيَّن أول صورة متبقية كصورة أساسية بديلة.
+ * @param imageId معرّف الصورة المراد حذفها.
+ * @returns true عند نجاح الحذف، أو false عند الفشل.
+ */
 export const deletePerfumeImage = async (imageId: string): Promise<boolean> => {
   try {
-    // Get image data first
+    // جلب بيانات الصورة أولًا للحصول على مسار الملف ومعرفة هل هي الأساسية
     const { data: imageData, error: fetchError } = await supabase
       .from("perfume_images")
       .select("*")
@@ -123,7 +145,7 @@ export const deletePerfumeImage = async (imageId: string): Promise<boolean> => {
       return false;
     }
 
-    // Delete from storage
+    // حذف الملف من التخزين باستخدام مساره المخزّن (file_path)
     const { error: storageError } = await supabase.storage
       .from("perfume-images")
       .remove([imageData.file_path]);
@@ -134,7 +156,7 @@ export const deletePerfumeImage = async (imageId: string): Promise<boolean> => {
       return false;
     }
 
-    // Delete from database
+    // حذف سجل الصورة من قاعدة البيانات
     const { error: dbError } = await supabase
       .from("perfume_images")
       .delete()
@@ -146,7 +168,7 @@ export const deletePerfumeImage = async (imageId: string): Promise<boolean> => {
       return false;
     }
 
-    // If this was the primary image, set another image as primary
+    // إذا كانت هذه هي الصورة الأساسية، تُعيَّن أول صورة متبقية (الأقل ترتيبًا) كأساسية جديدة
     if (imageData.is_primary) {
       const { data: otherImages, error: otherError } = await supabase
         .from("perfume_images")
@@ -174,7 +196,11 @@ export const deletePerfumeImage = async (imageId: string): Promise<boolean> => {
   }
 };
 
-// Get all images for a perfume
+/**
+ * جلب جميع صور عطر معيّن مرتّبة تصاعديًا حسب ترتيب العرض (display_order).
+ * @param perfumeId معرّف العطر.
+ * @returns مصفوفة صور العطر، أو مصفوفة فارغة عند الخطأ.
+ */
 export const getPerfumeImages = async (
   perfumeId: string
 ): Promise<PerfumeImage[]> => {
@@ -197,10 +223,15 @@ export const getPerfumeImages = async (
   }
 };
 
-// Set image as primary
+/**
+ * تعيين صورة محدّدة كصورة أساسية للعطر.
+ * يلغي أولًا صفة "أساسية" عن كل صور العطر، ثم يضعها على الصورة المطلوبة (لضمان وجود صورة أساسية واحدة).
+ * @param imageId معرّف الصورة المراد جعلها أساسية.
+ * @returns true عند النجاح، أو false عند الفشل.
+ */
 export const setPrimaryImage = async (imageId: string): Promise<boolean> => {
   try {
-    // Get image data
+    // جلب بيانات الصورة للحصول على معرّف العطر التابعة له
     const { data: imageData, error: fetchError } = await supabase
       .from("perfume_images")
       .select("*")
@@ -213,13 +244,13 @@ export const setPrimaryImage = async (imageId: string): Promise<boolean> => {
       return false;
     }
 
-    // Update other images to not be primary
+    // إلغاء صفة "أساسية" عن جميع صور العطر
     await supabase
       .from("perfume_images")
       .update({ is_primary: false })
       .eq("perfume_id", imageData.perfume_id);
 
-    // Set this image as primary
+    // تعيين الصورة المطلوبة كأساسية
     const { error: updateError } = await supabase
       .from("perfume_images")
       .update({ is_primary: true })
@@ -242,7 +273,12 @@ export const setPrimaryImage = async (imageId: string): Promise<boolean> => {
   }
 };
 
-// Update image display order
+/**
+ * تحديث ترتيب عرض صورة معيّنة.
+ * @param imageId معرّف الصورة.
+ * @param newOrder قيمة الترتيب الجديدة.
+ * @returns true عند النجاح، أو false عند الفشل.
+ */
 export const updateImageOrder = async (
   imageId: string,
   newOrder: number
@@ -267,15 +303,21 @@ export const updateImageOrder = async (
   }
 };
 
-// Validate image file
+/**
+ * التحقق من صلاحية ملف الصورة قبل الرفع (النوع والحجم).
+ * @param file الملف المراد التحقق منه.
+ * @returns رسالة خطأ نصية عند المخالفة، أو null إذا كان الملف صالحًا.
+ */
 export const validateImageFile = (file: File): string | null => {
-  const maxSize = 5 * 1024 * 1024; // 5MB
+  const maxSize = 5 * 1024 * 1024; // الحد الأقصى للحجم: 5 ميغابايت
   const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 
+  // رفض الأنواع غير المسموح بها
   if (!allowedTypes.includes(file.type)) {
     return "Only JPEG, PNG, and WebP images are allowed";
   }
 
+  // رفض الملفات التي تتجاوز الحد الأقصى للحجم
   if (file.size > maxSize) {
     return "Image size must be less than 5MB";
   }

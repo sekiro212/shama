@@ -1,3 +1,9 @@
+/**
+ * ملف: OverviewPage.tsx
+ * الدور: الصفحة الرئيسية (لوحة المعلومات) في لوحة التحكم (/admin) التي تعرض ملخّصًا بصريًا
+ * لأداء المتجر: بطاقات إحصائية، ورسوم بيانية للإيرادات وتوزيع حالات الطلبات وأكثر المنتجات
+ * مبيعًا وأكثر المدن طلبًا. تجمع بياناتها من عدّة خطّافات وتعالجها عبر خطّاف useOverviewData.
+ */
 import { useEffect } from "react";
 import { useOrders } from "../hooks/useOrders";
 import { usePerfumes } from "../hooks/usePerfumes";
@@ -31,6 +37,7 @@ import {
 import { ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { Skeleton } from "@/components/ui/skeleton";
 
+// إعدادات الرسوم البيانية الثلاثة (التسمية واللون لكل سلسلة بيانات) المستخدمة مع مكوّنات recharts
 const revenueChartConfig: ChartConfig = {
   revenue: { label: "Revenue", color: "#5B8DD9" },
   orders: { label: "Orders", color: "#3E6BB5" },
@@ -44,6 +51,10 @@ const productChartConfig: ChartConfig = {
   count: { label: "Sold", color: "#5B8DD9" },
 };
 
+/**
+ * هيكل تحميل مؤقّت (skeleton) يُعرض أثناء جلب بيانات لوحة المعلومات.
+ * يحاكي تخطيط الصفحة الفعلي (بطاقات + رسوم) لتقليل قفز الواجهة عند اكتمال التحميل.
+ */
 function OverviewSkeleton() {
   return (
     <div className="space-y-6">
@@ -91,6 +102,12 @@ function OverviewSkeleton() {
   );
 }
 
+/**
+ * المكوّن الرئيسي للوحة المعلومات.
+ * يجمع البيانات من خطّافات الطلبات والعطور والمراجعات والذكريات، ثم يشتقّ منها سلاسل
+ * الرسوم البيانية عبر useOverviewData، ويعرض البطاقات والرسوم. يُظهر الهيكل المؤقّت
+ * أثناء تحميل الطلبات.
+ */
 export default function OverviewPage() {
   const { t } = useLanguage();
   const ordersApi = useOrders({});
@@ -98,11 +115,14 @@ export default function OverviewPage() {
   const reviewsApi = useReviews();
   const memoriesApi = useMemories();
 
+  // تركيب/تجميع البيانات: تحويل الطلبات وإحصائياتها الخام إلى سلاسل جاهزة للرسوم
+  // (إيراد يومي، توزيع الحالات، أعلى المنتجات مبيعًا)
   const { dailyRevenue, statusDistribution, topProducts } = useOverviewData(
     ordersApi.orders,
     ordersApi.orderStats
   );
 
+  // تحميل كل مصادر البيانات اللازمة للبطاقات والرسوم دفعة واحدة عند أول تركيب
   useEffect(() => {
     ordersApi.loadOrders();
     ordersApi.loadOrderStats();
@@ -287,6 +307,7 @@ export default function OverviewPage() {
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={250}>
+              {/* اقتطاع أسماء المنتجات الطويلة إلى 20 حرفًا حتى لا تتجاوز محور الرسم البياني */}
               <BarChart
                 data={topProducts.map((p) => ({
                   ...p,
