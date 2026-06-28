@@ -66,6 +66,7 @@ export default function GiftWizard({ onClose }: Props) {
     imageStyle: "realistic",
     isGenerating: false,
     isPlacingOrder: false,
+    publishToGiftPage: false,
   });
 
   // دالة مساعدة مُعمَّمة لتحديث حقل واحد من حالة المعالج مع الحفاظ على بقية الحقول
@@ -142,6 +143,7 @@ export default function GiftWizard({ onClose }: Props) {
         generatedImageUrl: state.generatedImageUrl || state.selectedProducts[0]?.images?.[0]?.image_url || "",
         imageStyle: state.imageStyle,
         userId: user?.id,
+        publishToGiftPage: state.publishToGiftPage,
       });
       toast.success(t("giftBuilder.orderPlaced"));
       onClose();
@@ -152,7 +154,7 @@ export default function GiftWizard({ onClose }: Props) {
         set("isPlacingOrder", false);
       }
     }
-  }, [state.selectedProducts, state.customization, state.generatedImageUrl, state.imageStyle, user, t, onClose]);
+  }, [state.selectedProducts, state.customization, state.generatedImageUrl, state.imageStyle, state.publishToGiftPage, user, t, onClose]);
 
   /**
    * تبديل اختيار عطر: إزالته إن كان مختارًا مسبقًا، أو إضافته ما لم يبلغ
@@ -246,6 +248,8 @@ export default function GiftWizard({ onClose }: Props) {
             selectedProducts={state.selectedProducts}
             isPlacingOrder={state.isPlacingOrder}
             generatedImageUrl={state.generatedImageUrl}
+            publishToGiftPage={state.publishToGiftPage}
+            onTogglePublish={(v) => set("publishToGiftPage", v)}
           />
         )}
       </div>

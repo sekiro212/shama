@@ -27,6 +27,9 @@ interface Props {
   selectedProducts: Product[];
   isPlacingOrder: boolean;
   generatedImageUrl?: string;
+  // السؤال الأخير: هل تظهر هذه الهدية علناً في صفحة أطقم الهدايا؟
+  publishToGiftPage: boolean;
+  onTogglePublish: (value: boolean) => void;
 }
 
 /**
@@ -38,6 +41,8 @@ export default function GiftStep4Preview({
   selectedProducts,
   isPlacingOrder,
   generatedImageUrl,
+  publishToGiftPage,
+  onTogglePublish,
 }: Props) {
   const { t, isRTL } = useLanguage();
   const { addToCart } = useCart();
@@ -124,6 +129,24 @@ export default function GiftStep4Preview({
         <ShoppingCart className="h-5 w-5" />
         {t("giftBuilder.addToCart")}
       </button>
+
+      {/* السؤال الأخير: إظهار الهدية في صفحة أطقم الهدايا (اختياري) */}
+      <label className="flex items-start gap-3 glass border dark:border-white/10 border-[#323D50]/10 rounded-xl p-3 cursor-pointer select-none">
+        <input
+          type="checkbox"
+          checked={publishToGiftPage}
+          onChange={(e) => onTogglePublish(e.target.checked)}
+          className="mt-0.5 h-5 w-5 shrink-0 accent-[#5B8DD9] cursor-pointer"
+        />
+        <span>
+          <span className="block text-sm font-medium dark:text-[#F5F5F5] text-[#323D50]">
+            {t("giftBuilder.showOnGiftPage")}
+          </span>
+          <span className="block text-xs dark:text-white/50 text-[#6B7B8D]">
+            {t("giftBuilder.showOnGiftPageHint")}
+          </span>
+        </span>
+      </label>
 
       {/* زر تأكيد طلب الهدية المخصّصة؛ يُعطَّل ويُظهر مؤشّر تحميل أثناء الإرسال */}
       <button

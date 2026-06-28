@@ -17,6 +17,7 @@ import { fetchPerfumeSamples, Product, PerfumeSample } from "@/services/products
 import { useCart } from "@/contexts/CartContext";
 import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { cdnImg } from "@/lib/cdnImage";
 
 // عطر مع قائمة عيّناته المتاحة (يُستخدم داخليًا في هذه الصفحة)
 interface ProductWithSamples extends Product {
@@ -235,8 +236,12 @@ export default function SamplesPage() {
                   {/* Image */}
                   <Link to={`/product/${product.id}`} className="relative block overflow-hidden">
                     <img
-                      src={product.images?.[0]?.image_url || ""}
+                      src={cdnImg(product.images?.[0]?.image_url, { width: 600, format: "webp" })}
                       alt={product.name}
+                      loading="lazy"
+                      decoding="async"
+                      width={600}
+                      height={480}
                       className="w-full h-60 object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />

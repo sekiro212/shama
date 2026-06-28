@@ -48,6 +48,8 @@ export interface GiftWizardState {
   imageStyle: GiftImageStyle;
   isGenerating: boolean;
   isPlacingOrder: boolean;
+  // هل ينشر المستخدم هذه الهدية علناً في صفحة أطقم الهدايا؟ (سؤال أخير عند المراجعة)
+  publishToGiftPage: boolean;
 }
 
 // القيم الافتراضية لتخصيص الهدية عند بدء المعالج

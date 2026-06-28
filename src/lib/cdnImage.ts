@@ -31,15 +31,22 @@ function withParams(url: string, params: Record<string, string | number | undefi
   return `${url}${url.includes("?") ? "&" : "?"}${q}`;
 }
 
-// تحويلات صور Supabase تتطلب خطة مدفوعة. مشروع shama.ly الحالي على الخطة
-// المجانية (Free)، لذا فإن /storage/v1/render/image يعيد 403 ← ERR_BLOCKED_BY_ORB
-// في Chrome وتبقى بطاقات المنتجات عالقة على عنصر التحميل البديل. إلى أن ينتقل
-// المشروع إلى Pro+، نقدّم كائن التخزين الأصلي مباشرة.
+// تحويلات صور Supabase الأصلية (/storage/v1/render/image) تتطلب خطة مدفوعة، ومشروع
+// shama.ly على الخطة المجانية. لذلك نمرّر صور Supabase (وأي رابط http آخر) عبر
+// وكيل الصور المجاني wsrv.nl (images.weserv.nl) الذي يعيد التحجيم + التحويل إلى webp
+// ويُخزّن النتيجة على حافة CDN — فيتقلّص حجم الصورة من ميغابايتات إلى عشرات الكيلوبايتات
+// دون الحاجة لخطة مدفوعة. روابط Unsplash تبقى تستخدم تحويلاتها الأصلية.
+const WSRV_FIT: Record<NonNullable<TransformOptions["resize"]>, string> = {
+  cover: "cover",
+  contain: "contain",
+  fill: "fill",
+};
+
 /**
  * يعيد رابط صورة (ربما محوّلاً) للمصدر المعطى.
  * @param url رابط الصورة المصدر (Supabase Storage أو Unsplash أو أي شيء).
  * @param opts العرض/الارتفاع/الجودة/الصيغة/إعادة التحجيم المطلوبة.
- * @returns رابطاً محوّلاً لـ Unsplash؛ والرابط الأصلي خلاف ذلك؛ و"" إن لم يوجد رابط.
+ * @returns رابطاً محوّلاً لـ Unsplash/wsrv؛ والرابط الأصلي للروابط غير المؤهَّلة؛ و"" إن لم يوجد رابط.
  */
 export function cdnImg(url: string | null | undefined, opts: TransformOptions = {}): string {
   if (!url) return "";
@@ -56,5 +63,18 @@ export function cdnImg(url: string | null | undefined, opts: TransformOptions = 
     });
   }
 
-  return url;
+  // الروابط غير المطلقة (data:/blob:/مسارات محلية) أو الممرَّرة مسبقاً عبر الوكيل تُعاد كما هي.
+  if (!/^https?:\/\//i.test(url) || url.includes("wsrv.nl") || url.includes("weserv.nl")) {
+    return url;
+  }
+
+  // أي رابط http آخر (صور Supabase Storage) يُمرَّر عبر وكيل wsrv.nl المجاني.
+  return withParams("https://wsrv.nl/", {
+    url,
+    w: opts.width,
+    h: opts.height,
+    q: opts.quality ?? 75,
+    output: opts.format && opts.format !== "origin" ? opts.format : "webp",
+    fit: opts.resize ? WSRV_FIT[opts.resize] : undefined,
+  });
 }
