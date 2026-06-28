@@ -53,6 +53,32 @@ function stripThinkTags(text: string): string {
 }
 
 /**
+ * يحلّل مصفوفة JSON من رد النموذج بمرونة. إذا قُطع الرد في المنتصف (بسبب
+ * تجاوز حد الـ tokens) فإن JSON.parse العادي يفشل ونخسر كل النتائج؛ هنا نتعافى
+ * بإعادة المحاولة على آخر كائن `}` مكتمل ثم نغلق المصفوفة يدوياً.
+ * @param text رد النموذج الخام (قد يحوي أسوار markdown أو نصاً إضافياً).
+ * @returns مصفوفة الكائنات المُحلّلة، أو [] إذا تعذّر استخراج أي كائن كامل.
+ */
+function parseLooseJsonArray<T = unknown>(text: string | null | undefined): T[] {
+  const raw = (text ?? "").replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/i, "").trim();
+  const start = raw.indexOf("[");
+  if (start === -1) return [];
+  const candidate = raw.slice(start);
+  try {
+    return JSON.parse(candidate);
+  } catch {
+    // الرد مقطوع: نقتصّ حتى آخر "}" مكتمل ونغلق المصفوفة لإنقاذ ما اكتمل منها.
+    const lastObj = candidate.lastIndexOf("}");
+    if (lastObj === -1) return [];
+    try {
+      return JSON.parse(candidate.slice(0, lastObj + 1) + "]");
+    } catch {
+      return [];
+    }
+  }
+}
+
+/**
  * تنفّذ طلب إكمال محادثة واحداً (بدون بث) إلى OpenRouter.
  * @param messages رسائل المحادثة (system/user/assistant) المراد إرسالها.
  * @param config درجة الحرارة، الحد الأقصى للـ tokens، ونموذج اختياري بديل (الافتراضي OPENROUTER_MODEL).
@@ -662,22 +688,24 @@ In the "reason" field, mention whether the price fits their budget (reference sa
 Return a JSON array of the top 3 best-matching products. For each product include:
 - "name": exact product name from the catalog
 - "matchScore": percentage match (60-98)
-- "reason": 1-2 sentence explanation of why this perfume matches their preferences, mentioning price fit
+- "reason": ONE short sentence (max 20 words) on why it matches, mentioning price fit
 
 Return ONLY valid JSON array, nothing else. Example:
 [{"name":"Product Name","matchScore":92,"reason":"Perfect match because..."}]`;
 
-    const text = await callOpenRouter(
-      [{ role: "user", content: prompt }],
-      { temperature: 0.5, maxTokens: 512 }
-    );
-
-    const raw = text?.trim() || "[]";
-    // نستخرج مصفوفة JSON من رد النموذج.
-    const match = raw.match(/\[[\s\S]*\]/);
-    if (!match) return [];
-
-    return JSON.parse(match[0]);
+    // الاختبار قمع تحويلي حسّاس: شاشة نتائج فارغة تُفقد عميلاً. لذا نحاول مرتين —
+    // أحياناً يقطع المزوّد الرد قبل اكتمال أول كائن فلا يجد المُحلّل المتساهل ما ينقذه.
+    let recs: { name: string; matchScore: number; reason: string }[] = [];
+    for (let attempt = 0; attempt < 2 && recs.length === 0; attempt++) {
+      const text = await callOpenRouter(
+        [{ role: "user", content: prompt }],
+        // 1024 (لا 512): ثلاث توصيات بأسبابها كانت تتجاوز 512 فيُقطع الـ JSON
+        // ويفشل التحليل وتظهر شاشة نتائج فارغة. والتحليل المتساهل ينقذ أي قطع متبقٍّ.
+        { temperature: 0.5, maxTokens: 1024 }
+      );
+      recs = parseLooseJsonArray(text);
+    }
+    return recs;
   } catch (error) {
     console.error("AI Quiz Error:", error);
     return [];
@@ -782,22 +810,27 @@ ${productContext}
 
 A customer wants to build a gift with this description: "${description}"
 
-Return ONLY a valid JSON array of 4-6 product names that would make the best gift combination.
-Consider gender, occasion, scent compatibility, and price range.
-Return ONLY product names that exist exactly in the catalog.
-Example: ["Product Name 1", "Product Name 2"]
+Pick the best gift combination. Rules:
+- ALWAYS return 4 to 6 products. NEVER return an empty array — the customer must always see options.
+- Prioritize matching the recipient's gender and the requested scent/occasion above all else.
+- Treat any budget as a SOFT preference: prefer products near it, but if nothing fits the stated budget, return the closest-priced matching products anyway (do not drop them).
+- Use exact product names from the catalog only. Avoid SOLD OUT items when in-stock alternatives exist.
 
-Return ONLY the JSON array, nothing else.`;
+Return ONLY a valid JSON array of product names, nothing else.
+Example: ["Product Name 1", "Product Name 2", "Product Name 3", "Product Name 4"]`;
 
-    const text = await callOpenRouter(
-      [{ role: "user", content: prompt }],
-      { temperature: 0.4, maxTokens: 256 }
-    );
+    // محاولتان: أحياناً يقطع المزوّد الرد فيعود فارغاً؛ إعادة المحاولة تتجنّب
+    // عرض "لا اقتراحات" لمنشئ الهدايا (سطح بيع رئيسي) بسبب خلل عابر.
+    let names: string[] = [];
+    for (let attempt = 0; attempt < 2 && names.length === 0; attempt++) {
+      const text = await callOpenRouter(
+        [{ role: "user", content: prompt }],
+        { temperature: 0.4, maxTokens: 256 }
+      );
+      names = parseLooseJsonArray<string>(text).filter((n): n is string => typeof n === "string");
+    }
+    if (names.length === 0) return [];
 
-    const raw = text?.trim() || "[]";
-    const match = raw.match(/\[[\s\S]*\]/);
-    if (!match) return [];
-    const names: string[] = JSON.parse(match[0]);
     return products.filter((p) =>
       names.some(
         (name) =>

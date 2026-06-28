@@ -251,7 +251,7 @@ export default function AIFinderPage() {
                     initial={reduce ? { opacity: 0 } : { opacity: 0, y: 16 }}
                     animate={reduce ? { opacity: 1 } : { opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.06 }}
-                    className="relative border-b border-e border-[#323D50]/10 dark:border-white/10"
+                    className="relative flex flex-col border-b border-e border-[#323D50]/10 dark:border-white/10"
                   >
                     <ProductCard product={result.product} />
                     <MatchBadge
@@ -259,6 +259,13 @@ export default function AIFinderPage() {
                       reason={result.reason}
                       matchLabel={t("aiFinder.match")}
                     />
+                    {/* سبب الترشيح من الذكاء الاصطناعي — يُعرض دائماً (لا في تلميحة المرور
+                        فقط) حتى يراه مستخدمو اللمس/الجوال، أسوةً بشاشة نتائج الاختبار. */}
+                    {result.reason && (
+                      <p className="px-3 pb-3 pt-1 text-xs leading-relaxed italic text-[#6B7B8D] dark:text-white/55">
+                        &ldquo;{result.reason}&rdquo;
+                      </p>
+                    )}
                   </motion.div>
                 ))}
               </div>

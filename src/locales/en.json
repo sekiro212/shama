@@ -1245,7 +1245,9 @@
     "orderPlaced": "Your custom gift order has been placed!",
     "errorSuggestions": "Failed to get product suggestions. Please try again.",
     "errorGenerating": "Failed to generate image. Please try again.",
-    "errorOrder": "Failed to place order. Please try again."
+    "errorOrder": "Failed to place order. Please try again.",
+    "showOnGiftPage": "Show this gift on the Gift Sets page",
+    "showOnGiftPageHint": "Other shoppers will be able to see and order this gift set."
   },
   "memories": {
     "eyebrow": "MEMORIES OF SHAMA",

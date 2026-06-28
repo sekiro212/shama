@@ -261,7 +261,6 @@ export default function HomePage() {
             alt=""
             className="w-full h-full object-cover opacity-40 dark:opacity-35"
             loading="eager"
-            fetchPriority="auto"
             decoding="async"
           />
           {/* توهّج دافئ كضوء الشمعة من المركز */}

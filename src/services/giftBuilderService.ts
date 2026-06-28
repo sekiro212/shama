@@ -106,10 +106,12 @@ export function buildGiftImagePrompt(
  * @param base64DataUrl الصورة بصيغة data URL مشفّرة بـ base64.
  * @returns رابط الصورة العام بعد الرفع، أو نفس الـ data URL الأصلي عند الفشل (كحل احتياطي).
  */
-async function uploadGiftImage(base64DataUrl: string): Promise<string> {
+async function uploadGiftImage(
+  base64DataUrl: string
+): Promise<{ url: string; path: string | null; mime: string }> {
   // استخراج نوع الـ MIME ومحتوى base64 من الـ data URL؛ إن لم يطابق النمط يُعاد النص كما هو
   const match = base64DataUrl.match(/^data:(\w+\/\w+);base64,(.+)$/s);
-  if (!match) return base64DataUrl;
+  if (!match) return { url: base64DataUrl, path: null, mime: "image/png" };
 
   const [, mimeType, base64] = match;
   const ext = mimeType.split("/")[1] ?? "png";
@@ -127,12 +129,92 @@ async function uploadGiftImage(base64DataUrl: string): Promise<string> {
 
   if (error) {
     console.error("Gift image upload failed:", error);
-    return base64DataUrl; // حل احتياطي: إعادة الـ data URL كي يُحفظ الطلب رغم فشل الرفع
+    return { url: base64DataUrl, path: null, mime: mimeType }; // حل احتياطي: الـ data URL كي يُحفظ الطلب رغم فشل الرفع
   }
 
   // الحصول على الرابط العام للملف المرفوع لتخزينه مع الطلب
   const { data } = supabase.storage.from("perfume-images").getPublicUrl(fileName);
-  return data.publicUrl;
+  return { url: data.publicUrl, path: fileName, mime: mimeType };
+}
+
+// المناسبة -> تسمية عامة (إنجليزية/عربية) تُستخدم في اسم ووصف الهدية المنشورة.
+// تتضمّن كلمة المناسبة في الوصف ليطابقها مُرشّح المناسبة في صفحة أطقم الهدايا.
+const OCCASION_PUBLIC_EN: Record<string, string> = {
+  birthday: "Birthday", eid: "Eid", anniversary: "Anniversary",
+  wedding: "Wedding", valentine: "Valentine", just_because: "Special",
+};
+const OCCASION_PUBLIC_AR: Record<string, string> = {
+  birthday: "عيد ميلاد", eid: "العيد", anniversary: "ذكرى سنوية",
+  wedding: "زفاف", valentine: "عيد الحب", just_because: "مناسبة خاصة",
+};
+
+/**
+ * ينشر هدية المستخدم كمنتج من نوع "gift" حتى تظهر في صفحة أطقم الهدايا (/gift-sets).
+ * يجمّع الجنس والنوتات من العطور المختارة، ويعيد استخدام صورة الهدية المرفوعة.
+ * أفضل جهد: إخفاق هذه الدالة لا يُفشل طلب الهدية نفسه (يُلتقط في المستدعي).
+ */
+async function publishGiftAsProduct(params: {
+  products: Product[];
+  customization: GiftCustomization;
+  imageUrl: string;
+  imagePath: string | null;
+  imageMime: string;
+  totalPrice: number;
+}): Promise<void> {
+  const { products, customization } = params;
+
+  // الجنس: إن اتّفقت كل العطور على جنس واحد نستخدمه، وإلا "unisex".
+  const genders = [...new Set(products.map((p) => p.gender || "unisex"))];
+  const gender = genders.length === 1 ? genders[0] : "unisex";
+
+  // نجمّع نوتات الهرم من كل العطور المختارة (دون تكرار، وبحدّ أقصى 5 لكل طبقة).
+  const collect = (k: "top" | "middle" | "base") =>
+    [...new Set(products.flatMap((p) => p.fragranceNotes?.[k] ?? []))].slice(0, 5);
+  const notes = { top: collect("top"), middle: collect("middle"), base: collect("base") };
+
+  const occEn = OCCASION_PUBLIC_EN[customization.occasion] ?? "Special";
+  const occAr = OCCASION_PUBLIC_AR[customization.occasion] ?? "مناسبة خاصة";
+  const productList = products.map((p) => p.name).join(", ");
+  const name = customization.recipientName
+    ? `${customization.recipientName}'s Gift Set`
+    : `${occEn} Gift Set`;
+  const nameAr = customization.recipientName
+    ? `طقم هدية ${customization.recipientName}`
+    : `طقم هدية ${occAr}`;
+  // كلمة المناسبة الإنجليزية في الوصف تجعل مُرشّح المناسبة في الصفحة يطابق الهدية.
+  const description = `A custom ${occEn} gift set featuring ${productList}.`;
+  const descriptionAr = `طقم هدية مخصّص لمناسبة ${occAr} يضمّ: ${productList}.`;
+
+  // صورة البطاقة: صورة الهدية المولّدة أولاً، وإلا صورة أول عطر مختار.
+  const image = params.imageUrl || products[0]?.images?.[0]?.image_url || null;
+
+  const { data: inserted, error } = await supabase
+    .from("perfumes")
+    .insert({
+      name, name_ar: nameAr, price: params.totalPrice, gender,
+      description, description_ar: descriptionAr,
+      fragrance_notes: notes, fragrance_notes_ar: notes,
+      image, size: "Gift Set", type: "gift", concentration: "Gift Set",
+      fragrance_world: occEn, rating: 5, reviews: 0,
+      stock_quantity: 5, is_active: true, has_samples: false, has_bottle_sizes: false,
+    })
+    .select("id")
+    .single();
+  if (error) throw error;
+
+  // صف صورة أساسي حتى تعرض بطاقة المنتج صورة (أعمدة image_name/file_path/mime_type إلزامية).
+  if (image) {
+    const path =
+      params.imagePath ??
+      (image.includes("/perfume-images/") ? image.split("/perfume-images/")[1] : `gifts/${inserted.id}.png`);
+    const { error: imgErr } = await supabase.from("perfume_images").insert({
+      perfume_id: inserted.id, image_url: image,
+      image_name: path.split("/").pop() || "gift.png",
+      file_path: path, file_size: 0, mime_type: params.imageMime,
+      is_primary: true, display_order: 0,
+    });
+    if (imgErr) console.error("Gift product image row failed:", imgErr);
+  }
 }
 
 /**
@@ -147,14 +229,24 @@ export async function placeCustomGiftOrder(params: {
   generatedImageUrl: string;
   imageStyle: GiftImageStyle;
   userId?: string;
+  // إذا كانت true يُنشَر الطقم كمنتج "gift" ليظهر في صفحة أطقم الهدايا.
+  publishToGiftPage?: boolean;
 }): Promise<string> {
   // السعر الإجمالي = مجموع أسعار المنتجات المختارة
   const totalPrice = params.products.reduce((sum, p) => sum + p.price, 0);
 
-  // إذا كانت الصورة بصيغة base64 تُرفع أولًا إلى التخزين ليتمكّن المسؤول من عرضها كرابط عادي
-  const imageUrl = params.generatedImageUrl.startsWith("data:image/")
-    ? await uploadGiftImage(params.generatedImageUrl)
-    : params.generatedImageUrl;
+  // إذا كانت الصورة بصيغة base64 تُرفع أولًا إلى التخزين ليتمكّن المسؤول من عرضها كرابط عادي.
+  // نحتفظ كذلك بمسار الملف ونوعه لإعادة استخدامهما عند نشر الهدية كمنتج.
+  let imageUrl = params.generatedImageUrl;
+  let imagePath: string | null = null;
+  let imageMime = "image/png";
+  if (params.generatedImageUrl.startsWith("data:image/")) {
+    const up = await uploadGiftImage(params.generatedImageUrl);
+    imageUrl = up.url; imagePath = up.path; imageMime = up.mime;
+  } else if (imageUrl && imageUrl.includes("/perfume-images/")) {
+    imagePath = imageUrl.split("/perfume-images/")[1];
+    imageMime = "image/jpeg";
+  }
 
   const { data, error } = await supabase
     .from("custom_gift_orders")
@@ -182,5 +274,22 @@ export async function placeCustomGiftOrder(params: {
     .single();
 
   if (error) throw error;
+
+  // نشر الهدية كمنتج "gift" إن طلب المستخدم ذلك. أفضل جهد: لا نُفشل الطلب إن تعذّر النشر.
+  if (params.publishToGiftPage) {
+    try {
+      await publishGiftAsProduct({
+        products: params.products,
+        customization: params.customization,
+        imageUrl,
+        imagePath,
+        imageMime,
+        totalPrice,
+      });
+    } catch (e) {
+      console.error("Publishing gift to Gift Sets page failed:", e);
+    }
+  }
+
   return data.id;
 }
