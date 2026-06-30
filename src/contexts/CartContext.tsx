@@ -17,6 +17,7 @@ import {
   useState,
   ReactNode,
   useEffect,
+  useMemo,
 } from "react";
 import { trackEvent } from "@/services/trackingService";
 import type { PromoValidationResult } from "@/services/promoCodesService";
@@ -220,27 +221,31 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return currentQuantity < item.stock_quantity;
   };
 
-  return (
-    <CartContext.Provider
-      value={{
-        items,
-        addToCart,
-        removeFromCart,
-        updateQuantity,
-        getItemCount,
-        getTotalPrice,
-        clearCart,
-        isItemInCart,
-        getItemQuantity,
-        canAddToCart,
-        appliedPromo,
-        applyPromo,
-        clearPromo,
-      }}
-    >
-      {children}
-    </CartContext.Provider>
+  // perf: memoize the context value so consumers (every ProductCard reads this
+  // context) only re-render when the cart contents or applied promo actually
+  // change — not on every unrelated provider re-render. Closures here only read
+  // `items` and `appliedPromo`, so those are the complete dependency set.
+  const value = useMemo(
+    () => ({
+      items,
+      addToCart,
+      removeFromCart,
+      updateQuantity,
+      getItemCount,
+      getTotalPrice,
+      clearCart,
+      isItemInCart,
+      getItemQuantity,
+      canAddToCart,
+      appliedPromo,
+      applyPromo,
+      clearPromo,
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [items, appliedPromo]
   );
+
+  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }
 
 /**

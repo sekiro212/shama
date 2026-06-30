@@ -2,13 +2,17 @@ import path from 'path';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [react()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
   },
+  // perf: strip console.* and debugger from production bundles. Logging large
+  // objects (e.g. full product arrays) is slow and retains references; dev keeps
+  // them so local debugging is unaffected.
+  esbuild: mode === 'production' ? { drop: ['console', 'debugger'] } : {},
   build: {
     rollupOptions: {
       output: {
@@ -31,4 +35,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));

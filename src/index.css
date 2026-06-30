@@ -46,7 +46,9 @@ html[lang="ar"] #root {
   --glow-secondary: #3E6BB5;
   --glass-bg: rgba(255, 255, 255, 0.75);
   --glass-border: rgba(50, 61, 80, 0.15);
-  --backdrop-blur: 16px;
+  /* perf: 16px backdrop-blur is the single most expensive paint on the site;
+     10px is visually near-identical but far cheaper to composite */
+  --backdrop-blur: 10px;
 
   /* Animation Durations */
   --duration-fast: 0.2s;
@@ -214,9 +216,13 @@ button {
   cursor: pointer;
   position: relative;
   overflow: hidden;
-  transition: all var(--duration-normal) var(--ease-smooth);
+  /* perf: animate only compositor-friendly props, never `all` */
+  transition: transform var(--duration-normal) var(--ease-smooth),
+    box-shadow var(--duration-normal) var(--ease-smooth),
+    background var(--duration-normal) var(--ease-smooth),
+    border-color var(--duration-normal) var(--ease-smooth),
+    color var(--duration-normal) var(--ease-smooth);
   background: var(--glass-bg);
-  backdrop-filter: blur(var(--backdrop-blur));
   border: 1px solid var(--glass-border);
 }
 
@@ -250,6 +256,22 @@ button:hover::before {
 
 button:active {
   transform: translateY(0);
+}
+
+/* perf: backdrop-blur is brutal on phones/tablets (low GPU bandwidth) and
+   pointless when motion is reduced. Shrink the radius and lean on a more
+   opaque glass background so the glass look survives without the heavy paint. */
+@media (pointer: coarse) {
+  :root {
+    --backdrop-blur: 6px;
+    --glass-bg: rgba(255, 255, 255, 0.9);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --backdrop-blur: 6px;
+    --glass-bg: rgba(255, 255, 255, 0.9);
+  }
 }
 
 /* Glassmorphism Classes */
@@ -421,12 +443,13 @@ button:active {
     pointer-events: none;
     z-index: 1;
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/></svg>");
-    opacity: 0.03;
-    mix-blend-mode: multiply;
+    /* perf: no mix-blend-mode — a blended fixed full-viewport layer forces a
+       whole-page recomposite on every scroll frame. At this opacity the blend
+       is imperceptible, so a plain overlay looks the same and scrolls cheaply. */
+    opacity: 0.025;
   }
   .dark .grain-bg::after {
-    opacity: 0.05;
-    mix-blend-mode: screen;
+    opacity: 0.04;
   }
 
   .animate-float {

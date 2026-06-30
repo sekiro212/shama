@@ -7,7 +7,7 @@
  * يُستهلك عبر الـ hook المسمى `useWishlist()`.
  * -------------------------------------------------------------------------
  */
-import { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import { createContext, useContext, useState, ReactNode, useEffect, useMemo } from "react";
 import { trackEvent } from "@/services/trackingService";
 
 export interface WishlistItem {
@@ -80,10 +80,16 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
     setItems([]);
   };
 
+  // perf: memoize so every ProductCard consuming this context only re-renders
+  // when the wishlist contents change, not on unrelated provider renders.
+  const value = useMemo(
+    () => ({ items, addToWishlist, removeFromWishlist, isInWishlist, clearWishlist }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [items]
+  );
+
   return (
-    <WishlistContext.Provider
-      value={{ items, addToWishlist, removeFromWishlist, isInWishlist, clearWishlist }}
-    >
+    <WishlistContext.Provider value={value}>
       {children}
     </WishlistContext.Provider>
   );

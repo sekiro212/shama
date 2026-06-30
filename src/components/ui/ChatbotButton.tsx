@@ -1,7 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { MessageCircle, X } from "lucide-react";
-import ChatbotPanel from "@/components/ChatbotPanel";
 import { useLanguage } from "@/contexts/LanguageContext";
+
+// perf: ChatbotPanel pulls in react-markdown (+remark/micromark, ~100KB) and the
+// AI service. Lazy-load it so that weight is fetched only once the user actually
+// opens the chat, instead of shipping on the initial paint of every route.
+const ChatbotPanel = lazy(() => import("@/components/ChatbotPanel"));
 
 interface ChatbotButtonProps {
   isOpen?: boolean;
@@ -13,6 +17,12 @@ export function ChatbotButton({ isOpen: controlledOpen, onOpen, onClose }: Chatb
   const { t, isRTL } = useLanguage();
   const [internalOpen, setInternalOpen] = useState(false);
   const isOpen = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  // Mount the panel lazily on first open, then keep it mounted so its
+  // close/exit animation still runs on subsequent toggles.
+  const [hasOpened, setHasOpened] = useState(false);
+  useEffect(() => {
+    if (isOpen) setHasOpened(true);
+  }, [isOpen]);
 
   const handleToggle = () => {
     if (isOpen) {
@@ -28,7 +38,11 @@ export function ChatbotButton({ isOpen: controlledOpen, onOpen, onClose }: Chatb
 
   return (
     <>
-      <ChatbotPanel isOpen={isOpen} onClose={handleClose} />
+      {hasOpened && (
+        <Suspense fallback={null}>
+          <ChatbotPanel isOpen={isOpen} onClose={handleClose} />
+        </Suspense>
+      )}
       <button
         onClick={handleToggle}
         aria-label={isOpen ? t("chatbot.close") : t("chatbot.open")}

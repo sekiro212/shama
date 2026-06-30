@@ -21,13 +21,12 @@ type Collision = {
   y: number;
 };
 
+// perf: 4 beams instead of 7 — fewer infinite framer loops + fewer
+// getBoundingClientRect calls per collision pass, kept spread across the width.
 const BEAMS: BeamOptions[] = [
-  { initialX: 10, translateX: 10, duration: 7, repeatDelay: 3, delay: 2 },
-  { initialX: 600, translateX: 600, duration: 3, repeatDelay: 3, delay: 4 },
   { initialX: 100, translateX: 100, duration: 7, repeatDelay: 7, className: "h-6" },
   { initialX: 400, translateX: 400, duration: 5, repeatDelay: 14, delay: 4 },
   { initialX: 800, translateX: 800, duration: 11, repeatDelay: 2, className: "h-20" },
-  { initialX: 1000, translateX: 1000, duration: 4, repeatDelay: 2, className: "h-12" },
   { initialX: 1200, translateX: 1200, duration: 6, repeatDelay: 4, delay: 2, className: "h-6" },
 ];
 
@@ -76,9 +75,24 @@ export const BackgroundBeamsWithCollision = ({
     let rafId = 0;
     let lastCheck = 0;
 
+    // perf: pause the collision loop entirely once the hero scrolls out of view,
+    // so the rAF + getBoundingClientRect work stops while the user reads the rest
+    // of the page (the tab-visibility check below only covers backgrounded tabs).
+    let onScreen = true;
+    const parent = parentRef.current;
+    const observer = parent
+      ? new IntersectionObserver(
+          ([entry]) => {
+            onScreen = entry.isIntersecting;
+          },
+          { threshold: 0 }
+        )
+      : null;
+    if (parent && observer) observer.observe(parent);
+
     const tick = (now: number) => {
       rafId = requestAnimationFrame(tick);
-      if (document.visibilityState !== "visible") return;
+      if (!onScreen || document.visibilityState !== "visible") return;
       if (now - lastCheck < COLLISION_CHECK_MS) return;
       lastCheck = now;
 
@@ -103,10 +117,12 @@ export const BackgroundBeamsWithCollision = ({
     };
 
     rafId = requestAnimationFrame(tick);
+    const timeouts = timeoutsRef.current;
     return () => {
       cancelAnimationFrame(rafId);
-      timeoutsRef.current.forEach((id) => window.clearTimeout(id));
-      timeoutsRef.current.clear();
+      observer?.disconnect();
+      timeouts.forEach((id) => window.clearTimeout(id));
+      timeouts.clear();
     };
   }, [addCollision, prefersReducedMotion]);
 
