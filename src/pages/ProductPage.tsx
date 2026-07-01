@@ -45,6 +45,7 @@ import RelatedProducts from "@/components/RelatedProducts";
 import RecentlyViewed from "@/components/RecentlyViewed";
 import { useRecentlyViewed } from "@/hooks/useRecentlyViewed";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { DupesAvailable } from "@/components/DupesAvailable";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   fetchApprovedReviews,
@@ -517,6 +518,9 @@ export default function ProductPage() {
                 </div>
               </div>
             </div>
+
+            {/* عطور مستوحاة متوفرة (dupes) من متجر سهمة ديوبس */}
+            <DupesAvailable productId={product.id} originalPrice={product.price} />
 
             {/* السعر والكمية */}
             <div className="glass-card p-4 sm:p-5 md:p-6 rounded-2xl space-y-4 sm:space-y-6">

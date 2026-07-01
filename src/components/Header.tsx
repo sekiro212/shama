@@ -37,6 +37,7 @@ import { useState, useEffect, ComponentType } from "react";
 import { useCart } from "@/contexts/CartContext";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { dupesStoreEnabled, DUPES_STORE_URL } from "@/lib/dupesStore";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useScrollThreshold } from "@/hooks/useScrollThreshold";
@@ -219,6 +220,19 @@ export default function Header({ onCartClick, onSearchClick }: HeaderProps) {
                 );
               })}
             </nav>
+
+            {/* Cross-store switch → Sahma Dupes */}
+            {dupesStoreEnabled && (
+              <a
+                href={DUPES_STORE_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="hidden lg:inline-flex items-center gap-1.5 rounded-full border border-[#5B8DD9]/40 px-3.5 py-1.5 text-[13px] font-medium text-[#5B8DD9] hover:bg-[#5B8DD9] hover:text-white transition-colors whitespace-nowrap"
+              >
+                <Sparkles className="w-3.5 h-3.5" aria-hidden />
+                {t("nav.dupesStore")}
+              </a>
+            )}
 
             {/* Desktop Utilities */}
             <div className="hidden lg:flex items-center gap-3">

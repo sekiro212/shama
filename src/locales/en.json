@@ -491,7 +491,8 @@
     "samples": "Samples",
     "giftSets": "Gift Sets",
     "findYourScent": "Find Your Scent",
-    "aiFinder": "AI Finder"
+    "aiFinder": "AI Finder",
+    "dupesStore": "Dupes"
   },
   "header": {
     "luxuryScents": "Luxury Scents",
@@ -1631,5 +1632,10 @@
     "loadingTracking": "Loading live tracking…",
     "trackingUnavailable": "Live tracking is temporarily unavailable. Your package code is still valid.",
     "awaitingDispatch": "Your order is being prepared. A tracking code will appear once dispatched."
+  },
+  "dupesAvailable": {
+    "eyebrow": "Dupes available",
+    "subtitle": "Love this scent? Get an inspired-by version for less.",
+    "note": "Opens on Sahma Dupes — our inspired-by fragrances store."
   }
 }
