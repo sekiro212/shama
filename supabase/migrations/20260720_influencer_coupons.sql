@@ -61,8 +61,9 @@ CREATE INDEX IF NOT EXISTS idx_orders_influencer
 -- --------------------------------------------------------------------------
 -- Snapshot trigger.
 --
--- `orders` carries an open public-insert policy, so anything the client sends
--- in these two columns is forgeable. The trigger ignores the incoming values
+-- RLS is disabled entirely on `orders`, and the anon role holds both INSERT
+-- and UPDATE, so anything the client sends in these two columns is forgeable.
+-- The trigger ignores the incoming values
 -- entirely and re-derives them from promo_codes. Snapshotting (rather than
 -- joining at read time) also means editing a rate never rewrites commissions
 -- that have already been paid out.
