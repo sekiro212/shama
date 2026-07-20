@@ -169,8 +169,14 @@ export function useCoupons({ perfumes }: UseCouponsOptions) {
     const influencerId = couponForm.influencer_id || null;
     let commissionRate: number | null = null;
     if (influencerId) {
-      const rate = Number(couponForm.commission_rate);
-      if (!Number.isFinite(rate) || rate < 0 || rate > 100) {
+      const rawRate = couponForm.commission_rate.trim();
+      const rate = Number(rawRate);
+      if (
+        !rawRate ||
+        !Number.isFinite(rate) ||
+        rate < 0 ||
+        rate > 100
+      ) {
         setCouponFormError(t("admin.influencers.validation.rateRange"));
         return null;
       }

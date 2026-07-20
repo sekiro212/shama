@@ -8,6 +8,7 @@
  * الحد الأدنى لإجمالي الطلب، النطاق (كل المنتجات مقابل منتجات محدّدة)، تاريخ
  * الانتهاء، حدود الاستخدام، ومفتاح التفعيل/التعطيل.
  */
+import { useMemo } from "react";
 import { X, Calendar, Search, Check } from "lucide-react";
 import {
   Dialog,
@@ -67,6 +68,23 @@ export function CouponFormDialog({
     handleCouponSubmit,
     toggleCouponScopeProduct,
   } = couponsApi;
+
+  // خيارات المُنتقي: المشاهير النشطون فقط، بالإضافة إلى المشهور المختار حاليًا
+  // حتى لو أصبح معطَّلًا لاحقًا (وإلا يظهر الـ Select بقيمة بلا عنصر مطابق،
+  // ما يُفرغ الحقل بصريًا وقد يُعيد تعيين الكوبون لمشهور آخر عند الحفظ).
+  const selectableInfluencers = useMemo(() => {
+    const active = influencers.filter((inf) => inf.is_active);
+    if (
+      couponForm.influencer_id &&
+      !active.some((inf) => inf.id === couponForm.influencer_id)
+    ) {
+      const current = influencers.find(
+        (inf) => inf.id === couponForm.influencer_id
+      );
+      if (current) return [...active, current];
+    }
+    return active;
+  }, [influencers, couponForm.influencer_id]);
 
   return (
     <Dialog
@@ -128,10 +146,11 @@ export function CouponFormDialog({
                     return {
                       ...prev,
                       influencer_id: v,
-                      // إبقاء النسبة الحالية إن كانت مضبوطة، وإلا الافتراضية للمشهور.
-                      commission_rate:
-                        prev.commission_rate ||
-                        String(picked?.default_commission_rate ?? 3),
+                      // إعادة تعبئة النسبة دائمًا من الافتراضية للمشهور الجديد المختار؛
+                      // لا يمكن التمييز بين "الإدارة كتبت هذه القيمة عمدًا" و"هذه من مشهور آخر".
+                      commission_rate: String(
+                        picked?.default_commission_rate ?? 3
+                      ),
                     };
                   })
                 }
@@ -143,7 +162,7 @@ export function CouponFormDialog({
                   <SelectItem value="none">
                     {t("admin.coupons.influencerNone")}
                   </SelectItem>
-                  {influencers.map((inf) => (
+                  {selectableInfluencers.map((inf) => (
                     <SelectItem key={inf.id} value={inf.id}>
                       {inf.name}
                     </SelectItem>
