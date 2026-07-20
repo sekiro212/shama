@@ -7,7 +7,8 @@
       "reviews": "التقييمات",
       "giftOrders": "طلبات الهدايا",
       "memories": "الذكريات",
-      "coupons": "الكوبونات"
+      "coupons": "الكوبونات",
+      "influencers": "المشاهير"
     },
     "shell": {
       "title": "لوحة شمَّة",
@@ -482,6 +483,70 @@
         "valueRequired": "قيمة الخصم يجب أن تكون أكبر من صفر",
         "percentageRange": "النسبة المئوية يجب أن تكون بين 1 و 100",
         "scopeProductsRequired": "اختر منتجًا واحدًا على الأقل للنطاق المحدد"
+      },
+      "influencer": "المشهور",
+      "influencerNone": "بدون",
+      "influencerHint": "ربط مشهور بهذا الكود يفعّل تتبّع العمولة على الطلبات التي تستخدمه.",
+      "commissionRate": "نسبة العمولة (%)"
+    },
+    "influencers": {
+      "title": "المشاهير",
+      "subtitle": "تتبّع العمولات والمدفوعات",
+      "create": "إضافة مشهور",
+      "edit": "تعديل مشهور",
+      "empty": "لا يوجد مشاهير بعد",
+      "emptyHint": "أضف مشهورًا، ثم اربط كوبونًا به.",
+      "name": "الاسم",
+      "namePlaceholder": "مثال: سارة أحمد",
+      "phone": "الهاتف",
+      "instagram": "إنستغرام",
+      "instagramPlaceholder": "@الحساب",
+      "notes": "ملاحظات",
+      "defaultRate": "نسبة العمولة الافتراضية (%)",
+      "active": "نشط",
+      "codesCount": "الأكواد",
+      "ordersCount": "الطلبات",
+      "grossSales": "المبيعات",
+      "commissionEarned": "العمولة",
+      "totalPaid": "المدفوع",
+      "balanceDue": "المتبقي",
+      "viewStatement": "قائمة الحساب",
+      "statementTitle": "قائمة الحساب",
+      "codeBreakdown": "تفصيل الأكواد",
+      "code": "الكود",
+      "discountRate": "الخصم",
+      "commissionRate": "نسبة العمولة %",
+      "commissionDue": "العمولة",
+      "noOrders": "لا توجد طلبات مؤهّلة بعد",
+      "noOrdersHint": "تُحتسب العمولة على الطلبات المُسلَّمة والمقبولة فقط.",
+      "payouts": "المدفوعات",
+      "noPayouts": "لم تُسجَّل أي دفعات",
+      "recordPayout": "تسجيل دفعة",
+      "payoutAmount": "المبلغ",
+      "payoutMethod": "الطريقة",
+      "payoutMethodCash": "نقدًا",
+      "payoutMethodTransfer": "تحويل",
+      "payoutNote": "ملاحظة",
+      "payoutDate": "التاريخ",
+      "overpayWarning": "هذا المبلغ أكبر من الرصيد المتبقي.",
+      "validation": {
+        "nameRequired": "الاسم مطلوب",
+        "rateRange": "نسبة العمولة يجب أن تكون بين 0 و100",
+        "amountRequired": "أدخل مبلغًا أكبر من صفر"
+      },
+      "confirm": {
+        "delete": "حذف هذا المشهور؟ ستُفَك أكواده لكن الطلبات السابقة تحتفظ بعمولتها المسجّلة.",
+        "deleteWithCodes": "لهذا المشهور {count} كوبون. الحذف سيفكّ ارتباطها. الطلبات السابقة تحتفظ بعمولتها المسجّلة."
+      },
+      "toast": {
+        "loadFailed": "فشل تحميل المشاهير",
+        "created": "تمت إضافة المشهور",
+        "updated": "تم تحديث المشهور",
+        "deleted": "تم حذف المشهور",
+        "saveFailed": "فشل حفظ المشهور",
+        "deleteFailed": "فشل حذف المشهور",
+        "payoutRecorded": "تم تسجيل الدفعة",
+        "payoutFailed": "فشل تسجيل الدفعة"
       }
     }
   },

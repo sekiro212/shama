@@ -7,7 +7,8 @@
       "reviews": "Reviews",
       "giftOrders": "Gift Orders",
       "memories": "Memories",
-      "coupons": "Coupons"
+      "coupons": "Coupons",
+      "influencers": "Influencers"
     },
     "shell": {
       "title": "Shama Admin",
@@ -482,6 +483,70 @@
         "valueRequired": "Discount value must be greater than 0",
         "percentageRange": "Percentage must be between 1 and 100",
         "scopeProductsRequired": "Select at least one product for specific scope"
+      },
+      "influencer": "Influencer",
+      "influencerNone": "None",
+      "influencerHint": "Assigning an influencer tracks commission on orders using this code.",
+      "commissionRate": "Commission rate (%)"
+    },
+    "influencers": {
+      "title": "Influencers",
+      "subtitle": "Commission tracking and payouts",
+      "create": "Add Influencer",
+      "edit": "Edit Influencer",
+      "empty": "No influencers yet",
+      "emptyHint": "Add an influencer, then assign a coupon to them.",
+      "name": "Name",
+      "namePlaceholder": "e.g. Sara Ahmed",
+      "phone": "Phone",
+      "instagram": "Instagram",
+      "instagramPlaceholder": "@handle",
+      "notes": "Notes",
+      "defaultRate": "Default commission rate (%)",
+      "active": "Active",
+      "codesCount": "Codes",
+      "ordersCount": "Orders",
+      "grossSales": "Sales",
+      "commissionEarned": "Commission",
+      "totalPaid": "Paid",
+      "balanceDue": "Balance due",
+      "viewStatement": "Statement",
+      "statementTitle": "Account statement",
+      "codeBreakdown": "Per-code breakdown",
+      "code": "Code",
+      "discountRate": "Discount",
+      "commissionRate": "Commission %",
+      "commissionDue": "Commission",
+      "noOrders": "No qualifying orders yet",
+      "noOrdersHint": "Only delivered and accepted orders count toward commission.",
+      "payouts": "Payments",
+      "noPayouts": "No payments recorded",
+      "recordPayout": "Record payment",
+      "payoutAmount": "Amount",
+      "payoutMethod": "Method",
+      "payoutMethodCash": "Cash",
+      "payoutMethodTransfer": "Transfer",
+      "payoutNote": "Note",
+      "payoutDate": "Date",
+      "overpayWarning": "This is more than the outstanding balance.",
+      "validation": {
+        "nameRequired": "Name is required",
+        "rateRange": "Commission rate must be between 0 and 100",
+        "amountRequired": "Enter an amount greater than zero"
+      },
+      "confirm": {
+        "delete": "Delete this influencer? Their coupons will be unlinked but past orders keep their recorded commission.",
+        "deleteWithCodes": "This influencer has {count} coupon(s). Deleting will unlink them. Past orders keep their recorded commission."
+      },
+      "toast": {
+        "loadFailed": "Failed to load influencers",
+        "created": "Influencer added",
+        "updated": "Influencer updated",
+        "deleted": "Influencer deleted",
+        "saveFailed": "Failed to save influencer",
+        "deleteFailed": "Failed to delete influencer",
+        "payoutRecorded": "Payment recorded",
+        "payoutFailed": "Failed to record payment"
       }
     }
   },
