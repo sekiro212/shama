@@ -9,6 +9,12 @@
  * ملاحظة: مبلغ العمولة لا يُخزَّن في أي مكان — تحسبه العروض من
  * (subtotal - discount_amount) × النسبة المُلتقطة على الطلب. ونسبة العمولة على
  * الطلب يكتبها trigger في قاعدة البيانات، لا العميل.
+ *
+ * ملاحظة حول الأخطاء: كل دوال القراءة والكتابة هنا تُسجّل الخطأ عبر
+ * console.error ثم تَرمي (throw) بدل إرجاع [] / 0 صامتة. هذه شاشة أرصدة
+ * مالية — إخفاء فشل القراءة خلف قيمة فارغة يجعل المسؤول يظنّ أن لا شيء
+ * مستحَق بينما القراءة فشلت فعليًا. على كل مستدعٍ أن يلتقط الرمي ويعرض
+ * خطأ واضحًا للمستخدم بدل الاعتماد على قيمة افتراضية.
  */
 import { supabase } from "@/lib/supabase";
 
@@ -125,7 +131,7 @@ function hydratePayout(row: Record<string, unknown>): InfluencerPayout {
   };
 }
 
-/** جميع المشاهير مرتّبين بالاسم. يُرجع [] عند الفشل بدل الرمي. */
+/** جميع المشاهير مرتّبين بالاسم. يَرمي عند الفشل بعد تسجيل الخطأ. */
 export async function fetchInfluencers(): Promise<Influencer[]> {
   try {
     const { data, error } = await supabase
@@ -133,18 +139,15 @@ export async function fetchInfluencers(): Promise<Influencer[]> {
       .select("*")
       .order("name", { ascending: true });
 
-    if (error) {
-      console.error("Error fetching influencers:", error);
-      return [];
-    }
+    if (error) throw error;
     return (data || []).map(hydrateInfluencer);
   } catch (error) {
     console.error("Error fetching influencers:", error);
-    return [];
+    throw error;
   }
 }
 
-/** السطر النهائي لكل مشهور: طلبات، مبيعات، عمولة، مدفوع، متبقٍ. */
+/** السطر النهائي لكل مشهور: طلبات، مبيعات، عمولة، مدفوع، متبقٍ. يَرمي عند الفشل. */
 export async function fetchInfluencerSummaries(): Promise<
   InfluencerAccountSummary[]
 > {
@@ -154,18 +157,15 @@ export async function fetchInfluencerSummaries(): Promise<
       .select("*")
       .order("balance_due", { ascending: false });
 
-    if (error) {
-      console.error("Error fetching influencer summaries:", error);
-      return [];
-    }
+    if (error) throw error;
     return (data || []).map(hydrateSummary);
   } catch (error) {
     console.error("Error fetching influencer summaries:", error);
-    return [];
+    throw error;
   }
 }
 
-/** تفصيل الأكواد لمشهور واحد. */
+/** تفصيل الأكواد لمشهور واحد. يَرمي عند الفشل. */
 export async function fetchInfluencerCodeStats(
   influencerId: string
 ): Promise<InfluencerCodeStat[]> {
@@ -176,18 +176,15 @@ export async function fetchInfluencerCodeStats(
       .eq("influencer_id", influencerId)
       .order("commission_due", { ascending: false });
 
-    if (error) {
-      console.error("Error fetching influencer code stats:", error);
-      return [];
-    }
+    if (error) throw error;
     return (data || []).map(hydrateCodeStat);
   } catch (error) {
     console.error("Error fetching influencer code stats:", error);
-    return [];
+    throw error;
   }
 }
 
-/** سجلّ دفعات مشهور واحد، الأحدث أولًا. */
+/** سجلّ دفعات مشهور واحد، الأحدث أولًا. يَرمي عند الفشل. */
 export async function fetchInfluencerPayouts(
   influencerId: string
 ): Promise<InfluencerPayout[]> {
@@ -198,14 +195,11 @@ export async function fetchInfluencerPayouts(
       .eq("influencer_id", influencerId)
       .order("paid_at", { ascending: false });
 
-    if (error) {
-      console.error("Error fetching influencer payouts:", error);
-      return [];
-    }
+    if (error) throw error;
     return (data || []).map(hydratePayout);
   } catch (error) {
     console.error("Error fetching influencer payouts:", error);
-    return [];
+    throw error;
   }
 }
 
@@ -245,7 +239,7 @@ export async function deleteInfluencer(id: string): Promise<void> {
   if (error) throw error;
 }
 
-/** عدد الأكواد المرتبطة بمشهور — يُستخدم في نص تأكيد الحذف. */
+/** عدد الأكواد المرتبطة بمشهور — يُستخدم في نص تأكيد الحذف. يَرمي عند الفشل. */
 export async function countCodesForInfluencer(
   influencerId: string
 ): Promise<number> {
@@ -255,14 +249,11 @@ export async function countCodesForInfluencer(
       .select("id", { count: "exact", head: true })
       .eq("influencer_id", influencerId);
 
-    if (error) {
-      console.error("Error counting influencer codes:", error);
-      return 0;
-    }
+    if (error) throw error;
     return count ?? 0;
   } catch (error) {
     console.error("Error counting influencer codes:", error);
-    return 0;
+    throw error;
   }
 }
 

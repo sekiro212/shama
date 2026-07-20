@@ -55,8 +55,15 @@ export function useCoupons({ perfumes }: UseCouponsOptions) {
   const [influencers, setInfluencers] = useState<Influencer[]>([]);
 
   // قائمة المشاهير لمُنتقي النموذج. تُحمَّل مرة واحدة عند تركيب الـ hook.
+  // فشل الجلب لا يمنع نموذج الكوبون من العمل — فقط منتقي المشاهير يبقى فارغًا.
   useEffect(() => {
-    fetchInfluencers().then(setInfluencers);
+    fetchInfluencers()
+      .then(setInfluencers)
+      .catch((err) => {
+        console.error("Error fetching influencers:", err);
+        toast.error(t("admin.influencers.toast.loadFailed"));
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // جلب جميع أكواد الخصم من Supabase إلى الحالة المحلّية.

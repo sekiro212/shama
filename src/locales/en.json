@@ -249,6 +249,9 @@
       },
       "deleteCoupon": {
         "title": "Delete Coupon"
+      },
+      "deleteInfluencer": {
+        "title": "Delete Influencer"
       }
     },
     "vanex": {

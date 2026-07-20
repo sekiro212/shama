@@ -109,7 +109,13 @@ export function useInfluencers() {
 
   // فتح النموذج في وضع "التعديل". الملخّص لا يحمل كل الحقول، فنجلب الصف الكامل.
   const openEdit = async (id: string) => {
-    const all = await fetchInfluencers();
+    let all: Influencer[];
+    try {
+      all = await fetchInfluencers();
+    } catch {
+      toast.error(t("admin.influencers.toast.loadFailed"));
+      return;
+    }
     const found = all.find((i) => i.id === id);
     if (!found) {
       toast.error(t("admin.influencers.toast.loadFailed"));
@@ -174,7 +180,13 @@ export function useInfluencers() {
 
   // حذف مشهور بعد تأكيد يذكر عدد أكواده التي ستُفَك.
   const handleDelete = async (id: string) => {
-    const codeCount = await countCodesForInfluencer(id);
+    let codeCount: number;
+    try {
+      codeCount = await countCodesForInfluencer(id);
+    } catch {
+      toast.error(t("admin.influencers.toast.loadFailed"));
+      return;
+    }
     const description =
       codeCount > 0
         ? t("admin.influencers.confirm.deleteWithCodes").replace(
@@ -184,7 +196,7 @@ export function useInfluencers() {
         : t("admin.influencers.confirm.delete");
 
     const confirmed = await confirm({
-      title: t("admin.influencers.edit"),
+      title: t("admin.confirmDialog.deleteInfluencer.title"),
       description,
       confirmLabel: t("admin.confirmDialog.delete"),
       variant: "danger",
@@ -213,6 +225,10 @@ export function useInfluencers() {
       amount: row.balance_due > 0 ? String(row.balance_due) : "",
     });
     setPayoutError(null);
+    // نُفرغ بيانات المشهور السابق فورًا وإلا بقيت أرقامه معروضة تحت اسم
+    // المشهور الجديد إلى أن تُحلّ عمليات الجلب أدناه.
+    setCodeStats([]);
+    setPayouts([]);
     setStatementLoading(true);
     try {
       const [stats, history] = await Promise.all([

@@ -249,6 +249,9 @@
       },
       "deleteCoupon": {
         "title": "حذف الكوبون"
+      },
+      "deleteInfluencer": {
+        "title": "حذف مشهور"
       }
     },
     "vanex": {
