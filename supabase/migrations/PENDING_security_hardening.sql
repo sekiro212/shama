@@ -118,3 +118,11 @@ CREATE POLICY "Admin delete perfume images" ON storage.objects
 -- 7. Pin search_path on flagged functions -----------------------------------
 ALTER FUNCTION public.update_updated_at_column() SET search_path = public;
 ALTER FUNCTION public.recalculate_perfume_rating() SET search_path = public;
+
+-- ---------------------------------------------------------------------------
+-- TODO (added 2026-07-20 with the influencer coupons feature):
+-- `influencers` and `influencer_payouts` shipped with the same open public
+-- policies as orders/promo_codes for consistency. They expose influencer names,
+-- phone numbers, and payout amounts to the anon key. Lock both down to the
+-- admin role in the same pass that fixes orders and promo_codes.
+-- ---------------------------------------------------------------------------
