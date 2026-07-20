@@ -77,15 +77,20 @@ export interface InfluencerPayoutPayload {
 }
 
 // تعود أعمدة DECIMAL أحيانًا كنصوص حسب المشغّل؛ نطبّعها إلى أرقام قبل الاستخدام.
-function num(value: unknown): number {
+// الصفر الصامت في حقل مبلغ مستحَق يُقرأ كـ"لا شيء مستحق"، وهو فشل أسوأ من خطأ ظاهر.
+function num(value: unknown, field: string): number {
   const n = Number(value);
-  return Number.isFinite(n) ? n : 0;
+  if (!Number.isFinite(n)) {
+    console.warn(`influencersService: non-numeric value for ${field}:`, value);
+    return 0;
+  }
+  return n;
 }
 
 function hydrateInfluencer(row: Record<string, unknown>): Influencer {
   return {
     ...(row as unknown as Influencer),
-    default_commission_rate: num(row.default_commission_rate),
+    default_commission_rate: num(row.default_commission_rate, "default_commission_rate"),
   };
 }
 
@@ -94,94 +99,114 @@ function hydrateSummary(
 ): InfluencerAccountSummary {
   return {
     ...(row as unknown as InfluencerAccountSummary),
-    codes_count: num(row.codes_count),
-    orders_count: num(row.orders_count),
-    gross_sales: num(row.gross_sales),
-    commission_earned: num(row.commission_earned),
-    total_paid: num(row.total_paid),
-    balance_due: num(row.balance_due),
+    codes_count: num(row.codes_count, "codes_count"),
+    orders_count: num(row.orders_count, "orders_count"),
+    gross_sales: num(row.gross_sales, "gross_sales"),
+    commission_earned: num(row.commission_earned, "commission_earned"),
+    total_paid: num(row.total_paid, "total_paid"),
+    balance_due: num(row.balance_due, "balance_due"),
   };
 }
 
 function hydrateCodeStat(row: Record<string, unknown>): InfluencerCodeStat {
   return {
     ...(row as unknown as InfluencerCodeStat),
-    commission_rate: num(row.commission_rate),
-    orders_count: num(row.orders_count),
-    gross_sales: num(row.gross_sales),
-    commission_due: num(row.commission_due),
+    commission_rate: num(row.commission_rate, "commission_rate"),
+    orders_count: num(row.orders_count, "orders_count"),
+    gross_sales: num(row.gross_sales, "gross_sales"),
+    commission_due: num(row.commission_due, "commission_due"),
   };
 }
 
 function hydratePayout(row: Record<string, unknown>): InfluencerPayout {
   return {
     ...(row as unknown as InfluencerPayout),
-    amount: num(row.amount),
+    amount: num(row.amount, "amount"),
   };
 }
 
 /** جميع المشاهير مرتّبين بالاسم. يُرجع [] عند الفشل بدل الرمي. */
 export async function fetchInfluencers(): Promise<Influencer[]> {
-  const { data, error } = await supabase
-    .from("influencers")
-    .select("*")
-    .order("name", { ascending: true });
+  try {
+    const { data, error } = await supabase
+      .from("influencers")
+      .select("*")
+      .order("name", { ascending: true });
 
-  if (error) {
+    if (error) {
+      console.error("Error fetching influencers:", error);
+      return [];
+    }
+    return (data || []).map(hydrateInfluencer);
+  } catch (error) {
     console.error("Error fetching influencers:", error);
     return [];
   }
-  return (data || []).map(hydrateInfluencer);
 }
 
 /** السطر النهائي لكل مشهور: طلبات، مبيعات، عمولة، مدفوع، متبقٍ. */
 export async function fetchInfluencerSummaries(): Promise<
   InfluencerAccountSummary[]
 > {
-  const { data, error } = await supabase
-    .from("influencer_account_summary")
-    .select("*")
-    .order("balance_due", { ascending: false });
+  try {
+    const { data, error } = await supabase
+      .from("influencer_account_summary")
+      .select("*")
+      .order("balance_due", { ascending: false });
 
-  if (error) {
+    if (error) {
+      console.error("Error fetching influencer summaries:", error);
+      return [];
+    }
+    return (data || []).map(hydrateSummary);
+  } catch (error) {
     console.error("Error fetching influencer summaries:", error);
     return [];
   }
-  return (data || []).map(hydrateSummary);
 }
 
 /** تفصيل الأكواد لمشهور واحد. */
 export async function fetchInfluencerCodeStats(
   influencerId: string
 ): Promise<InfluencerCodeStat[]> {
-  const { data, error } = await supabase
-    .from("influencer_code_stats")
-    .select("*")
-    .eq("influencer_id", influencerId)
-    .order("commission_due", { ascending: false });
+  try {
+    const { data, error } = await supabase
+      .from("influencer_code_stats")
+      .select("*")
+      .eq("influencer_id", influencerId)
+      .order("commission_due", { ascending: false });
 
-  if (error) {
+    if (error) {
+      console.error("Error fetching influencer code stats:", error);
+      return [];
+    }
+    return (data || []).map(hydrateCodeStat);
+  } catch (error) {
     console.error("Error fetching influencer code stats:", error);
     return [];
   }
-  return (data || []).map(hydrateCodeStat);
 }
 
 /** سجلّ دفعات مشهور واحد، الأحدث أولًا. */
 export async function fetchInfluencerPayouts(
   influencerId: string
 ): Promise<InfluencerPayout[]> {
-  const { data, error } = await supabase
-    .from("influencer_payouts")
-    .select("*")
-    .eq("influencer_id", influencerId)
-    .order("paid_at", { ascending: false });
+  try {
+    const { data, error } = await supabase
+      .from("influencer_payouts")
+      .select("*")
+      .eq("influencer_id", influencerId)
+      .order("paid_at", { ascending: false });
 
-  if (error) {
+    if (error) {
+      console.error("Error fetching influencer payouts:", error);
+      return [];
+    }
+    return (data || []).map(hydratePayout);
+  } catch (error) {
     console.error("Error fetching influencer payouts:", error);
     return [];
   }
-  return (data || []).map(hydratePayout);
 }
 
 /** إنشاء مشهور جديد. يرمي عند فشل قاعدة البيانات. */
@@ -224,16 +249,21 @@ export async function deleteInfluencer(id: string): Promise<void> {
 export async function countCodesForInfluencer(
   influencerId: string
 ): Promise<number> {
-  const { count, error } = await supabase
-    .from("promo_codes")
-    .select("id", { count: "exact", head: true })
-    .eq("influencer_id", influencerId);
+  try {
+    const { count, error } = await supabase
+      .from("promo_codes")
+      .select("id", { count: "exact", head: true })
+      .eq("influencer_id", influencerId);
 
-  if (error) {
+    if (error) {
+      console.error("Error counting influencer codes:", error);
+      return 0;
+    }
+    return count ?? 0;
+  } catch (error) {
     console.error("Error counting influencer codes:", error);
     return 0;
   }
-  return count ?? 0;
 }
 
 /** تسجيل دفعة لمشهور. المبلغ يجب أن يكون > 0 (يفرضه قيد CHECK كذلك). */
