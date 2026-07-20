@@ -34,6 +34,10 @@ export interface PromoCode {
   usage_count: number;
   created_at: string;
   updated_at: string;
+  /** المشهور المرتبط بهذا الكود، أو null للكود العادي. */
+  influencer_id: string | null;
+  /** نسبة عمولة المشهور لهذا الكود تحديدًا. null للكود العادي. */
+  commission_rate: number | null;
 }
 
 export interface PromoCodePayload {
@@ -48,6 +52,8 @@ export interface PromoCodePayload {
   expires_at: string | null;
   usage_limit: number | null;
   usage_limit_per_user: number | null;
+  influencer_id: string | null;
+  commission_rate: number | null;
 }
 
 export type PromoValidationError =
@@ -121,6 +127,10 @@ function hydratePromo(row: Record<string, unknown>): PromoCode {
         : null,
     min_order_total: Number(row.min_order_total ?? 0),
     scope_product_ids: parseScopeIds(row.scope_product_ids),
+    commission_rate:
+      row.commission_rate !== null && row.commission_rate !== undefined
+        ? Number(row.commission_rate)
+        : null,
   };
 }
 

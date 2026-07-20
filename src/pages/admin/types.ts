@@ -102,4 +102,8 @@ export interface CouponFormState {
   expires_at: string; // YYYY-MM-DD أو ""
   usage_limit: string;
   usage_limit_per_user: string;
+  /** "" يعني بدون مشهور. */
+  influencer_id: string;
+  /** يُقرأ فقط عند اختيار مشهور. */
+  commission_rate: string;
 }

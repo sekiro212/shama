@@ -63,6 +63,7 @@ export function CouponFormDialog({
     productPickerSearch,
     setProductPickerSearch,
     filteredPickerProducts,
+    influencers,
     handleCouponSubmit,
     toggleCouponScopeProduct,
   } = couponsApi;
@@ -107,6 +108,74 @@ export function CouponFormDialog({
               placeholder={t("admin.coupons.codePlaceholder")}
               className="glass bg-white dark:bg-white/5 border-[#323D50]/15 dark:border-white/20 text-[#323D50] dark:text-white font-mono uppercase"
             />
+          </div>
+
+          {/* ربط الكود بمشهور: عند الاختيار تظهر نسبة العمولة وتُعبَّأ من
+              النسبة الافتراضية للمشهور، وتبقى قابلة للتعديل لهذا الكود. */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-[#323D50] dark:text-white/80">
+                {t("admin.coupons.influencer")}
+              </Label>
+              <Select
+                value={couponForm.influencer_id || "none"}
+                onValueChange={(v) =>
+                  setCouponForm((prev) => {
+                    if (v === "none") {
+                      return { ...prev, influencer_id: "", commission_rate: "" };
+                    }
+                    const picked = influencers.find((i) => i.id === v);
+                    return {
+                      ...prev,
+                      influencer_id: v,
+                      // إبقاء النسبة الحالية إن كانت مضبوطة، وإلا الافتراضية للمشهور.
+                      commission_rate:
+                        prev.commission_rate ||
+                        String(picked?.default_commission_rate ?? 3),
+                    };
+                  })
+                }
+              >
+                <SelectTrigger className="glass bg-white dark:bg-white/5 border-[#323D50]/15 dark:border-white/20 text-[#323D50] dark:text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-white dark:bg-[#1a2235] border-[#323D50]/15 dark:border-white/20">
+                  <SelectItem value="none">
+                    {t("admin.coupons.influencerNone")}
+                  </SelectItem>
+                  {influencers.map((inf) => (
+                    <SelectItem key={inf.id} value={inf.id}>
+                      {inf.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-[#6B7B8D]">
+                {t("admin.coupons.influencerHint")}
+              </p>
+            </div>
+
+            {couponForm.influencer_id && (
+              <div className="space-y-2">
+                <Label className="text-[#323D50] dark:text-white/80">
+                  {t("admin.coupons.commissionRate")} *
+                </Label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step="0.01"
+                  value={couponForm.commission_rate}
+                  onChange={(e) =>
+                    setCouponForm((prev) => ({
+                      ...prev,
+                      commission_rate: e.target.value,
+                    }))
+                  }
+                  className="glass bg-white dark:bg-white/5 border-[#323D50]/15 dark:border-white/20 text-[#323D50] dark:text-white"
+                />
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

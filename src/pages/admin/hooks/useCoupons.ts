@@ -8,7 +8,7 @@
  * للكوبونات المقتصرة على منتجات معيّنة. تُفوَّض جميع عمليات Supabase إلى
  * `promoCodesService`.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   fetchAllPromoCodes,
@@ -20,6 +20,7 @@ import {
   PromoCode,
   PromoCodePayload,
 } from "@/services/promoCodesService";
+import { fetchInfluencers, type Influencer } from "@/services/influencersService";
 import { useLanguage } from "@/contexts/LanguageContext";
 import type { CouponFormState, Perfume } from "../types";
 import { initialCouponForm } from "../constants";
@@ -51,6 +52,12 @@ export function useCoupons({ perfumes }: UseCouponsOptions) {
   const [togglingCoupon, setTogglingCoupon] = useState<string | null>(null);
   const [deletingCoupon, setDeletingCoupon] = useState<string | null>(null);
   const [productPickerSearch, setProductPickerSearch] = useState("");
+  const [influencers, setInfluencers] = useState<Influencer[]>([]);
+
+  // قائمة المشاهير لمُنتقي النموذج. تُحمَّل مرة واحدة عند تركيب الـ hook.
+  useEffect(() => {
+    fetchInfluencers().then(setInfluencers);
+  }, []);
 
   // جلب جميع أكواد الخصم من Supabase إلى الحالة المحلّية.
   const loadCoupons = async () => {
@@ -97,6 +104,9 @@ export function useCoupons({ perfumes }: UseCouponsOptions) {
         coupon.usage_limit_per_user !== null
           ? String(coupon.usage_limit_per_user)
           : "",
+      influencer_id: coupon.influencer_id ?? "",
+      commission_rate:
+        coupon.commission_rate !== null ? String(coupon.commission_rate) : "",
     });
     setCouponFormError(null);
     setProductPickerSearch("");
@@ -155,6 +165,18 @@ export function useCoupons({ perfumes }: UseCouponsOptions) {
       ? new Date(couponForm.expires_at + "T23:59:59").toISOString()
       : null;
 
+    // العمولة تُقرأ فقط عند ربط مشهور؛ الكود بلا مشهور يُخزَّن بـ null.
+    const influencerId = couponForm.influencer_id || null;
+    let commissionRate: number | null = null;
+    if (influencerId) {
+      const rate = Number(couponForm.commission_rate);
+      if (!Number.isFinite(rate) || rate < 0 || rate > 100) {
+        setCouponFormError(t("admin.influencers.validation.rateRange"));
+        return null;
+      }
+      commissionRate = rate;
+    }
+
     return {
       code,
       discount_type: couponForm.discount_type,
@@ -170,6 +192,8 @@ export function useCoupons({ perfumes }: UseCouponsOptions) {
       expires_at: expiresAt,
       usage_limit: usageLimit,
       usage_limit_per_user: perUserLimit,
+      influencer_id: influencerId,
+      commission_rate: commissionRate,
     };
   };
 
@@ -302,6 +326,7 @@ export function useCoupons({ perfumes }: UseCouponsOptions) {
     activeCouponCount,
     totalCouponRedemptions,
     filteredPickerProducts,
+    influencers,
     loadCoupons,
     openCreateCoupon,
     openEditCoupon,

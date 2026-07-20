@@ -22,6 +22,8 @@ export const initialCouponForm: CouponFormState = {
   expires_at: "",
   usage_limit: "",
   usage_limit_per_user: "",
+  influencer_id: "",
+  commission_rate: "",
 };
 
 /**
