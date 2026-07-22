@@ -126,3 +126,18 @@ ALTER FUNCTION public.recalculate_perfume_rating() SET search_path = public;
 -- phone numbers, and payout amounts to the anon key. Lock both down to the
 -- admin role in the same pass that fixes orders and promo_codes.
 -- ---------------------------------------------------------------------------
+
+-- ---------------------------------------------------------------------------
+-- TODO (added 2026-07-22 with influencer coupons, whole-branch review):
+-- The trigger functions set_order_influencer_snapshot() and
+-- preserve_order_influencer_snapshot() are SECURITY DEFINER and, despite a
+-- `REVOKE EXECUTE ... FROM PUBLIC`, still show EXECUTE granted to anon /
+-- authenticated (Supabase default grants bypass the PUBLIC pseudo-role), so
+-- the advisor flags them `*_security_definer_function_executable`.
+-- NOT exploitable: Postgres refuses to invoke a RETURNS TRIGGER function
+-- outside trigger context ("trigger functions can only be called as triggers").
+-- When hardening: either `REVOKE EXECUTE ... FROM anon, authenticated`, or
+-- switch preserve_order_influencer_snapshot() to SECURITY INVOKER (it only
+-- touches OLD/NEW). Keep set_order_influencer_snapshot() as SECURITY DEFINER
+-- so its promo_codes lookup keeps working after promo_codes RLS is locked down.
+-- ---------------------------------------------------------------------------

@@ -22,6 +22,7 @@ const PAGE_TITLE_MAP: Record<string, string> = {
   "/gift-orders": "admin.nav.giftOrders",
   "/memories": "admin.nav.memories",
   "/coupons": "admin.nav.coupons",
+  "/influencers": "admin.nav.influencers",
 };
 
 // عناوين احتياطية تُستخدم عندما لا تتوفّر ترجمة للمفتاح.
@@ -33,6 +34,7 @@ const FALLBACK_TITLES: Record<string, string> = {
   "/gift-orders": "Gift Orders",
   "/memories": "Memories",
   "/coupons": "Coupons",
+  "/influencers": "Influencers",
 };
 
 /**
