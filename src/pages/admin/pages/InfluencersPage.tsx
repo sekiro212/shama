@@ -7,6 +7,7 @@ import { useEffect } from "react";
 import { useInfluencers } from "../hooks/useInfluencers";
 import { InfluencersTab } from "../tabs/InfluencersTab";
 import { InfluencerFormDialog } from "../dialogs/InfluencerFormDialog";
+import { InfluencerStatementDialog } from "../dialogs/InfluencerStatementDialog";
 
 export default function InfluencersPage() {
   const influencersApi = useInfluencers();
@@ -21,6 +22,7 @@ export default function InfluencersPage() {
     <>
       <InfluencersTab influencersApi={influencersApi} />
       <InfluencerFormDialog influencersApi={influencersApi} />
+      <InfluencerStatementDialog influencersApi={influencersApi} />
     </>
   );
 }
