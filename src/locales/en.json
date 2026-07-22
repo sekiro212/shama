@@ -507,6 +507,7 @@
       "notes": "Notes",
       "defaultRate": "Default commission rate (%)",
       "active": "Active",
+      "inactive": "Inactive",
       "codesCount": "Codes",
       "ordersCount": "Orders",
       "grossSales": "Sales",

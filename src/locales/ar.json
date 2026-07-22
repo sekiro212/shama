@@ -507,6 +507,7 @@
       "notes": "ملاحظات",
       "defaultRate": "نسبة العمولة الافتراضية (%)",
       "active": "نشط",
+      "inactive": "غير نشط",
       "codesCount": "الأكواد",
       "ordersCount": "الطلبات",
       "grossSales": "المبيعات",

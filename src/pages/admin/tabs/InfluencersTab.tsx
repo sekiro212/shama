@@ -6,10 +6,10 @@
  */
 import { Plus, Receipt, Pencil, Trash2, Megaphone, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/contexts/LanguageContext";
 import type { useInfluencers } from "../hooks/useInfluencers";
 import { StatCard } from "../components/StatCard";
+import { StatusBadge } from "../components/StatusBadge";
 import { TableSkeleton } from "../components/TableSkeleton";
 import { EmptyState } from "../components/EmptyState";
 import { ConfirmDialog } from "../dialogs/ConfirmDialog";
@@ -33,8 +33,8 @@ export function InfluencersTab({ influencersApi }: InfluencersTabProps) {
     confirmDialogProps,
   } = influencersApi;
 
-  // تنسيق موحّد للمبالغ بالدينار الليبي بمنزلتين عشريتين.
-  const money = (n: number) => n.toFixed(2);
+  // تنسيق موحّد للمبالغ بالدينار الليبي بمنزلتين عشريتين، مطابق لـ CouponsTab.tsx.
+  const money = (n: number) => `${n.toFixed(2)} LYD`;
 
   return (
     <div className="space-y-6">
@@ -61,11 +61,13 @@ export function InfluencersTab({ influencersApi }: InfluencersTabProps) {
           title={t("admin.influencers.commissionEarned")}
           value={money(totalCommission)}
           icon={Receipt}
+          iconColor="text-green-500"
         />
         <StatCard
           title={t("admin.influencers.balanceDue")}
           value={money(totalBalance)}
           icon={Wallet}
+          iconColor="text-[#5B8DD9]"
         />
       </div>
 
@@ -120,9 +122,11 @@ export function InfluencersTab({ influencersApi }: InfluencersTabProps) {
                     <span className="flex items-center gap-2">
                       {row.name}
                       {!row.is_active && (
-                        <Badge variant="secondary" className="text-xs">
-                          {t("admin.influencers.active")}: —
-                        </Badge>
+                        <StatusBadge
+                          status="inactive"
+                          type="coupon"
+                          label={t("admin.influencers.inactive")}
+                        />
                       )}
                     </span>
                   </td>
