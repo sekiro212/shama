@@ -23,6 +23,7 @@ import {
   Gift,
   Heart,
   Ticket,
+  Megaphone,
   Sun,
   Moon,
   Globe,
@@ -51,6 +52,7 @@ const navItems: NavItem[] = [
   { path: "/gift-orders", icon: Gift, labelKey: "admin.nav.giftOrders" },
   { path: "/memories", icon: Heart, labelKey: "admin.nav.memories", badgeKey: "memories" },
   { path: "/coupons", icon: Ticket, labelKey: "admin.nav.coupons" },
+  { path: "/influencers", icon: Megaphone, labelKey: "admin.nav.influencers" },
 ];
 
 // تسميات احتياطية بالإنجليزية تُستخدم عند غياب مفتاح الترجمة، حتى لا يظهر المفتاح الخام للمستخدم
@@ -62,6 +64,7 @@ const FALLBACK_LABELS: Record<string, string> = {
   "admin.nav.giftOrders": "Gift Orders",
   "admin.nav.memories": "Memories",
   "admin.nav.coupons": "Coupons",
+  "admin.nav.influencers": "Influencers",
   "admin.logoutSuccess": "Logged out successfully",
 };
 

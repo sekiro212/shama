@@ -18,6 +18,7 @@ import ReviewsPage from "./pages/ReviewsPage";
 import GiftOrdersPage from "./pages/GiftOrdersPage";
 import MemoriesPage from "./pages/MemoriesPage";
 import CouponsPage from "./pages/CouponsPage";
+import InfluencersPage from "./pages/InfluencersPage";
 import "@/App.css";
 
 /**
@@ -52,6 +53,7 @@ export default function AdminApp() {
                 <Route path="gift-orders" element={<GiftOrdersPage />} />
                 <Route path="memories" element={<MemoriesPage />} />
                 <Route path="coupons" element={<CouponsPage />} />
+                <Route path="influencers" element={<InfluencersPage />} />
               </Route>
             </Routes>
             {/* منفذ إشعارات Sonner toast المحصور ضمن تطبيق الإدارة. */}
