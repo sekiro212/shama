@@ -1,0 +1,101 @@
+#!/usr/bin/env node
+/**
+ * Send the rendered IG-post PNGs to a Telegram chat, one album (media group)
+ * per product — its 3 slides grouped, captioned with the product name.
+ *
+ *   node scripts/ig-post/send-telegram.cjs            # every product in out/png
+ *   node scripts/ig-post/send-telegram.cjs <slug>...  # only these
+ *
+ * Reads TELEGRAM_BOT_TOKEN + ADMIN_CHAT_IDS from telegram-bot/.env.
+ */
+const fs = require("fs");
+const path = require("path");
+
+const PNG = path.join(__dirname, "out", "png");
+const ENV = path.join(__dirname, "..", "..", "telegram-bot", ".env");
+
+function readEnv(file) {
+  const out = {};
+  for (const line of fs.readFileSync(file, "utf8").split("\n")) {
+    const m = line.match(/^\s*([A-Z_]+)\s*=\s*(.*)\s*$/);
+    if (m) out[m[1]] = m[2].replace(/^["']|["']$/g, "").trim();
+  }
+  return out;
+}
+
+function titleFromSlug(slug) {
+  return slug
+    .split("-")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
+async function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+async function main() {
+  const env = readEnv(ENV);
+  const token = env.TELEGRAM_BOT_TOKEN;
+  const chat = env.ADMIN_CHAT_IDS.split(",")[0].trim();
+  if (!token || !chat) throw new Error("missing TELEGRAM_BOT_TOKEN / ADMIN_CHAT_IDS");
+
+  const files = fs.readdirSync(PNG).filter((f) => f.endsWith(".png"));
+  // group by product slug (strip trailing -1/-2/-3)
+  const groups = {};
+  for (const f of files) {
+    const slug = f.replace(/-\d+\.png$/, "");
+    (groups[slug] ||= []).push(f);
+  }
+  let slugs = Object.keys(groups).sort();
+  const want = process.argv.slice(2);
+  if (want.length) slugs = slugs.filter((s) => want.includes(s));
+
+  const url = `https://api.telegram.org/bot${token}/sendMediaGroup`;
+  for (const slug of slugs) {
+    const imgs = groups[slug].sort(); // -1, -2, -3
+    const form = new FormData();
+    const media = imgs.map((f, i) => ({
+      type: "photo",
+      media: `attach://f${i}`,
+      ...(i === 0 ? { caption: titleFromSlug(slug) } : {}),
+    }));
+    form.append("chat_id", chat);
+    form.append("media", JSON.stringify(media));
+    imgs.forEach((f, i) => {
+      const buf = fs.readFileSync(path.join(PNG, f));
+      form.append(`f${i}`, new Blob([buf], { type: "image/png" }), f);
+    });
+
+    // send with retry on Telegram flood limits AND transient network errors
+    let sent = false;
+    for (let attempt = 0; attempt < 8 && !sent; attempt++) {
+      try {
+        const res = await fetch(url, { method: "POST", body: form });
+        const json = await res.json();
+        if (json.ok) {
+          console.log(`OK   ${slug}  (${imgs.length} slides)`);
+          sent = true;
+        } else if (json.parameters?.retry_after) {
+          const wait = (json.parameters.retry_after + 1) * 1000;
+          console.log(`WAIT ${slug}: flood, retry in ${wait / 1000}s`);
+          await sleep(wait);
+        } else {
+          console.error(`FAIL ${slug}: ${json.description}`);
+          break; // non-retryable Telegram rejection
+        }
+      } catch (e) {
+        console.log(`NETERR ${slug}: ${e.message} — retry ${attempt + 1}/8`);
+        await sleep(3000 * (attempt + 1)); // linear backoff on network blips
+      }
+    }
+    if (!sent) console.error(`GAVEUP ${slug}`);
+    await sleep(1500); // stay under album rate limits
+  }
+  console.log("\nDone.");
+}
+
+main().catch((e) => {
+  console.error("FATAL", e.message);
+  process.exit(1);
+});

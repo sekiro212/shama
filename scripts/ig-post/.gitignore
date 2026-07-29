@@ -1,1 +1,4 @@
 out/
+keep-slugs.txt
+gen-errors.log
+batch.sh
