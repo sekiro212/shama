@@ -101,9 +101,10 @@ Exposes `{ store, client, features, setStore }`. Mounted in `AdminApp.tsx`
 inside `AdminAuthProvider`. Resets to `shama` on fresh login, so a session always
 starts from a known store rather than a stale selection.
 
-### `useStoreClient()`
+### `useStore()`
 
-The hook every admin hook calls to obtain the active client.
+The hook every admin hook calls to obtain the active store — it returns
+`{ store, client, features, setStore }`, not just the client.
 
 **`store.id` goes into every admin hook's dependency array.** Switching stores
 changes the dep, so `useOrders`, `usePerfumes` and friends refetch
