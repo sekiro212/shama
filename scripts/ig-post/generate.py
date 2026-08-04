@@ -33,15 +33,23 @@ def load_env():
 
 # ---------- supabase REST ----------
 def conc_label(conc):
-    """Slide 3 caption for the concentration. Several houses in the catalogue sell
-    parfum/extrait rather than EDP, so this must follow the column, not assume."""
-    return {
+    """Slide 3 caption suffix for the concentration, e.g. " · PARFUM".
+
+    Several houses in the catalogue sell parfum/extrait/EDT rather than EDP, so
+    this follows the column instead of assuming. Anything unrecognised (gift
+    sets, blank) yields an empty string so the slide shows the size alone
+    rather than a wrong concentration.
+    """
+    label = {
         "edp": "EAU DE PARFUM",
         "edt": "EAU DE TOILETTE",
         "parfum": "PARFUM",
         "extrait": "EXTRAIT DE PARFUM",
+        "extrait de parfum": "EXTRAIT DE PARFUM",
         "edc": "EAU DE COLOGNE",
-    }.get((conc or "edp").strip().lower(), "EAU DE PARFUM")
+        "cologne": "EAU DE COLOGNE",
+    }.get((conc or "").strip().lower())
+    return f" · {label}" if label else ""
 
 
 def fetch_product(base, key, term):
@@ -269,7 +277,7 @@ TEMPLATE = r"""<title>{TITLE_EN} — Shama</title>
       <div class="ohead"><span class="avail">متوفر الآن · available</span><img class="bottle thumb" src="{IMG}" alt="{TITLE_EN}" /></div>
       {OFFER_MID}
       <div class="priceRow"><div class="bigprice"><span class="cur">LYD</span> <span class="amt">{PRICE}</span>
-        <span class="size2">{SIZE} · {CONC}</span></div><span class="handle"><span class="g"></span>shama.ly</span></div>
+        <span class="size2">{SIZE}{CONC}</span></div><span class="handle"><span class="g"></span>shama.ly</span></div>
       <div class="cta">أضف للسلة · Add to bag</div>
     </div>
   </div></div>
