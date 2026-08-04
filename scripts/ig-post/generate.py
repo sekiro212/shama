@@ -32,10 +32,22 @@ def load_env():
     return url, key
 
 # ---------- supabase REST ----------
+def conc_label(conc):
+    """Slide 3 caption for the concentration. Several houses in the catalogue sell
+    parfum/extrait rather than EDP, so this must follow the column, not assume."""
+    return {
+        "edp": "EAU DE PARFUM",
+        "edt": "EAU DE TOILETTE",
+        "parfum": "PARFUM",
+        "extrait": "EXTRAIT DE PARFUM",
+        "edc": "EAU DE COLOGNE",
+    }.get((conc or "edp").strip().lower(), "EAU DE PARFUM")
+
+
 def fetch_product(base, key, term):
     q = {
         "or": f"(slug.eq.{term},name.eq.{term})",
-        "select": "name,name_ar,price,size,gender,description,fragrance_notes,"
+        "select": "name,name_ar,price,size,gender,concentration,description,fragrance_notes,"
                   "perfume_images(image_url,is_primary),"
                   "perfume_samples(size,price,is_active)",
         "limit": "1",
@@ -257,7 +269,7 @@ TEMPLATE = r"""<title>{TITLE_EN} — Shama</title>
       <div class="ohead"><span class="avail">متوفر الآن · available</span><img class="bottle thumb" src="{IMG}" alt="{TITLE_EN}" /></div>
       {OFFER_MID}
       <div class="priceRow"><div class="bigprice"><span class="cur">LYD</span> <span class="amt">{PRICE}</span>
-        <span class="size2">{SIZE} · EAU DE PARFUM</span></div><span class="handle"><span class="g"></span>shama.ly</span></div>
+        <span class="size2">{SIZE} · {CONC}</span></div><span class="handle"><span class="g"></span>shama.ly</span></div>
       <div class="cta">أضف للسلة · Add to bag</div>
     </div>
   </div></div>
@@ -328,7 +340,7 @@ def main():
     html = TEMPLATE.format(
         TITLE_EN=name, TITLE_DISPLAY=display, TITLE_AR=p.get("name_ar") or "", HOUSE=house,
         TAGLINE=tagline, JOURNEY=journey, CREDIT="Eau de Parfum",
-        PRICE=fmt_int(p["price"]), SIZE=size_main.upper(),
+        PRICE=fmt_int(p["price"]), SIZE=size_main.upper(), CONC=conc_label(p.get("concentration")),
         OFFER_MID=offer_mid, ncols=ncols, titlesize=title_size,
         IMG=data_uri, **tok)
 

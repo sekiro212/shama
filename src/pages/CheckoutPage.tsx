@@ -207,6 +207,16 @@ export default function CheckoutPage() {
         total: finalTotal + deliveryFee,
         promo_code_id: confirmedPromo?.promo?.id ?? null,
         promo_code_snapshot: confirmedPromo?.promo?.code ?? null,
+        // نسخة ثابتة من بيانات المشهور وقت الطلب: تعتمد عليها العرض
+        // influencer_code_stats في حساب العمولة. تُخزَّن النسبة كلقطة
+        // (snapshot) لا كربط حيّ، حتى لا يؤدي تعديل نسبة المشهور لاحقًا
+        // إلى تغيير عمولات طلبات سابقة بأثر رجعي.
+        influencer_id: confirmedPromo?.valid
+          ? confirmedPromo.promo?.influencer_id ?? null
+          : null,
+        influencer_commission_rate: confirmedPromo?.valid
+          ? confirmedPromo.promo?.commission_rate ?? null
+          : null,
         order_date: new Date().toISOString(),
         items: items,
       };
