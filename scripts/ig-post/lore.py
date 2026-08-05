@@ -165,10 +165,11 @@ TEMPLATE = """<meta charset="utf-8"><title>{TITLE}</title>
   .logo .s{{ font-size:2.2cqw; letter-spacing:.06em; color:{SOFT}; margin-top:.7cqw; }}
   .tagsm{{ font-size:2.2cqw; letter-spacing:.34em; color:{ACC}; text-transform:uppercase; }}
 
-  /* optional character portrait on slide 1, behind a scrim so copy stays legible */
-  .art{{ position:absolute; inset:0; background-size:cover; background-position:center top; }}
-  .art::after{{ content:""; position:absolute; inset:0;
-               background:linear-gradient(180deg, rgba(0,0,0,.30) 0%, {G1}cc 46%, {G2} 82%); }}
+  /* optional character portrait on slide 1, behind a scrim so copy stays legible.
+     art_position moves the cover-crop window (a real face wants to sit high, above
+     the copy block); art_scrim swaps the gradient when the default buries it. */
+  .art{{ position:absolute; inset:0; background-size:cover; background-position:{ARTPOS}; }}
+  .art::after{{ content:""; position:absolute; inset:0; background:{ARTSCRIM}; }}
   .post.rtl{{ direction:rtl; }}
   .post.rtl .q, .post.rtl .line{{ direction:rtl; }}
 
@@ -350,6 +351,11 @@ def main():
         QUESTION=cfg.get("question", ""),
         NAMESIZE=cfg.get("name_size", 11),
         ART=art_html, RTL="rtl" if cfg.get("rtl") else "",
+        ARTPOS=cfg.get("art_position", "center top"),
+        ARTSCRIM=cfg.get(
+            "art_scrim",
+            "linear-gradient(180deg, rgba(0,0,0,.30) 0%, {G1}cc 46%, {G2} 82%)"
+        ).format(**cfg["palette"]),
         ARROW="←" if cfg.get("rtl") else "→",
         BOTTLES=bottles, PNAMEBLOCK=pnameblock,
         PNAME=full, HOUSE=house.upper(), PSHORT=pshort,

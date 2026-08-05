@@ -1,0 +1,45 @@
+{
+  "product_slug": [
+    "bdk-parfums-gris-charnel",
+    "marc-antoine-barrois-tilia"
+  ],
+  "house": null,
+  "name_size": 11,
+  "palette": {
+    "G0": "#20443c",
+    "G1": "#122420",
+    "G2": "#080f0d",
+    "INK": "#f2f6f2",
+    "SOFT": "#a9c3b6",
+    "ACC": "#d0a45e",
+    "BRD": "rgba(208,164,94,.30)",
+    "GLOW0": "rgba(208,164,94,.26)",
+    "GLOW1": "rgba(208,164,94,.07)"
+  },
+  "character_image": "img/firas.jpg",
+  "slug_out": "lore-firas",
+  "series": "PICKED FOR · 06",
+  "kicker": "THE NOTES HE LOVES",
+  "character": "Firas Alalem",
+  "epithet": "Fragrance creator",
+  "quote": "\"Orange Blossom · Fig · Ambroxan · Iris\"",
+  "question": "Four notes he keeps coming back to. So what do we hand him off the shelf?",
+  "product_captions": [
+    "THE FIG & IRIS",
+    "THE BLOSSOM & AMBER"
+  ],
+  "note_chips": [
+    "Fig",
+    "Iris",
+    "Black Tea",
+    "Cardamom",
+    "Orange Blossom",
+    "Linden Blossom",
+    "Ambrofix",
+    "Sandalwood"
+  ],
+  "why_en": "Gris Charnel covers the fig and iris — black tea and cardamom over sandalwood and vetiver, quiet and skin-close.",
+  "why_ar": "وتيليا يكمل الباقي: زهر الزيزفون وزهر البرتقال والهيليوتروب فوق الأمبروفيكس — بياضٌ عسليٌّ يلتصق بالبشرة.",
+  "art_position": "center 62%",
+  "art_scrim": "linear-gradient(180deg, rgba(0,0,0,.20) 0%, rgba(0,0,0,.06) 26%, {G1}66 46%, {G1}ee 62%, {G2} 78%)"
+}
