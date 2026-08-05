@@ -31,6 +31,75 @@ import urllib.request
 from PIL import Image
 
 
+TRIBUTE = """<meta charset="utf-8"><title>{TITLE}</title>
+<style>
+  *{{ box-sizing:border-box; margin:0; padding:0; }}
+  body{{ background:#0b0708; font-family:system-ui,-apple-system,sans-serif; display:flex;
+        flex-direction:column; align-items:center; gap:18px; padding:26px 0 40px; }}
+  .rail{{ display:flex; flex-direction:column; gap:16px; padding:4px 22px 12px; }}
+  .post{{ flex:0 0 auto; width:min(92vw,1080px); aspect-ratio:1/1; container-type:inline-size;
+         position:relative; overflow:hidden; border-radius:14px;
+         background:radial-gradient(120% 100% at 50% 0%, {G0} 0%, {G1} 55%, {G2} 100%);
+         color:{INK}; }}
+  .post.rtl{{ direction:rtl; }}
+  .post::after{{ content:""; position:absolute; inset:3cqw; border:1px solid {BRD};
+                border-radius:10px; pointer-events:none; }}
+  .art{{ position:absolute; inset:0; background-size:cover; background-position:center top;
+        filter:saturate(.85); }}
+  .art::after{{ content:""; position:absolute; inset:0;
+               background:linear-gradient(180deg, rgba(0,0,0,.34) 0%, {G1}d9 48%, {G2} 84%); }}
+  .inner{{ position:relative; z-index:1; height:100%; padding:6.4cqw 6.8cqw;
+          display:flex; flex-direction:column; }}
+  .top{{ display:flex; align-items:center; justify-content:space-between; }}
+  .logo .n{{ font-family:Georgia,serif; font-weight:700; font-size:4.4cqw; line-height:1; }}
+  .logo .s{{ font-size:2.2cqw; letter-spacing:.06em; color:{SOFT}; margin-top:.7cqw; }}
+  .pg{{ direction:ltr; unicode-bidi:isolate; font-size:2.2cqw; letter-spacing:.3em; color:{ACC}; }}
+  .body{{ flex:1; display:flex; flex-direction:column; justify-content:flex-end; gap:2.6cqw;
+         padding-bottom:1cqw; }}
+  .mid{{ flex:1; display:flex; flex-direction:column; justify-content:center; gap:4cqw;
+        text-align:center; }}
+  .name{{ font-size:{NAMESIZE}cqw; font-weight:700; line-height:1.05; }}
+  .epithet{{ font-size:4cqw; color:{SOFT}; }}
+  .dates{{ font-size:2.8cqw; letter-spacing:.28em; color:{ACC}; direction:ltr;
+          unicode-bidi:isolate; }}
+  .quote{{ font-size:5.2cqw; font-weight:600; line-height:1.5; }}
+  .para{{ font-size:3.1cqw; line-height:1.85; color:{SOFT}; }}
+  .mark{{ display:flex; align-items:center; justify-content:center; gap:2cqw;
+         font-size:2.6cqw; color:{SOFT}; }}
+  .rule{{ height:1px; background:{BRD}; margin:1cqw 0; }}
+  .hint{{ color:#7a636a; font-size:12px; }}
+</style>
+<div class="rail">
+
+  <div class="post {RTL}">{ART}<div class="inner">
+    <div class="top"><div class="logo"><div class="n">Shama</div><div class="s">عطور فاخرة</div></div>
+      <span class="pg">01 / 03</span></div>
+    <div class="body">
+      <div class="dates">{DATES}</div>
+      <div class="name">{CHAR}</div>
+      <div class="epithet">{EPITHET}</div>
+    </div>
+  </div></div>
+
+  <div class="post {RTL}"><div class="inner">
+    <div class="top"><div class="logo"><div class="n">Shama</div><div class="s">عطور فاخرة</div></div>
+      <span class="pg">02 / 03</span></div>
+    <div class="mid"><div class="quote">{QUOTE}</div></div>
+  </div></div>
+
+  <div class="post {RTL}"><div class="inner">
+    <div class="top"><div class="logo"><div class="n">Shama</div><div class="s">عطور فاخرة</div></div>
+      <span class="pg">03 / 03</span></div>
+    <div class="mid"><div class="para">{BODY}</div></div>
+    <div class="rule"></div>
+    <div class="mark">{MARK}</div>
+  </div></div>
+
+</div>
+<p class="hint">tribute · 3 slides · 1080 × 1080 · no product</p>
+"""
+
+
 def load_env(path):
     out = {}
     for line in open(path):
@@ -208,6 +277,26 @@ def main():
 
     repo = os.path.abspath(os.path.join(here, "..", ".."))
     env = load_env(os.path.join(repo, ".env"))
+
+    if cfg.get("mode") == "tribute":
+        art = ""
+        if cfg.get("character_image"):
+            ip = cfg["character_image"]
+            if not os.path.isabs(ip):
+                ip = os.path.join(here, "lore", ip)
+            art = f'<div class="art" style="background-image:url({local_uri(ip)})"></div>'
+        html = TRIBUTE.format(
+            TITLE=f'{cfg["character"]} — Shama', ART=art,
+            RTL="rtl" if cfg.get("rtl") else "",
+            CHAR=cfg["character"], EPITHET=cfg.get("epithet", ""),
+            DATES=cfg.get("dates", ""), QUOTE=cfg.get("quote", ""),
+            BODY=cfg.get("body", ""), MARK=cfg.get("mark", ""),
+            NAMESIZE=cfg.get("name_size", 11), **cfg["palette"])
+        with open(out, "w", encoding="utf-8") as f:
+            f.write(html)
+        print(f'OK  {cfg["character"]} (tribute)')
+        print(f"    wrote {out}  ({len(html)//1024} KB)")
+        return
 
     slugs = cfg["product_slug"]
     if isinstance(slugs, str):
