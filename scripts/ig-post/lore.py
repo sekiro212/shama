@@ -310,10 +310,21 @@ def main():
     picked = cfg.get("note_chips") or (notes.get("top", []) + notes.get("middle", []))[:6]
     chips = "".join(f'<span class="chip">{c}</span>' for c in picked)
 
-    def short(prod):
+    # Most rows are "<House> <Product>", but the nine Frederic Malle entries put
+    # the house last — stripping the first two words off "French Lover Frederic
+    # Malle" left the slide captioned "Frederic Malle".
+    TRAILING_HOUSES = ("Frederic Malle", "Frédéric Malle")
+
+    def split_house(prod):
         f = prod["name"]
+        for th in TRAILING_HOUSES:
+            if f.endswith(th):
+                return th, f[: -len(th)].strip()
         h = cfg.get("house") or " ".join(f.split()[:2])
-        return f[len(h):].strip() if f.startswith(h) else f
+        return h, (f[len(h):].strip() if f.startswith(h) else f)
+
+    def short(prod):
+        return split_house(prod)[1]
 
     caps = cfg.get("product_captions") or []
     if len(prods) == 1:
@@ -333,8 +344,8 @@ def main():
                       f'{(cfg.get("house") or "").upper()}</div></div>')
 
     full = p["name"]
-    house = cfg.get("house") or " ".join(full.split()[:2])
-    pshort = short(p)
+    derived_house, pshort = split_house(p)
+    house = cfg.get("house") or derived_house
 
     art_html = ""
     if cfg.get("character_image"):
