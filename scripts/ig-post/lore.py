@@ -116,9 +116,20 @@ TEMPLATE = """<meta charset="utf-8"><title>{TITLE}</title>
           font-size:3.4cqw; line-height:1.5; color:{INK}; border-inline-start:2px solid {ACC};
           padding-inline-start:3cqw; }}
 
-  /* slide 2 — the scent */
+  /* slide 2 — the scent(s). Two products render side by side, each with its own
+     caption, so a character can be split across a pair (the blade / the bloom). */
   .bottlewrap{{ flex:1; display:flex; align-items:center; justify-content:center;
-               position:relative; min-height:0; margin:1cqw 0; }}
+               position:relative; min-height:0; margin:1cqw 0; gap:4cqw; }}
+  .duo{{ display:flex; align-items:flex-end; justify-content:center; gap:5cqw;
+        width:100%; height:100%; }}
+  .one{{ display:flex; flex-direction:column; align-items:center; justify-content:flex-end;
+        gap:2cqw; height:100%; flex:1; min-width:0; }}
+  .one img{{ max-height:40cqw; width:auto; object-fit:contain; border-radius:8px;
+            box-shadow:0 22px 44px -24px rgba(0,0,0,.85); }}
+  .one .cap{{ font-family:Georgia,'Hoefler Text',serif; font-style:italic;
+             font-size:3.6cqw; line-height:1.15; text-align:center; }}
+  .one .sub{{ font-size:2.3cqw; letter-spacing:.2em; text-transform:uppercase;
+             color:{ACC}; text-align:center; }}
   .glow{{ position:absolute; width:78%; aspect-ratio:1; border-radius:50%;
          background:radial-gradient(circle,{GLOW0} 0%,{GLOW1} 45%,transparent 70%); }}
   .bottle{{ position:relative; height:100%; max-height:52cqw; width:auto; object-fit:contain;
@@ -165,13 +176,8 @@ TEMPLATE = """<meta charset="utf-8"><title>{TITLE}</title>
   <div class="post {RTL}"><div class="inner">
     <div class="top"><div class="logo"><div class="n">Shama</div><div class="s">عطور فاخرة</div></div>
       <span class="tagsm pg">02 / 03</span></div>
-    <div class="bottlewrap"><div class="glow"></div>
-      <img class="bottle" src="{IMG}" alt="{PNAME}" /></div>
-    <div class="pname">
-      <div class="h">{HOUSE}</div>
-      <div class="t">{PSHORT}</div>
-      <div class="ar">{PNAME_AR}</div>
-    </div>
+    <div class="bottlewrap"><div class="glow"></div>{BOTTLES}</div>
+    {PNAMEBLOCK}
   </div></div>
 
   <div class="post {RTL}"><div class="inner">
@@ -202,15 +208,43 @@ def main():
 
     repo = os.path.abspath(os.path.join(here, "..", ".."))
     env = load_env(os.path.join(repo, ".env"))
-    p = fetch_product(env["VITE_SUPABASE_URL"], env["VITE_SUPABASE_ANON_KEY"], cfg["product_slug"])
+
+    slugs = cfg["product_slug"]
+    if isinstance(slugs, str):
+        slugs = [slugs]
+    prods = [fetch_product(env["VITE_SUPABASE_URL"], env["VITE_SUPABASE_ANON_KEY"], sg)
+             for sg in slugs]
+    p = prods[0]
 
     notes = p.get("fragrance_notes") or {}
     picked = cfg.get("note_chips") or (notes.get("top", []) + notes.get("middle", []))[:6]
     chips = "".join(f'<span class="chip">{c}</span>' for c in picked)
 
+    def short(prod):
+        f = prod["name"]
+        h = cfg.get("house") or " ".join(f.split()[:2])
+        return f[len(h):].strip() if f.startswith(h) else f
+
+    caps = cfg.get("product_captions") or []
+    if len(prods) == 1:
+        bottles = f'<img class="bottle" src="{data_uri(p["image"])}" alt="{p["name"]}" />'
+        pnameblock = (f'<div class="pname"><div class="h">{(cfg.get("house") or "").upper()}</div>'
+                      f'<div class="t">{short(p)}</div>'
+                      f'<div class="ar">{p.get("name_ar") or ""}</div></div>')
+    else:
+        cells = ""
+        for i, pr in enumerate(prods):
+            cap = caps[i] if i < len(caps) else ""
+            cells += (f'<div class="one"><img src="{data_uri(pr["image"])}" alt="{pr["name"]}" />'
+                      f'<div class="sub">{cap}</div>'
+                      f'<div class="cap">{short(pr)}</div></div>')
+        bottles = f'<div class="duo">{cells}</div>'
+        pnameblock = (f'<div class="pname"><div class="h">'
+                      f'{(cfg.get("house") or "").upper()}</div></div>')
+
     full = p["name"]
     house = cfg.get("house") or " ".join(full.split()[:2])
-    pshort = full[len(house):].strip() if full.startswith(house) else full
+    pshort = short(p)
 
     art_html = ""
     if cfg.get("character_image"):
@@ -228,7 +262,8 @@ def main():
         NAMESIZE=cfg.get("name_size", 11),
         ART=art_html, RTL="rtl" if cfg.get("rtl") else "",
         ARROW="←" if cfg.get("rtl") else "→",
-        IMG=data_uri(p["image"]), PNAME=full, HOUSE=house.upper(), PSHORT=pshort,
+        BOTTLES=bottles, PNAMEBLOCK=pnameblock,
+        PNAME=full, HOUSE=house.upper(), PSHORT=pshort,
         PNAME_AR=p.get("name_ar") or "", SIZE=(p.get("size") or "").upper(),
         WHY_EN=cfg["why_en"], WHY_AR=cfg["why_ar"], CHIPS=chips,
         **cfg["palette"],
