@@ -1,0 +1,43 @@
+{
+  "product_slug": [
+    "the-moon-frederic-malle",
+    "liquides-imaginaires-tapis-volant"
+  ],
+  "house": null,
+  "name_size": 13,
+  "palette": {
+    "G0": "#27467a",
+    "G1": "#131f38",
+    "G2": "#080c16",
+    "INK": "#eaf1fb",
+    "SOFT": "#9fb6d6",
+    "ACC": "#7fa8dd",
+    "BRD": "rgba(127,168,221,.30)",
+    "GLOW0": "rgba(127,168,221,.30)",
+    "GLOW1": "rgba(127,168,221,.09)"
+  },
+  "character_image": "img/ranni.jpg",
+  "slug_out": "lore-ranni",
+  "series": "SCENT PROFILE · 04",
+  "kicker": "IF SHE WORE A PERFUME",
+  "character": "Ranni",
+  "epithet": "Snow Witch · Empyrean of the Dark Moon",
+  "quote": "\"I will take the Elden Ring, and the Order that binds it, far from here.\"",
+  "question": "She left her own body behind to escape the gods. What lingers on a doll?",
+  "product_captions": [
+    "THE MOON",
+    "THE COLD"
+  ],
+  "note_chips": [
+    "Saffron",
+    "Raspberry",
+    "Litchi",
+    "Bergamot",
+    "Carrot Seed",
+    "Aldehydes",
+    "Iris",
+    "Sandalwood"
+  ],
+  "why_en": "The Moon opens cold and jewel-bright — saffron and dark berries over a mineral hush, lunar rather than warm.",
+  "why_ar": "أما تابي فولان فهو البرد نفسه: سوسنٌ مسحوقٌ وبذور الجزر والألدهيدات على خشب الصندل — سكون الثلج وصمت الدمية."
+}

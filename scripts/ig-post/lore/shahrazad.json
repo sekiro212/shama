@@ -1,0 +1,43 @@
+{
+  "product_slug": [
+    "the-night-frederic-malle",
+    "amouage-guidance"
+  ],
+  "house": null,
+  "name_size": 12,
+  "palette": {
+    "G0": "#6b3a52",
+    "G1": "#301826",
+    "G2": "#150a11",
+    "INK": "#f9ecef",
+    "SOFT": "#d9aeb8",
+    "ACC": "#d8a25f",
+    "BRD": "rgba(216,162,95,.30)",
+    "GLOW0": "rgba(216,162,95,.28)",
+    "GLOW1": "rgba(216,162,95,.08)"
+  },
+  "character_image": "img/shahrazad.jpg",
+  "slug_out": "lore-shahrazad",
+  "series": "SCENT PROFILE · 03",
+  "kicker": "IF SHE WORE A PERFUME",
+  "character": "Shahrazad",
+  "epithet": "Teller of the Thousand and One Nights",
+  "quote": "\"And morning overtook Shahrazad, so she fell silent.\"",
+  "question": "A thousand nights, a new story each one. What does a woman who survived on words alone wear?",
+  "product_captions": [
+    "THE NIGHT",
+    "THE STORY"
+  ],
+  "note_chips": [
+    "Saffron",
+    "Rose",
+    "Oud",
+    "Amber",
+    "Pear",
+    "Frankincense",
+    "Jasmine Sambac",
+    "Patchouli"
+  ],
+  "why_en": "The Night is the dark itself — saffron, rose, oud and amber, a perfume heavy enough to last until dawn.",
+  "why_ar": "وغايدنس هي الحكاية: كمثرى ولبانٌ وزعفران وياسمين — الصوت الهادئ الذي أنقذ صاحبته دون سيف."
+}
