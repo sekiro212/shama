@@ -1,0 +1,44 @@
+{
+  "product_slug": [
+    "liquides-imaginaires-sancti",
+    "amouage-interlude-man"
+  ],
+  "palette": {
+    "G0": "#2f2619",
+    "G1": "#171208",
+    "G2": "#070603",
+    "INK": "#f2ece0",
+    "SOFT": "#b9a88c",
+    "ACC": "#c9a13f",
+    "BRD": "rgba(201,161,63,.30)",
+    "GLOW0": "rgba(201,161,63,.24)",
+    "GLOW1": "rgba(201,161,63,.06)"
+  },
+  "character_image": "img/dostoevsky.jpg",
+  "name_size": 7.4,
+  "art_position": "center 20%",
+  "art_scrim": "linear-gradient(180deg, rgba(0,0,0,.22) 0%, rgba(0,0,0,.08) 24%, {G1}5c 44%, {G1}ee 62%, {G2} 80%)",
+  "slug_out": "lore-dostoevsky",
+  "series": "SCENT PROFILE · 07",
+  "kicker": "IF HE WORE A PERFUME",
+  "character": "Fyodor Dostoevsky",
+  "epithet": "Novelist of the underground",
+  "quote": "\"The devil struggles with God, and the battlefield is the heart of man.\"",
+  "question": "One bottle for the church. One for the fever. Both of them are him.",
+  "product_captions": [
+    "THE ICON LAMP",
+    "THE FEVER"
+  ],
+  "note_chips": [
+    "Frankincense",
+    "Myrrh",
+    "Benzoin",
+    "Cypress",
+    "Opoponax",
+    "Leather",
+    "Oud",
+    "Labdanum"
+  ],
+  "why_en": "Sancti is the church: frankincense, myrrh and benzoin over cold cypress — candle smoke in Sonya's room, the gospel read aloud.",
+  "why_ar": "وإنترلود مان هو الحمّى: لبانٌ وأوبوبوناكس وجلدٌ وعود — دخانٌ لا يهدأ، كليلةٍ لا تنتهي على طاولة القمار."
+}
