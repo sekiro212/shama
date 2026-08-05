@@ -5,11 +5,18 @@
   "series": "SCENT PROFILE · 01",
   "kicker": "IF SHE WORE A PERFUME",
   "character": "Malenia",
-  "epithet": "Blade of Miquella · Goddess of Rot",
+  "epithet": "Blade of Miquella",
   "quote": "\"And I have never known defeat.\"",
   "question": "A warrior who blooms as she decays. What would she wear?",
   "name_size": 13,
-  "note_chips": ["Red Wine", "Rose", "Violet", "Cherry", "Raspberry", "Oak"],
+  "note_chips": [
+    "Red Wine",
+    "Rose",
+    "Violet",
+    "Cherry",
+    "Raspberry",
+    "Oak"
+  ],
   "why_en": "Red wine and rose open it. Cherry and raspberry bloom underneath — sweet, overripe, a beauty already turning. Oak and sandalwood hold it upright, like a blade planted in the ground.",
   "why_ar": "يفتتحه النبيذ الأحمر والورد، ثم يتفتّح الكرز وتوت العليق تحتهما: حلاوةٌ ناضجة أكثر من اللازم، جمالٌ بدأ يتحوّل. ويشدّه البلوط وخشب الصندل كنصلٍ مغروسٍ في الأرض.",
   "palette": {
@@ -22,5 +29,6 @@
     "BRD": "rgba(200,74,92,.30)",
     "GLOW0": "rgba(200,74,92,.34)",
     "GLOW1": "rgba(200,74,92,.10)"
-  }
+  },
+  "character_image": "img/malenia.jpg"
 }

@@ -12,9 +12,12 @@ The config carries the character and copy; the product (bottle photo, notes,
 Arabic name) is pulled live from Supabase by slug, so the notes on the slide
 can never drift from the catalogue.
 
-Deliberately ships NO character artwork: game/film art is owned by its studio
-and reposting it on a commercial account invites a takedown. The palette and
-the words carry the reference instead.
+Artwork: pass `character_image` to place a portrait behind slide 1's copy.
+Use original or licensed art — a studio's official game/film art on a
+commercial account invites a takedown. Omit the field and the palette and
+words carry the reference alone.
+
+Set `"rtl": true` for a fully Arabic edition of the same post.
 """
 import base64
 import io
@@ -51,13 +54,21 @@ def fetch_product(base, key, slug):
     return rows[0]
 
 
+def _encode(im, box=1100, quality=88):
+    im = im.convert("RGB")
+    im.thumbnail((box, box))
+    buf = io.BytesIO()
+    im.save(buf, "JPEG", quality=quality)
+    return "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode()
+
+
 def data_uri(url):
     raw = urllib.request.urlopen(url, timeout=30).read()
-    im = Image.open(io.BytesIO(raw)).convert("RGB")
-    im.thumbnail((1100, 1100))
-    buf = io.BytesIO()
-    im.save(buf, "JPEG", quality=88)
-    return "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode()
+    return _encode(Image.open(io.BytesIO(raw)))
+
+
+def local_uri(path):
+    return _encode(Image.open(path), box=1300, quality=86)
 
 
 TEMPLATE = """<meta charset="utf-8"><title>{TITLE}</title>
@@ -85,8 +96,16 @@ TEMPLATE = """<meta charset="utf-8"><title>{TITLE}</title>
   .logo .s{{ font-size:2.2cqw; letter-spacing:.06em; color:{SOFT}; margin-top:.7cqw; }}
   .tagsm{{ font-size:2.2cqw; letter-spacing:.34em; color:{ACC}; text-transform:uppercase; }}
 
+  /* optional character portrait on slide 1, behind a scrim so copy stays legible */
+  .art{{ position:absolute; inset:0; background-size:cover; background-position:center top; }}
+  .art::after{{ content:""; position:absolute; inset:0;
+               background:linear-gradient(180deg, rgba(0,0,0,.30) 0%, {G1}cc 46%, {G2} 82%); }}
+  .post.rtl{{ direction:rtl; }}
+  .post.rtl .q, .post.rtl .line{{ direction:rtl; }}
+
   /* slide 1 — the question */
-  .who{{ flex:1; display:flex; flex-direction:column; justify-content:center; gap:2.4cqw; }}
+  .who{{ flex:1; display:flex; flex-direction:column; justify-content:flex-end; gap:2.4cqw;
+        padding-bottom:2cqw; }}
   .kicker{{ font-size:2.5cqw; letter-spacing:.36em; text-transform:uppercase; color:{ACC}; }}
   .name{{ font-family:Georgia,'Hoefler Text',serif; font-weight:600;
          font-size:{NAMESIZE}cqw; line-height:.98; letter-spacing:-.01em; }}
@@ -120,6 +139,8 @@ TEMPLATE = """<meta charset="utf-8"><title>{TITLE}</title>
          border:1px solid {BRD}; color:{SOFT}; }}
   .foot{{ display:flex; align-items:center; justify-content:space-between;
          font-size:2.4cqw; color:{SOFT}; }}
+  /* Numerals stay LTR: in an RTL box the bidi algorithm renders "01 / 03" as "03 / 01". */
+  .pg{{ direction:ltr; unicode-bidi:isolate; }}
   .foot .g{{ width:2.2cqw; height:2.2cqw; border-radius:50%; background:{ACC};
             display:inline-block; margin-inline-end:1.2cqw; }}
   .dots{{ display:flex; gap:7px; }}
@@ -128,7 +149,7 @@ TEMPLATE = """<meta charset="utf-8"><title>{TITLE}</title>
 </style>
 <div class="rail">
 
-  <div class="post"><div class="inner">
+  <div class="post {RTL}">{ART}<div class="inner">
     <div class="top"><div class="logo"><div class="n">Shama</div><div class="s">عطور فاخرة</div></div>
       <span class="tagsm">{SERIES}</span></div>
     <div class="who">
@@ -138,12 +159,12 @@ TEMPLATE = """<meta charset="utf-8"><title>{TITLE}</title>
       <div class="quote">{QUOTE}</div>
       <div class="q">{QUESTION}</div>
     </div>
-    <div class="foot"><span>اسحب · swipe →</span><span>01 / 03</span></div>
+    <div class="foot"><span>اسحب · swipe {ARROW}</span><span class="pg">01 / 03</span></div>
   </div></div>
 
-  <div class="post"><div class="inner">
+  <div class="post {RTL}"><div class="inner">
     <div class="top"><div class="logo"><div class="n">Shama</div><div class="s">عطور فاخرة</div></div>
-      <span class="tagsm">02 / 03</span></div>
+      <span class="tagsm pg">02 / 03</span></div>
     <div class="bottlewrap"><div class="glow"></div>
       <img class="bottle" src="{IMG}" alt="{PNAME}" /></div>
     <div class="pname">
@@ -153,15 +174,15 @@ TEMPLATE = """<meta charset="utf-8"><title>{TITLE}</title>
     </div>
   </div></div>
 
-  <div class="post"><div class="inner">
+  <div class="post {RTL}"><div class="inner">
     <div class="top"><div class="logo"><div class="n">Shama</div><div class="s">عطور فاخرة</div></div>
-      <span class="tagsm">03 / 03</span></div>
+      <span class="tagsm pg">03 / 03</span></div>
     <div class="why">
       <div class="line">{WHY_EN}</div>
       <div class="notes">{CHIPS}</div>
       <div class="line ar">{WHY_AR}</div>
     </div>
-    <div class="foot"><span><span class="g"></span>shama.ly</span><span>{SIZE}</span></div>
+    <div class="foot"><span><span class="g"></span>shama.ly</span><span class="pg">{SIZE}</span></div>
   </div></div>
 
 </div>
@@ -191,6 +212,13 @@ def main():
     house = cfg.get("house") or " ".join(full.split()[:2])
     pshort = full[len(house):].strip() if full.startswith(house) else full
 
+    art_html = ""
+    if cfg.get("character_image"):
+        ipath = cfg["character_image"]
+        if not os.path.isabs(ipath):
+            ipath = os.path.join(here, "lore", ipath)
+        art_html = f'<div class="art" style="background-image:url({local_uri(ipath)})"></div>'
+
     name = cfg["character"]
     html = TEMPLATE.format(
         TITLE=f'{name} — Shama', SERIES=cfg.get("series", "SCENT PROFILE"),
@@ -198,6 +226,8 @@ def main():
         CHAR=name, EPITHET=cfg.get("epithet", ""), QUOTE=cfg.get("quote", ""),
         QUESTION=cfg.get("question", ""),
         NAMESIZE=cfg.get("name_size", 11),
+        ART=art_html, RTL="rtl" if cfg.get("rtl") else "",
+        ARROW="←" if cfg.get("rtl") else "→",
         IMG=data_uri(p["image"]), PNAME=full, HOUSE=house.upper(), PSHORT=pshort,
         PNAME_AR=p.get("name_ar") or "", SIZE=(p.get("size") or "").upper(),
         WHY_EN=cfg["why_en"], WHY_AR=cfg["why_ar"], CHIPS=chips,
