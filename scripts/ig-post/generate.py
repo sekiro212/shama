@@ -32,6 +32,27 @@ def load_env():
     return url, key
 
 # ---------- supabase REST ----------
+def clamp_sentence(text, limit=250):
+    """Trim slide 3's blurb to whole sentences that fit the copy box.
+
+    Most catalogue descriptions are two or three sentences and run 180-300
+    chars. A blind character slice left them ending mid-word ("a rich base of
+    sand"), which reads like a bug, so keep whole sentences and only fall back
+    to a word boundary plus an ellipsis when even the first one is too long.
+    """
+    if len(text) <= limit:
+        return text
+    kept = ""
+    for piece in re.findall(r"[^.!?]*[.!?]+|\S[^.!?]*$", text):
+        if len(kept) + len(piece) > limit:
+            break
+        kept += piece
+    kept = kept.strip()
+    if kept:
+        return kept
+    return text[:limit].rsplit(" ", 1)[0].rstrip(",;:") + "…"
+
+
 def conc_label(conc):
     """Slide 3 caption suffix for the concentration, e.g. " · PARFUM".
 
@@ -340,8 +361,8 @@ def main():
         offer_mid = f'<div class="sizes" style="grid-template-columns:repeat({ncols},1fr)">{cells}</div>'
     else:
         ncols = 1
-        desc = (p.get("description") or "").strip()
-        offer_mid = f'<div class="line">{desc[:150]}</div>' if desc else ""
+        desc = clamp_sentence((p.get("description") or "").strip())
+        offer_mid = f'<div class="line">{desc}</div>' if desc else ""
 
     title_size = 9 if len(display) <= 11 else (7.2 if len(display) <= 18 else 6)
 
