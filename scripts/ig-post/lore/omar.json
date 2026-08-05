@@ -1,0 +1,36 @@
+{
+  "product_slug": "fragrance-du-bois-sahraa",
+  "house": "Fragrance Du Bois",
+  "name_size": 12,
+  "palette": {
+    "G0": "#7a4a1c",
+    "G1": "#33200f",
+    "G2": "#140b06",
+    "INK": "#f8efe2",
+    "SOFT": "#d6b88f",
+    "ACC": "#c9973f",
+    "BRD": "rgba(201,151,63,.32)",
+    "GLOW0": "rgba(201,151,63,.30)",
+    "GLOW1": "rgba(201,151,63,.09)"
+  },
+  "character_image": "img/omar-mukhtar.jpg",
+  "slug_out": "lore-omar",
+  "series": "SCENT PROFILE · 05",
+  "kicker": "THE SCENT OF THE LAND HE DEFENDED",
+  "character": "Omar Mukhtar",
+  "epithet": "Lion of the Desert · 1858 — 1931",
+  "quote": "\"We do not surrender. We win, or we die.\"",
+  "question": "Twenty years in the Green Mountain, over a desert he would not give up. What does that land smell of?",
+  "note_chips": [
+    "Grapefruit",
+    "Rose Absolute",
+    "Geranium",
+    "Jasmine",
+    "Black Pepper",
+    "Saffron",
+    "Oud",
+    "Sandalwood"
+  ],
+  "why_en": "Sahraa — the desert. Grapefruit opens it clean as early morning, then rose and jasmine over black pepper and saffron.",
+  "why_ar": "وفي القاع عودٌ وخشب صندلٍ وعنبر — دفء الرمل بعد الغروب، وأرضٌ تبقى رائحتها في الثوب."
+}
