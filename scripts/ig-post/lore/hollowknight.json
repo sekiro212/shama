@@ -37,5 +37,7 @@
     "Vetiver"
   ],
   "why_en": "French Lover is Hallownest above: galbanum, juniper and incense over iris, oakmoss and cedar — cold stone, grey-green, rain that never stops in the City of Tears.",
-  "why_ar": "وبيت أومان هو الفراغ في الداخل: ورق البنفسج والمستكة فوق البردي وزيت السيبريول وخشب الغاياك — جذورٌ وظلامٌ ولا ضوء."
+  "why_ar": "وبيت أومان هو الفراغ في الداخل: ورق البنفسج والمستكة فوق البردي وزيت السيبريول وخشب الغاياك — جذورٌ وظلامٌ ولا ضوء.",
+  "character_image": "img/hollowknight.png",
+  "art_scrim": "linear-gradient(180deg, rgba(0,0,0,.10) 0%, rgba(0,0,0,.02) 30%, {G1}55 46%, {G1}e8 60%, {G2} 78%)"
 }

@@ -1,0 +1,59 @@
+<!--
+  Original vessel silhouette drawn for the Hollow Knight scent profile.
+  Team Cherry's own art is copyrighted and this is a commercial account, so
+  this evokes the character (bone mask, two horns, void eyes, cloak) without
+  reproducing any game asset. Rasterised to hollowknight.png by render-art.cjs.
+-->
+<style>
+  html,body{margin:0;padding:0;background:#04070a}
+  svg{display:block}
+</style>
+<svg id="art" width="1400" height="1400" viewBox="0 0 1000 1000" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="halo" cx="50%" cy="46%" r="46%">
+      <stop offset="0%"   stop-color="#9ec9d4" stop-opacity=".30"/>
+      <stop offset="45%"  stop-color="#4a7684" stop-opacity=".12"/>
+      <stop offset="100%" stop-color="#04070a" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="bone" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#f4f8f9"/>
+      <stop offset="62%"  stop-color="#dbe6ea"/>
+      <stop offset="100%" stop-color="#a9bfc7"/>
+    </linearGradient>
+    <linearGradient id="cloak" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#16242b"/>
+      <stop offset="100%" stop-color="#04070a"/>
+    </linearGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="26"/>
+    </filter>
+  </defs>
+
+  <rect width="1000" height="1000" fill="#04070a"/>
+  <rect width="1000" height="1000" fill="url(#halo)"/>
+
+  <g transform="translate(160,-80) scale(0.68)">
+  <!-- cloak: a dark bell under the mask, edges dissolving into the ground -->
+  <path d="M500 646 C 396 692, 340 812, 320 1000 L 680 1000 C 660 812, 604 692, 500 646 Z"
+        fill="url(#cloak)"/>
+  <path d="M500 668 C 412 708, 364 818, 348 1000 L 652 1000 C 636 818, 588 708, 500 668 Z"
+        fill="#0b141a" opacity=".7" filter="url(#soft)"/>
+
+  <!-- mask + horns, one silhouette: horns rise near-vertical and close together,
+       so the notch between them stays shallow instead of reading as bat wings -->
+  <path d="M298 178
+           C 322 268, 362 408, 392 520
+           C 404 610, 440 672, 500 702
+           C 560 672, 596 610, 608 520
+           C 638 408, 678 268, 702 178
+           C 668 250, 604 348, 556 404
+           C 534 415, 518 419, 500 420
+           C 482 419, 466 415, 444 404
+           C 396 348, 332 250, 298 178 Z"
+        fill="url(#bone)"/>
+
+  <!-- void eyes -->
+  <ellipse cx="452" cy="556" rx="33" ry="62" fill="#04070a"/>
+  <ellipse cx="548" cy="556" rx="33" ry="62" fill="#04070a"/>
+  </g>
+</svg>
