@@ -320,8 +320,16 @@ def main():
         for th in TRAILING_HOUSES:
             if f.endswith(th):
                 return th, f[: -len(th)].strip()
-        h = cfg.get("house") or " ".join(f.split()[:2])
-        return h, (f[len(h):].strip() if f.startswith(h) else f)
+        words = f.split()
+        h = cfg.get("house") or " ".join(words[:2])
+        rest = f[len(h):].strip() if f.startswith(h) else f
+        # "Amouage Guidance" and "Sospiro Soprano" are two words total, so the
+        # two-word house guess ate the whole name and the slide captioned itself
+        # blank. Back off to a one-word house when nothing survives.
+        if not rest and len(words) > 1:
+            h = words[0]
+            rest = " ".join(words[1:])
+        return h, rest
 
     def short(prod):
         return split_house(prod)[1]

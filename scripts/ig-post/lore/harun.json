@@ -1,0 +1,44 @@
+{
+  "product_slug": [
+    "amouage-guidance",
+    "sospiro-soprano"
+  ],
+  "palette": {
+    "G0": "#5c4220",
+    "G1": "#2a1d0e",
+    "G2": "#0d0804",
+    "INK": "#f8f0de",
+    "SOFT": "#cdb488",
+    "ACC": "#d9a441",
+    "BRD": "rgba(217,164,65,.32)",
+    "GLOW0": "rgba(217,164,65,.26)",
+    "GLOW1": "rgba(217,164,65,.06)"
+  },
+  "character_image": "img/harun.jpg",
+  "name_size": 8.2,
+  "art_position": "center center",
+  "art_scrim": "linear-gradient(180deg, rgba(0,0,0,.14) 0%, rgba(0,0,0,.04) 26%, {G1}5c 44%, {G1}ea 60%, {G2} 78%)",
+  "slug_out": "lore-harun",
+  "series": "SCENT PROFILE · 10",
+  "kicker": "IF HE WORE A PERFUME",
+  "character": "Harun al-Rashid",
+  "epithet": "Fifth Abbasid caliph · Baghdad",
+  "quote": "\"Rain where you will — your tribute still comes to me.\"",
+  "question": "Two lives in one night: the throne by day, the markets of Baghdad in disguise by dark. What does each one wear?",
+  "product_captions": [
+    "THE COURT",
+    "THE NIGHT WALK"
+  ],
+  "note_chips": [
+    "Frankincense",
+    "Saffron",
+    "Rose",
+    "Jasmine Sambac",
+    "Ambergris",
+    "Sandalwood",
+    "Oud",
+    "Leather"
+  ],
+  "why_en": "Guidance is the court: frankincense, saffron and rose over sandalwood, ambergris and vanilla — as close as the shelf gets to the ghaliya the Abbasid palace actually wore.",
+  "why_ar": "وسوبرانو هو الليل: وردٌ بلغاريّ وجلدٌ وعودٌ وباتشولي — الرجلُ نفسه بعد أن خلع التاج ونزل إلى السوق."
+}
