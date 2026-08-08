@@ -11,7 +11,11 @@ node_modules
 dist
 dist-ssr
 *.local
+# Bare `.env` left backups like .env.bak tracked — they carry the same live
+# Supabase and OpenRouter keys, and this repo is public.
 .env
+.env.*
+!.env.example
 
 # Editor directories and files
 .vscode/*
@@ -37,3 +41,7 @@ playwright-report/
 
 # Build archives (re-generated for cPanel upload)
 shama-*.zip
+
+# Python bytecode from the ig-post generators
+__pycache__/
+*.py[cod]
