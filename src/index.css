@@ -260,17 +260,19 @@ button:active {
 
 /* perf: backdrop-blur is brutal on phones/tablets (low GPU bandwidth) and
    pointless when motion is reduced. Shrink the radius and lean on a more
-   opaque glass background so the glass look survives without the heavy paint. */
-@media (pointer: coarse) {
+   opaque glass background so the glass look survives without the heavy paint.
+
+   Each ground needs its OWN opaque value. `:root` and `.dark` have equal
+   specificity, so a lone :root override here won on source order and painted
+   near-white cards under light text for every dark-mode phone user. */
+@media (pointer: coarse), (prefers-reduced-motion: reduce) {
   :root {
     --backdrop-blur: 6px;
     --glass-bg: rgba(255, 255, 255, 0.9);
   }
-}
-@media (prefers-reduced-motion: reduce) {
-  :root {
-    --backdrop-blur: 6px;
-    --glass-bg: rgba(255, 255, 255, 0.9);
+
+  .dark {
+    --glass-bg: rgba(37, 47, 70, 0.92);
   }
 }
 
