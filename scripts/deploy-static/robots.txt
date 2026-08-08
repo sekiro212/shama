@@ -1,0 +1,18 @@
+User-agent: *
+Allow: /
+
+# Account, checkout, and admin paths — private, no indexing value
+Disallow: /login
+Disallow: /my-orders
+Disallow: /settings
+Disallow: /checkout
+Disallow: /order-success/
+Disallow: /wishlist
+Disallow: /admin
+Disallow: /admin/
+
+# Do NOT disallow /assets — Googlebot must fetch JS to render this app.
+
+# Sitemaps
+Sitemap: https://shama.ly/sitemap.xml
+Sitemap: https://shama.ly/sitemap-products.xml

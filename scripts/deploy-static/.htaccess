@@ -1,0 +1,49 @@
+# SPA routing — send all requests to index.html so React Router works
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Serve real SEO files directly — never rewrite them through the SPA shell.
+  # Belt-and-suspenders: if a file is ever missing, this returns a clean 404
+  # instead of the index.html shell (which would corrupt robots/sitemap parsing).
+  RewriteRule ^robots\.txt$ - [L]
+  RewriteRule ^sitemap.*\.xml$ - [L]
+  RewriteRule ^llms\.txt$ - [L]
+
+  # Don't rewrite files or directories that exist
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Rewrite everything else to index.html
+  RewriteRule ^ index.html [L]
+</IfModule>
+
+# Cache static assets for 1 year (hashed filenames = safe to cache forever)
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType text/css "access plus 1 year"
+  ExpiresByType application/javascript "access plus 1 year"
+  ExpiresByType image/jpeg "access plus 1 year"
+  ExpiresByType image/png "access plus 1 year"
+  ExpiresByType image/webp "access plus 1 year"
+  ExpiresByType image/svg+xml "access plus 1 year"
+  ExpiresByType font/woff2 "access plus 1 year"
+  # Never cache index.html so users always get the latest
+  ExpiresByType text/html "access plus 0 seconds"
+</IfModule>
+
+# Gzip compression
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css application/javascript application/json image/svg+xml
+</IfModule>
+
+# Security headers
+<IfModule mod_headers.c>
+  # Force HTTPS for a year (only enable once you're confident the site is HTTPS-only)
+  Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+  # Prevent MIME-type sniffing
+  Header always set X-Content-Type-Options "nosniff"
+  # Limit referrer leakage to other origins
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>

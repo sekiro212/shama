@@ -1,0 +1,20 @@
+# Shama
+
+> Shama is a luxury perfume house based in Libya, selling fine fragrances, sample sizes (3ml–30ml), full bottles, and curated gift sets, with delivery across Libya. The site is bilingual (English and Arabic).
+
+## Shop
+- [All Perfumes](https://shama.ly/collection): Full catalog of luxury perfumes, filterable by gender, fragrance notes, and price.
+- [Gift Sets](https://shama.ly/gift-sets): Curated luxury perfume gift sets.
+- [Samples](https://shama.ly/samples): Affordable perfume samples (3ml–30ml) to try before buying.
+
+## Discover
+- [Fragrance Quiz](https://shama.ly/quiz): A quiz that recommends perfumes matched to your taste and the notes you love.
+- [AI Perfume Finder](https://shama.ly/ai-finder): Describe what you want and AI recommends a scent from the catalog.
+- [Customer Reviews](https://shama.ly/reviews): Verified reviews of Shama perfumes.
+
+## Company
+- [About](https://shama.ly/about): The Shama story and craft.
+- [Contact](https://shama.ly/contact): Get in touch.
+- [FAQ](https://shama.ly/faq): Common questions about products, orders, and delivery.
+- [Shipping](https://shama.ly/shipping): Delivery information for Libya.
+- [Returns](https://shama.ly/returns): Returns and exchange policy.
