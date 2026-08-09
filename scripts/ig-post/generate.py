@@ -53,6 +53,47 @@ def clamp_sentence(text, limit=250):
     return text[:limit].rsplit(" ", 1)[0].rstrip(",;:") + "…"
 
 
+# Houses whose name is more than one word, longest first so "Clive Christian"
+# wins before any shorter prefix could. Taking only the first word captioned
+# slide 1 "FRAGRANCE / Du Bois Lucius" and "UNIQUE'E / Luxury Kutay".
+MULTIWORD_HOUSES = (
+    "Marc-Antoine Barrois", "Liquides Imaginaires", "Parfums de Marly",
+    "Maison Francis Kurkdjian", "Boadicea the Victorious", "Giardini di Toscana",
+    "Clive Christian", "Fragrance Du Bois", "Unique'e Luxury", "Rosendo Mateu",
+    "Oman Luxury", "Lorenzo Pazzaglia", "Maison Crivelli", "Elie Saab",
+    "Louis Vuitton", "Dolce & Gabbana", "Goldfield & Banks", "Narciso Rodriguez",
+    "Tom Ford", "Le Labo", "BDK Parfums", "Roja Parfums", "Tiziana Terenzi",
+    "Issey Miyake", "Marc Jacobs", "Memo Paris", "Lengling Munich",
+    "Emporio Armani", "Ex Nihilo", "Jean Paul Gaultier",
+)
+# A few houses trail the perfume name instead of leading it.
+TRAILING_HOUSES = ("Frederic Malle", "Frédéric Malle")
+# A remainder opening on one of these means the first word was part of the
+# perfume's name, not a house — "Bleu de Chanel" is not house BLEU.
+CONNECTORS = {"de", "di", "du", "the", "by", "pour", "&", "for", "et"}
+
+
+def split_house(name):
+    """Return (HOUSE, display name) for a catalogue product name.
+
+    HOUSE may be empty, which the slide renders as no kicker line — better than
+    printing a wrong one.
+    """
+    for th in TRAILING_HOUSES:
+        if name.endswith(th):
+            return th.upper(), name[: -len(th)].strip() or name
+    for h in sorted(MULTIWORD_HOUSES, key=len, reverse=True):
+        if name.startswith(h):
+            rest = name[len(h):].strip()
+            if rest:
+                return h.upper(), rest
+    first = name.split()[0]
+    rest = name[len(first):].strip()
+    if not rest or rest.split()[0].lower() in CONNECTORS:
+        return "", name
+    return first.upper(), rest
+
+
 def conc_label(conc):
     """Slide 3 caption suffix for the concentration, e.g. " · PARFUM".
 
@@ -338,8 +379,7 @@ def main():
 
     # ----- content -----
     name = p["name"]
-    house = name.split()[0].upper()
-    display = name[len(name.split()[0]):].strip() or name
+    house, display = split_house(name)
     tagline = "Discover the scent"
     notes = p.get("fragrance_notes") or {}
     tiers = [("Top · القمة", notes.get("top")), ("Heart · القلب", notes.get("middle")), ("Base · القاعدة", notes.get("base"))]
