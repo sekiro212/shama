@@ -41,6 +41,7 @@ export interface Order {
   payment_method?:
     | "cod"
     | "bank_transfer"
+    | "whatsapp"
     | "edfali"
     | "sadadapi"
     | "localbankcards"

@@ -19,22 +19,26 @@ import {
   Smartphone,
   Landmark,
   Wallet,
+  MessageCircle,
 } from "lucide-react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
 import { BANK_DETAILS } from "@/lib/orderUtils";
+import { isWhatsAppEnabled } from "@/config/whatsapp";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { toast } from "sonner";
 
 // طرق الدفع المدعومة:
 // "cod" دفع عند الاستلام، "bank_transfer" تحويل مصرفي،
+// "whatsapp" تأكيد الطلب عبر محادثة واتساب (الطلب يُسجَّل أولًا، ثم تُفتح المحادثة)،
 // وبوابات Plutu للدفع الإلكتروني (قيمة الطريقة = معرّف البوابة في Plutu):
 //   edfali (أدفلي), sadadapi (سداد) — برمز OTP،
 //   localbankcards (بطاقات محلية), tlync (تي-لينك), mpgs (ماستر/فيزا) — بإعادة توجيه.
 export type PaymentMethod =
   | "cod"
   | "bank_transfer"
+  | "whatsapp"
   | "edfali"
   | "sadadapi"
   | "localbankcards"
@@ -176,6 +180,17 @@ export default function PaymentSection({
           label={t("checkout.payment.transfer")}
           sub={t("checkout.payment.transferSub")}
         />
+        {/* يظهر فقط عند ضبط VITE_WHATSAPP_NUMBER — زر يفتح محادثة مع رقم
+            فارغ أسوأ من عدم عرض الخيار أصلًا. */}
+        {isWhatsAppEnabled() && (
+          <MethodCard
+            active={method === "whatsapp"}
+            onClick={() => onMethodChange("whatsapp")}
+            icon={MessageCircle}
+            label={t("checkout.payment.whatsapp")}
+            sub={t("checkout.payment.whatsappSub")}
+          />
+        )}
       </div>
 
       {/* الدفع الإلكتروني عبر Plutu */}

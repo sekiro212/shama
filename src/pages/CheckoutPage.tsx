@@ -26,6 +26,7 @@ import {
 } from "@/services/promoCodesService";
 import type { VanexSubCity } from "@/services/vanexService";
 import { upsertUserProfile } from "@/services/profileService";
+import { buildWhatsAppOrderUrl } from "@/config/whatsapp";
 import OrderSummary from "@/pages/checkout/OrderSummary";
 import ShippingSection, {
   type ShippingFormData,
@@ -287,8 +288,32 @@ export default function CheckoutPage() {
         return;
       }
 
-      // نجاح (COD / تحويل مصرفي): نعلّم أن الطلب تم لمنع حارس السلة الفارغة من
-      // اعتراض الانتقال، ثم نفرّغ السلة وننتقل إلى صفحة تأكيد الطلب
+      // مسار واتساب: الطلب مُسجَّل بالفعل أعلاه (فيبقى في لوحة التحكم وفي
+      // تتبّع فانكس)، وما تبقّى هو فتح المحادثة برسالة جاهزة تحمل رقم الطلب.
+      // نفتحها في تبويب جديد حتى تبقى صفحة التأكيد مفتوحة إن حجب المتصفّح
+      // النافذة أو ألغى المستخدم الانتقال.
+      if (paymentMethod === "whatsapp") {
+        const waUrl = buildWhatsAppOrderUrl({
+          orderId: inserted.id,
+          items: items.map((i) => ({
+            name: i.name,
+            quantity: i.quantity,
+            price: i.price,
+            size: i.size,
+          })),
+          total: finalTotal + deliveryFee,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          phone: formData.phone,
+          city: formData.city,
+          placeName: formData.placeName,
+          isRTL,
+        });
+        window.open(waUrl, "_blank", "noopener,noreferrer");
+      }
+
+      // نجاح (COD / تحويل مصرفي / واتساب): نعلّم أن الطلب تم لمنع حارس السلة
+      // الفارغة من اعتراض الانتقال، ثم نفرّغ السلة وننتقل إلى صفحة تأكيد الطلب
       toast.success(t("cart.orderSuccess"));
       setOrderPlaced(true);
       clearCart();

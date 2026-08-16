@@ -18,10 +18,12 @@ export const ORDER_STATUS_COLORS: Record<string, string> = {
   returned: "bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30",
 };
 
-// أنماط شارات طرق الدفع: تحويل بنكي (bank_transfer) أو الدفع عند الاستلام (cod).
+// أنماط شارات طرق الدفع: تحويل بنكي (bank_transfer)، الدفع عند الاستلام (cod)،
+// أو التأكيد عبر محادثة واتساب (whatsapp).
 export const PAYMENT_METHOD_STYLES = {
   bank_transfer: "bg-purple-500/20 text-purple-600 dark:text-purple-400",
   cod: "bg-teal-500/20 text-teal-600 dark:text-teal-400",
+  whatsapp: "bg-green-500/20 text-green-600 dark:text-green-400",
 } as const;
 
 // تفاصيل الحساب البنكي للمتجر، تُعرض للعميل عند اختيار التحويل البنكي.

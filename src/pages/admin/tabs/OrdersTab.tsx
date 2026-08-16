@@ -123,7 +123,9 @@ export function OrdersTab({ ordersApi }: OrdersTabProps) {
           >
             {method === "bank_transfer"
               ? t("admin.orderDetails.bankTransfer")
-              : t("admin.orderDetails.cod")}
+              : method === "whatsapp"
+                ? t("admin.orderDetails.whatsapp")
+                : t("admin.orderDetails.cod")}
           </span>
         );
       },

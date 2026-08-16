@@ -191,7 +191,9 @@ export function OrderDetailsDialog({
                     <span className={`text-sm font-medium px-2.5 py-0.5 rounded-full ${PAYMENT_METHOD_STYLES[order.payment_method as keyof typeof PAYMENT_METHOD_STYLES] || PAYMENT_METHOD_STYLES.cod}`}>
                       {order.payment_method === "bank_transfer"
                         ? t("admin.orderDetails.bankTransfer")
-                        : t("admin.orderDetails.cod")}
+                        : order.payment_method === "whatsapp"
+                          ? t("admin.orderDetails.whatsapp")
+                          : t("admin.orderDetails.cod")}
                     </span>
                   </div>
                   {order.payment_method === "bank_transfer" && (

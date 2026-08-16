@@ -30,6 +30,8 @@ The frontend (`/`) needs a `.env` file:
 VITE_SUPABASE_URL=
 VITE_SUPABASE_ANON_KEY=
 VITE_OPENROUTER_API_KEY=
+VITE_WHATSAPP_NUMBER=      # optional — international format, digits only (e.g. 218911234567).
+                           # Unset hides the "Order on WhatsApp" checkout option entirely.
 ```
 
 The Telegram bot (`telegram-bot/.env`) needs:
