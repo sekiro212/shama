@@ -1,8 +1,8 @@
 /**
  * LanguageContext.tsx
  * -------------------------------------------------------------------------
- * التدويل (i18n) للمتجر ثنائي اللغة: الإنجليزية (LTR، الافتراضية)
- * والعربية (RTL). يوفّر دالة الترجمة `t(key)` واللغة الحالية وأعلام RTL
+ * التدويل (i18n) للمتجر ثنائي اللغة: العربية (RTL، الافتراضية)
+ * والإنجليزية (LTR). يوفّر دالة الترجمة `t(key)` واللغة الحالية وأعلام RTL
  * المستخدمة في كامل واجهة المستخدم.
  *
  * تُحفظ اللغة المختارة في localStorage وتُطبّق على عنصر <html>
@@ -48,14 +48,20 @@ const LanguageContext = createContext<LanguageContextType | null>(null);
 
 /**
  * Provider يحتفظ باللغة النشطة ويحفظها ويعرض دالة الترجمة `t()`
- * إضافةً إلى أعلام RTL. الافتراضي هو الإنجليزية ما لم تكن العربية
- * قد حُفظت سابقًا.
+ * إضافةً إلى أعلام RTL. الافتراضي هو العربية ما لم يُحفظ اختيار سابق
+ * أو تكن لغة المتصفّح إنجليزية صريحة.
  */
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  // استعادة آخر لغة مختارة من localStorage (الافتراضي: الإنجليزية).
+  // استعادة آخر لغة مختارة من localStorage.
+  // الافتراضي هو العربية: شمّة متجر ليبي، وأغلب الزوار الجدد عرب — وكان
+  // الافتراضي الإنجليزي يجبرهم على البحث عن زر التبديل أولًا. تُحترم لغة
+  // المتصفّح إن كانت إنجليزية صريحة (للزوار من الخارج).
   const [language, setLanguageState] = useState<Language>(() => {
     const saved = localStorage.getItem("shama-language");
-    return saved === "ar" ? "ar" : "en";
+    if (saved === "ar" || saved === "en") return saved;
+    const prefs = navigator.languages ?? [navigator.language];
+    const firstKnown = prefs.find((l) => /^(ar|en)\b/i.test(l));
+    return firstKnown?.toLowerCase().startsWith("en") ? "en" : "ar";
   });
 
   // العربية هي اللغة الوحيدة RTL هنا؛ تُغذّي `dir` خاصية عنصر <html>.
