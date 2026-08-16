@@ -192,9 +192,11 @@ TEMPLATE = """<meta charset="utf-8"><title>{TITLE}</title>
                position:relative; min-height:0; margin:1cqw 0; gap:4cqw; }}
   .duo{{ display:flex; align-items:flex-end; justify-content:center; gap:5cqw;
         width:100%; height:100%; }}
-  .one{{ display:flex; flex-direction:column; align-items:center; justify-content:flex-end;
+  /* Centred, not bottom-pinned: two portrait bottles pushed to the floor of a
+     tall wrap left the top half of the slide empty. */
+  .one{{ display:flex; flex-direction:column; align-items:center; justify-content:center;
         gap:2cqw; height:100%; flex:1; min-width:0; }}
-  .one img{{ max-height:40cqw; width:auto; object-fit:contain; border-radius:8px;
+  .one img{{ max-height:46cqw; width:auto; object-fit:contain; border-radius:8px;
             box-shadow:0 22px 44px -24px rgba(0,0,0,.85); }}
   .one .cap{{ font-family:Georgia,'Hoefler Text',serif; font-style:italic;
              font-size:3.6cqw; line-height:1.15; text-align:center; }}
@@ -331,12 +333,30 @@ def main():
             rest = " ".join(words[1:])
         return h, rest
 
-    def short(prod):
+    # Catalogue names drop diacritics ("Beaute du Diable"); on a card set in
+    # Georgia italic the missing accent is the first thing you see.
+    name_overrides = cfg.get("product_names") or []
+
+    def short(prod, i=None):
+        if i is not None and i < len(name_overrides) and name_overrides[i]:
+            return name_overrides[i]
         return split_house(prod)[1]
 
     caps = cfg.get("product_captions") or []
+    # Some catalogue shots are lifestyle photos with neighbouring SKUs in frame;
+    # `product_images` points a slot at a local crop instead of the stored image.
+    overrides = cfg.get("product_images") or []
+
+    def bottle_uri(i, prod):
+        src = overrides[i] if i < len(overrides) else None
+        if not src:
+            return data_uri(prod["image"])
+        if not os.path.isabs(src):
+            src = os.path.join(here, "lore", src)  # same base as character_image
+        return local_uri(src)
+
     if len(prods) == 1:
-        bottles = f'<img class="bottle" src="{data_uri(p["image"])}" alt="{p["name"]}" />'
+        bottles = f'<img class="bottle" src="{bottle_uri(0, p)}" alt="{p["name"]}" />'
         pnameblock = (f'<div class="pname"><div class="h">{(cfg.get("house") or "").upper()}</div>'
                       f'<div class="t">{short(p)}</div>'
                       f'<div class="ar">{p.get("name_ar") or ""}</div></div>')
@@ -344,9 +364,9 @@ def main():
         cells = ""
         for i, pr in enumerate(prods):
             cap = caps[i] if i < len(caps) else ""
-            cells += (f'<div class="one"><img src="{data_uri(pr["image"])}" alt="{pr["name"]}" />'
+            cells += (f'<div class="one"><img src="{bottle_uri(i, pr)}" alt="{pr["name"]}" />'
                       f'<div class="sub">{cap}</div>'
-                      f'<div class="cap">{short(pr)}</div></div>')
+                      f'<div class="cap">{short(pr, i)}</div></div>')
         bottles = f'<div class="duo">{cells}</div>'
         pnameblock = (f'<div class="pname"><div class="h">'
                       f'{(cfg.get("house") or "").upper()}</div></div>')
@@ -378,7 +398,11 @@ def main():
         ARROW="←" if cfg.get("rtl") else "→",
         BOTTLES=bottles, PNAMEBLOCK=pnameblock,
         PNAME=full, HOUSE=house.upper(), PSHORT=pshort,
-        PNAME_AR=p.get("name_ar") or "", SIZE=(p.get("size") or "").upper(),
+        PNAME_AR=p.get("name_ar") or "",
+        # A duo of a 50ml and a 100ml footed itself "50ML" — the first product's
+        # size stood in for both.
+        SIZE=" · ".join(dict.fromkeys(
+            (pr.get("size") or "").upper() for pr in prods if pr.get("size"))),
         WHY_EN=cfg["why_en"], WHY_AR=cfg["why_ar"], CHIPS=chips,
         **cfg["palette"],
     )

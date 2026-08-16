@@ -1,0 +1,52 @@
+{
+  "product_slug": [
+    "clive-christian-immortelle",
+    "liquides-imaginaires-beaute-du-diable"
+  ],
+  "palette": {
+    "G0": "#24386e",
+    "G1": "#101c3a",
+    "G2": "#05080f",
+    "INK": "#fdf6e3",
+    "SOFT": "#b3c0dd",
+    "ACC": "#e9b53a",
+    "BRD": "rgba(233,181,58,.32)",
+    "GLOW0": "rgba(233,181,58,.26)",
+    "GLOW1": "rgba(233,181,58,.06)"
+  },
+  "character_image": "img/vangogh.jpg",
+  "name_size": 8.2,
+  "art_position": "center 55%",
+  "art_scrim": "linear-gradient(180deg, rgba(0,0,0,.14) 0%, rgba(0,0,0,.04) 26%, {G1}5c 44%, {G1}ea 60%, {G2} 78%)",
+  "slug_out": "lore-vangogh",
+  "series": "SCENT PROFILE · 11",
+  "kicker": "IF HE WORE A PERFUME",
+  "character": "Vincent van Gogh",
+  "epithet": "Painter · Arles, 1888",
+  "quote": "\"The sun — a light that, for want of a better word, I can only call yellow.\"",
+  "question": "Two years, two hundred canvases, one head that would not stop burning. What does the field wear, and what does the fever?",
+  "product_captions": [
+    "THE FIELD",
+    "THE FEVER"
+  ],
+  "note_chips": [
+    "Immortelle",
+    "Bergamot",
+    "Papyrus",
+    "Vetiver",
+    "Absinthe",
+    "Cypress",
+    "Clove",
+    "Labdanum"
+  ],
+  "why_en": "Immortelle is the field: bergamot and lemon give one bright second, then immortelle takes the heart entirely — honeyed, dry, no shade anywhere in it. Papyrus and vetiver close it like stalks after the harvest.",
+  "why_ar": "وبوتيه دو ديابل هي الحمّى: أفسنتينٌ وجِنٌ وبرتقالٌ مُرّ، ثم سروٌ وقرنفل — أخضرُ حادّ، كأشجار السرو التي لم يكفّ عن رسمها.",
+  "product_images": [
+    "img/immortelle.jpg",
+    "img/beaute-du-diable.jpg"
+  ],
+  "product_names": [
+    "Immortelle",
+    "Beauté du Diable"
+  ]
+}
