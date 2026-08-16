@@ -65,9 +65,20 @@ MULTIWORD_HOUSES = (
     "Tom Ford", "Le Labo", "BDK Parfums", "Roja Parfums", "Tiziana Terenzi",
     "Issey Miyake", "Marc Jacobs", "Memo Paris", "Lengling Munich",
     "Emporio Armani", "Ex Nihilo", "Jean Paul Gaultier",
+    # The 777 variant must be listed too; the longest-first sort tries it before
+    # the bare name, so "…Lucas 777 Panthea" keeps the 777 with the house.
+    "Stephane Humbert Lucas 777", "Stephane Humbert Lucas",
+    "Stéphane Humbert Lucas 777", "Stéphane Humbert Lucas",
+    "Maison Margiela",
 )
-# A few houses trail the perfume name instead of leading it.
-TRAILING_HOUSES = ("Frederic Malle", "Frédéric Malle")
+# A few houses trail the perfume name instead of leading it. Checked before the
+# leading list, so a house appearing in both (Jean Paul Gaultier) still works
+# whichever end it sits on.
+TRAILING_HOUSES = (
+    "Frederic Malle", "Frédéric Malle", "Yves Saint Laurent",
+    "Jean Paul Gaultier", "Essential Parfums", "Dolce&Gabbana",
+    "Dolce & Gabbana", "Giorgio Armani",
+)
 # A remainder opening on one of these means the first word was part of the
 # perfume's name, not a house — "Bleu de Chanel" is not house BLEU.
 CONNECTORS = {"de", "di", "du", "the", "by", "pour", "&", "for", "et"}
@@ -79,6 +90,9 @@ def split_house(name):
     HOUSE may be empty, which the slide renders as no kicker line — better than
     printing a wrong one.
     """
+    # "mostafa's Gift Set" is a customer's bundle, not house MOSTAFA'S.
+    if name.strip().lower().endswith("gift set"):
+        return "", name
     for th in TRAILING_HOUSES:
         if name.endswith(th):
             return th.upper(), name[: -len(th)].strip() or name
@@ -94,6 +108,22 @@ def split_house(name):
     return first.upper(), rest
 
 
+CONCENTRATIONS = {
+    "edp": "Eau de Parfum",
+    "edt": "Eau de Toilette",
+    "parfum": "Parfum",
+    "extrait": "Extrait de Parfum",
+    "extrait de parfum": "Extrait de Parfum",
+    "edc": "Eau de Cologne",
+    "cologne": "Eau de Cologne",
+}
+
+
+def conc_name(conc):
+    """The concentration as written on the bottle, or "" if unrecognised."""
+    return CONCENTRATIONS.get((conc or "").strip().lower(), "")
+
+
 def conc_label(conc):
     """Slide 3 caption suffix for the concentration, e.g. " · PARFUM".
 
@@ -102,16 +132,8 @@ def conc_label(conc):
     sets, blank) yields an empty string so the slide shows the size alone
     rather than a wrong concentration.
     """
-    label = {
-        "edp": "EAU DE PARFUM",
-        "edt": "EAU DE TOILETTE",
-        "parfum": "PARFUM",
-        "extrait": "EXTRAIT DE PARFUM",
-        "extrait de parfum": "EXTRAIT DE PARFUM",
-        "edc": "EAU DE COLOGNE",
-        "cologne": "EAU DE COLOGNE",
-    }.get((conc or "").strip().lower())
-    return f" · {label}" if label else ""
+    label = conc_name(conc)
+    return f" · {label.upper()}" if label else ""
 
 
 def fetch_product(base, key, term):
@@ -119,7 +141,8 @@ def fetch_product(base, key, term):
         "or": f"(slug.eq.{term},name.eq.{term})",
         "select": "name,name_ar,price,size,gender,concentration,description,fragrance_notes,"
                   "perfume_images(image_url,is_primary),"
-                  "perfume_samples(size,price,is_active)",
+                  "perfume_samples(size,price,is_active),"
+                  "perfume_bottle_sizes(size,price,is_active)",
         "limit": "1",
     }
     u = base.rstrip("/") + "/rest/v1/perfumes?" + urllib.parse.urlencode(q, safe="(),.*")
@@ -386,13 +409,31 @@ def main():
     journey = "".join(
         STEP.format(i=i+1, t=t, n=" · ".join(v)) for i, (t, v) in enumerate(tiers) if v)
     if not journey:
-        journey = STEP.format(i=1, t="Notes", n="A luxury eau de parfum")
+        journey = STEP.format(
+            i=1, t="Notes",
+            n=f"A luxury {conc_name(p.get('concentration')).lower() or 'fragrance'}")
 
-    # samples -> size selector; else a description line
-    samples = sorted([x for x in (p.get("perfume_samples") or []) if x.get("is_active")],
-                     key=lambda x: float(x["price"]))
+    # Size selector, in priority order: full-bottle variants, then decants, else
+    # a description line. Bottles win because a product sold in 30ml and 80ml was
+    # advertising only the 80ml price — the cheaper way in was invisible.
+    def active(rows):
+        return sorted([x for x in (rows or []) if x.get("is_active")],
+                      key=lambda x: float(x["price"]))
+
+    samples = active(p.get("perfume_samples"))
+    bottles = active(p.get("perfume_bottle_sizes"))
     size_main = (p.get("size") or "100ml")
-    if samples:
+    if len(bottles) > 1:
+        # The largest bottle is the headline price, so it is the selected cell —
+        # appending a separate "original size" cell would duplicate it.
+        cells = "".join(
+            f'<div class="size{" sel" if b["size"] == size_main else ""}">'
+            f'<div class="lab">{b["size"]}</div>'
+            f'<div class="pr">{fmt_int(b["price"])} LYD</div></div>'
+            for b in bottles)
+        ncols = len(bottles)
+        offer_mid = f'<div class="sizes" style="grid-template-columns:repeat({ncols},1fr)">{cells}</div>'
+    elif samples:
         cells = "".join(
             f'<div class="size"><div class="lab">{sm["size"]}</div><div class="pr">{fmt_int(sm["price"])} LYD</div></div>'
             for sm in samples)
@@ -408,7 +449,10 @@ def main():
 
     html = TEMPLATE.format(
         TITLE_EN=name, TITLE_DISPLAY=display, TITLE_AR=p.get("name_ar") or "", HOUSE=house,
-        TAGLINE=tagline, JOURNEY=journey, CREDIT="Eau de Parfum",
+        # Was hardcoded "Eau de Parfum" — it captioned every extrait, parfum and
+        # EDT in the catalogue with the wrong concentration.
+        TAGLINE=tagline, JOURNEY=journey,
+        CREDIT=conc_name(p.get("concentration")) or "Luxury Fragrance",
         PRICE=fmt_int(p["price"]), SIZE=size_main.upper(), CONC=conc_label(p.get("concentration")),
         OFFER_MID=offer_mid, ncols=ncols, titlesize=title_size,
         IMG=data_uri, **tok)
