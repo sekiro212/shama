@@ -1,0 +1,80 @@
+{
+  "slug_out": "roster-nightreign-ar",
+  "series": "الطاقم — ٠١",
+  "kicker": "لو كان لهم عطر",
+  "headline": "إلدن رينغ نايتريغن",
+  "subtitle": "سالكو الليل العشرة، وما يليق بكلٍّ منهم",
+  "title_size": 6.8,
+  "palette": {
+    "G0": "#2b2740",
+    "G1": "#151322",
+    "G2": "#07070d",
+    "INK": "#f1eef8",
+    "SOFT": "#a49dbb",
+    "ACC": "#c9a24a",
+    "BRD": "rgba(201,162,74,.30)"
+  },
+  "entries": [
+    {
+      "character": "وايلدر",
+      "slug": "amouage-interlude-man",
+      "line": "حديدٌ وبارود. دخان اللبان فوق الجلد.",
+      "label": "إنترلود مان"
+    },
+    {
+      "character": "الحارس",
+      "slug": "oman-luxury-royal-incense",
+      "line": "ذهبُ المعابد. لبانٌ وزعفران وحماية.",
+      "label": "رويال إنسنس"
+    },
+    {
+      "character": "عين الحديد",
+      "slug": "creed-silver-mountain-water",
+      "line": "هواءٌ باردٌ من بعيد. شايٌ أخضر ومعدن.",
+      "label": "سيلفر ماونتن ووتر"
+    },
+    {
+      "character": "الدوقة",
+      "slug": "shl-panthea-iris",
+      "line": "زبدة السوسن والبنفسج. تختفي في البشرة.",
+      "label": "بانثيا إيريس"
+    },
+    {
+      "character": "المُغير",
+      "slug": "shl-sand-dance",
+      "line": "كريمة الويسكي والكاكاو. ريحٌ حارّة، بلا مواربة.",
+      "label": "ساند دانس"
+    },
+    {
+      "character": "العائدة",
+      "slug": "shl-lady-white-snake",
+      "line": "زهورٌ بيضاء وجلدٌ أبيض. شبحٌ في ثوب عرس.",
+      "label": "ليدي وايت سنيك"
+    },
+    {
+      "character": "الناسكة",
+      "slug": "louis-vuitton-ombre-nomade",
+      "line": "توتٌ وزعفرانٌ وعود. سحرٌ أرجواني.",
+      "label": "أومبر نوماد"
+    },
+    {
+      "character": "المُنفِّذ",
+      "slug": "the-moon-frederic-malle",
+      "line": "زعفرانٌ وجلدٌ فوق فاكهةٍ حمراء. دمٌ على نصل.",
+      "label": "ذا مون"
+    },
+    {
+      "character": "العالِم",
+      "slug": "sospiro-basso",
+      "line": "أرزٌ وحبرٌ وطحلب. غرفةٌ مليئة بالكتب.",
+      "label": "باسو"
+    },
+    {
+      "character": "حفّار القبور",
+      "slug": "liquides-imaginaires-sancti",
+      "line": "مُرٌّ وبخورٌ وسرو. شجرة المقابر.",
+      "label": "سانكتي"
+    }
+  ],
+  "rtl": true
+}

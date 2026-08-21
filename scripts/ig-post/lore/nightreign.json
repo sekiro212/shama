@@ -1,0 +1,69 @@
+{
+  "slug_out": "roster-nightreign",
+  "series": "THE CAST · 01",
+  "kicker": "IF THEY WORE A PERFUME",
+  "headline": "Elden Ring Nightreign",
+  "subtitle": "all ten Nightfarers, matched to the shelf",
+  "title_size": 6.4,
+  "palette": {
+    "G0": "#2b2740",
+    "G1": "#151322",
+    "G2": "#07070d",
+    "INK": "#f1eef8",
+    "SOFT": "#a49dbb",
+    "ACC": "#c9a24a",
+    "BRD": "rgba(201,162,74,.30)"
+  },
+  "entries": [
+    {
+      "character": "Wylder",
+      "slug": "amouage-interlude-man",
+      "line": "Iron and gunpowder. Frankincense smoke over leather."
+    },
+    {
+      "character": "Guardian",
+      "slug": "oman-luxury-royal-incense",
+      "line": "Temple gold. Frankincense, saffron, shelter."
+    },
+    {
+      "character": "Ironeye",
+      "slug": "creed-silver-mountain-water",
+      "line": "Cold air at distance. Green tea and mineral."
+    },
+    {
+      "character": "Duchess",
+      "slug": "shl-panthea-iris",
+      "line": "Iris butter and violet. Vanishes into skin."
+    },
+    {
+      "character": "Raider",
+      "slug": "shl-sand-dance",
+      "line": "Whisky cream and cocoa. A hot wind, nothing subtle."
+    },
+    {
+      "character": "Revenant",
+      "slug": "shl-lady-white-snake",
+      "line": "White flowers, white leather. A ghost in bridal dress."
+    },
+    {
+      "character": "Recluse",
+      "slug": "louis-vuitton-ombre-nomade",
+      "line": "Raspberry, saffron, oud. Arcane and purple."
+    },
+    {
+      "character": "Executor",
+      "slug": "the-moon-frederic-malle",
+      "line": "Saffron and leather over red fruit. Blood on a blade."
+    },
+    {
+      "character": "Scholar",
+      "slug": "sospiro-basso",
+      "line": "Cedar, ink, moss. A room full of books."
+    },
+    {
+      "character": "Undertaker",
+      "slug": "liquides-imaginaires-sancti",
+      "line": "Myrrh, incense, cypress. The graveyard tree."
+    }
+  ]
+}
