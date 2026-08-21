@@ -52,13 +52,30 @@ async function main() {
   if (want.length) slugs = slugs.filter((s) => want.includes(s));
 
   const url = `https://api.telegram.org/bot${token}/sendMediaGroup`;
+  // Telegram caps a media group at 10. An 11-slide cast carousel silently
+  // failed every retry until it gave up, so split into chunks of 10 and label
+  // each part.
+  const MAX_GROUP = 10;
+  const jobs = [];
   for (const slug of slugs) {
-    const imgs = groups[slug].sort(); // -1, -2, -3
+    const all = groups[slug].sort(); // -1, -2, -3 ...
+    for (let i = 0; i < all.length; i += MAX_GROUP) {
+      const part = all.slice(i, i + MAX_GROUP);
+      const nparts = Math.ceil(all.length / MAX_GROUP);
+      jobs.push({
+        slug,
+        imgs: part,
+        label: nparts > 1 ? `${slug} (${i / MAX_GROUP + 1}/${nparts})` : slug,
+      });
+    }
+  }
+
+  for (const { slug, imgs, label } of jobs) {
     const form = new FormData();
     const media = imgs.map((f, i) => ({
       type: "photo",
       media: `attach://f${i}`,
-      ...(i === 0 ? { caption: titleFromSlug(slug) } : {}),
+      ...(i === 0 ? { caption: titleFromSlug(label) } : {}),
     }));
     form.append("chat_id", chat);
     form.append("media", JSON.stringify(media));
@@ -74,22 +91,22 @@ async function main() {
         const res = await fetch(url, { method: "POST", body: form });
         const json = await res.json();
         if (json.ok) {
-          console.log(`OK   ${slug}  (${imgs.length} slides)`);
+          console.log(`OK   ${label}  (${imgs.length} slides)`);
           sent = true;
         } else if (json.parameters?.retry_after) {
           const wait = (json.parameters.retry_after + 1) * 1000;
-          console.log(`WAIT ${slug}: flood, retry in ${wait / 1000}s`);
+          console.log(`WAIT ${label}: flood, retry in ${wait / 1000}s`);
           await sleep(wait);
         } else {
-          console.error(`FAIL ${slug}: ${json.description}`);
+          console.error(`FAIL ${label}: ${json.description}`);
           break; // non-retryable Telegram rejection
         }
       } catch (e) {
-        console.log(`NETERR ${slug}: ${e.message} — retry ${attempt + 1}/8`);
+        console.log(`NETERR ${label}: ${e.message} — retry ${attempt + 1}/8`);
         await sleep(3000 * (attempt + 1)); // linear backoff on network blips
       }
     }
-    if (!sent) console.error(`GAVEUP ${slug}`);
+    if (!sent) console.error(`GAVEUP ${label}`);
     await sleep(1500); // stay under album rate limits
   }
   console.log("\nDone.");
