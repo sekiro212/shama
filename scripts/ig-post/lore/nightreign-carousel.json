@@ -1,0 +1,95 @@
+{
+  "slug_out": "carousel-nightreign",
+  "series": "THE CAST · 01",
+  "kicker": "A SCENT FOR EVERY ONE OF THEM",
+  "slide_kicker": "IF THEY WORE A PERFUME",
+  "headline": "Elden Ring Nightreign",
+  "lede": "Three nights in the Limveld. Eight Nightfarers, and two more out of the Forsaken Hollows — each one a different way to survive the dark. Here is what each of them would wear.",
+  "cover_size": 8.2,
+  "cover_art": "img/nightreign/art-1.jpg",
+  "art_height": 58,
+  "art_position": "center 28%",
+  "name_size": 8.6,
+  "palette": {
+    "G0": "#2b2740",
+    "G1": "#151322",
+    "G2": "#07070d",
+    "INK": "#f1eef8",
+    "SOFT": "#a49dbb",
+    "ACC": "#c9a24a",
+    "BRD": "rgba(201,162,74,.30)"
+  },
+  "entries": [
+    {
+      "character": "Wylder",
+      "epithet": "the sellsword · greatsword, buckler, stake driver",
+      "art": "img/nightreign/art-2.jpg",
+      "slug": "amouage-interlude-man",
+      "line": "Amouage built Interlude on chaos and turmoil. Oregano and pimento open dusty as a road, then frankincense smoke settles over leather and refuses to leave. Not the gunpowder — the smoke after it."
+    },
+    {
+      "character": "Guardian",
+      "epithet": "the shield · a warrior of the Crest",
+      "art": "img/nightreign/art-7.jpg",
+      "slug": "oman-luxury-royal-incense",
+      "line": "Temple gold. Frankincense and saffron over amber — the smell of somewhere you are safe, worn by the one who makes it so."
+    },
+    {
+      "character": "Ironeye",
+      "epithet": "the marksman · kills from where you cannot reach",
+      "art": "img/nightreign/art-3.jpg",
+      "slug": "creed-silver-mountain-water",
+      "line": "Cold air held at distance. Green tea, blackcurrant and a mineral edge that never warms up. Clean, quiet, and already gone."
+    },
+    {
+      "character": "Duchess",
+      "epithet": "the dagger · she rewinds what was done",
+      "art": "img/nightreign/art-10.jpg",
+      "slug": "shl-panthea-iris",
+      "line": "Iris butter and violet over white musk. Aristocratic, powdered, and it vanishes into skin — you notice it after she has moved."
+    },
+    {
+      "character": "Raider",
+      "epithet": "the brute · nothing subtle survives him",
+      "slug": "shl-sand-dance",
+      "line": "Whisky cream and mandarin into cocoa and Kashmir wood, on benzoin and tonka. A hot wind carrying spice, and no interest in being polite.",
+      "art": "img/nightreign/raider.jpg",
+      "art_position": "center 22%"
+    },
+    {
+      "character": "Revenant",
+      "epithet": "the mourner · she brings her dead with her",
+      "art": "img/nightreign/art-5.jpg",
+      "slug": "shl-lady-white-snake",
+      "line": "Mandarin and orange blossom into magnolia and young tuberose, on white leather and white musk. A bouquet carried by something that is not alive."
+    },
+    {
+      "character": "Recluse",
+      "epithet": "the sorceress · she reads the blood in the air",
+      "art": "img/nightreign/art-6.jpg",
+      "slug": "louis-vuitton-ombre-nomade",
+      "line": "Raspberry and saffron over oud and benzoin, thick with incense. Arcane, purple, and far too heavy for anyone who is not casting something."
+    },
+    {
+      "character": "Executor",
+      "epithet": "the blade · he keeps a beast on a leash",
+      "slug": "the-moon-frederic-malle",
+      "line": "Saffron and Turkish rose over red berries, down to oud, leather and cypriol. Red fruit reads as blood; the leather is what holds the blade.",
+      "art": "img/nightreign/executor.jpg"
+    },
+    {
+      "character": "Scholar",
+      "epithet": "of the Forsaken Hollows · he read his way here",
+      "art": "img/nightreign/art-9.jpg",
+      "slug": "sospiro-basso",
+      "line": "Cedar, ink and moss with galbanum cutting through. A room full of books that nobody has opened a window in."
+    },
+    {
+      "character": "Undertaker",
+      "epithet": "of the Forsaken Hollows · she buries what the night leaves",
+      "art": "img/nightreign/art-8.jpg",
+      "slug": "liquides-imaginaires-sancti",
+      "line": "Grapefruit and cypress into incense, myrrh and benzoin. Church resin and the graveyard tree — a funeral you can wear."
+    }
+  ]
+}
