@@ -1,0 +1,34 @@
+{
+  "product_slug": "amouage-interlude-man",
+  "palette": {
+    "G0": "#26333f",
+    "G1": "#141b24",
+    "G2": "#070a0e",
+    "INK": "#eef2f6",
+    "SOFT": "#9dabbb",
+    "ACC": "#e2703a",
+    "BRD": "rgba(226,112,58,.30)"
+  },
+  "art_svg": "img/wylder.svg",
+  "name_size": 10.4,
+  "slug_out": "card-wylder-ar",
+  "series": "بروفايل عطري — ١٢",
+  "kicker": "لو كان له عطر",
+  "character": "وايلدر",
+  "epithet": "من سالكي الليل · مرتزقُ ليمفيلد",
+  "note_chips": [
+    "أوريغانو",
+    "فلفل حارّ",
+    "فلفل أسود",
+    "لبان",
+    "قِسط",
+    "أوبوبوناكس",
+    "جلد",
+    "عود"
+  ],
+  "why_en": "Amouage built Interlude on chaos and turmoil — three days in the Limveld. Oregano and pimento open it dusty as a road, then a wall of frankincense smoke settles over leather and oud and refuses to leave. Not the gunpowder. The smoke after it.",
+  "why_ar": "بُني «إنترلود» على الفوضى والاضطراب — ثلاثة أيام في ليمفيلد. أوريغانو وفلفل حارّ يفتحانه مغبرًّا كطريق، ثم يستقرّ جدارٌ من دخان اللبان فوق الجلد والعود ويأبى الرحيل. ليس البارود، بل الدخان الذي يليه.",
+  "rtl": true,
+  "product_label": "إنترلود مان",
+  "house": "أمواج"
+}

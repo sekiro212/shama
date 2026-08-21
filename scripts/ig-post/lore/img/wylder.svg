@@ -1,0 +1,137 @@
+<!-- Original artwork. Wylder reduced to his one unmistakable object: the wrist
+     stake driver at the instant of firing, inside an arcane sigil ring taken
+     from the tunic. Drawn rather than sourced — official art is copyrighted and
+     this is a commercial account.
+     Earlier pass also carried a greatsword and grapple crossed behind; at card
+     scale both read as sticks, so the object now carries the frame alone. -->
+<svg viewBox="0 0 1000 750" xmlns="http://www.w3.org/2000/svg" role="img"
+     aria-label="An iron stake driver firing inside an arcane sigil ring">
+  <defs>
+    <radialGradient id="ember" cx="50%" cy="44%" r="55%">
+      <stop offset="0%"   stop-color="#ffc48a" stop-opacity=".50"/>
+      <stop offset="30%"  stop-color="#e2703a" stop-opacity=".24"/>
+      <stop offset="100%" stop-color="#e2703a" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="vign" cx="50%" cy="42%" r="70%">
+      <stop offset="55%"  stop-color="#000" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#000" stop-opacity=".55"/>
+    </radialGradient>
+    <linearGradient id="iron" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="#454f5b"/>
+      <stop offset="26%"  stop-color="#aab7c5"/>
+      <stop offset="44%"  stop-color="#e6eef6"/>
+      <stop offset="62%"  stop-color="#8794a4"/>
+      <stop offset="100%" stop-color="#39424d"/>
+    </linearGradient>
+    <linearGradient id="collar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="#3b444f"/>
+      <stop offset="30%"  stop-color="#8f9dac"/>
+      <stop offset="55%"  stop-color="#c3cfdb"/>
+      <stop offset="100%" stop-color="#333b45"/>
+    </linearGradient>
+    <linearGradient id="heat" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#fff0d4"/>
+      <stop offset="40%"  stop-color="#ffab52"/>
+      <stop offset="100%" stop-color="#c04a12" stop-opacity=".15"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1000" height="750" fill="#0d141d"/>
+  <circle cx="500" cy="330" r="400" fill="url(#ember)"/>
+
+  <!-- shockwave: thin splinters at uneven lengths, not an even sunburst -->
+  <g transform="translate(500 330)" fill="#e2703a">
+    <g opacity=".55">
+      <path d="M-3.5 0 L3.5 0 L6 -420 L0 -452 L-6 -420 Z"/>
+      <path d="M-3.5 0 L3.5 0 L6 -262 L0 -286 L-6 -262 Z" transform="rotate(17)"/>
+      <path d="M-3.5 0 L3.5 0 L6 -368 L0 -396 L-6 -368 Z" transform="rotate(34)"/>
+      <path d="M-3.5 0 L3.5 0 L6 -214 L0 -236 L-6 -214 Z" transform="rotate(49)"/>
+      <path d="M-3.5 0 L3.5 0 L6 -404 L0 -434 L-6 -404 Z" transform="rotate(66)"/>
+      <path d="M-3.5 0 L3.5 0 L6 -246 L0 -268 L-6 -246 Z" transform="rotate(81)"/>
+      <path d="M-3.5 0 L3.5 0 L6 -350 L0 -378 L-6 -350 Z" transform="rotate(97)"/>
+      <path d="M-3.5 0 L3.5 0 L6 -228 L0 -250 L-6 -228 Z" transform="rotate(112)"/>
+      <path d="M-3.5 0 L3.5 0 L6 -412 L0 -442 L-6 -412 Z" transform="rotate(129)"/>
+      <path d="M-3.5 0 L3.5 0 L6 -238 L0 -260 L-6 -238 Z" transform="rotate(146)"/>
+      <path d="M-3.5 0 L3.5 0 L6 -330 L0 -356 L-6 -330 Z" transform="rotate(163)"/>
+      <path d="M-3.5 0 L3.5 0 L6 -222 L0 -244 L-6 -222 Z" transform="rotate(197)"/>
+      <path d="M-3.5 0 L3.5 0 L6 -396 L0 -426 L-6 -396 Z" transform="rotate(214)"/>
+      <path d="M-3.5 0 L3.5 0 L6 -240 L0 -262 L-6 -240 Z" transform="rotate(229)"/>
+      <path d="M-3.5 0 L3.5 0 L6 -358 L0 -386 L-6 -358 Z" transform="rotate(246)"/>
+      <path d="M-3.5 0 L3.5 0 L6 -218 L0 -240 L-6 -218 Z" transform="rotate(263)"/>
+      <path d="M-3.5 0 L3.5 0 L6 -424 L0 -454 L-6 -424 Z" transform="rotate(281)"/>
+      <path d="M-3.5 0 L3.5 0 L6 -232 L0 -254 L-6 -232 Z" transform="rotate(297)"/>
+      <path d="M-3.5 0 L3.5 0 L6 -372 L0 -400 L-6 -372 Z" transform="rotate(314)"/>
+      <path d="M-3.5 0 L3.5 0 L6 -226 L0 -248 L-6 -226 Z" transform="rotate(331)"/>
+      <path d="M-3.5 0 L3.5 0 L6 -344 L0 -370 L-6 -344 Z" transform="rotate(347)"/>
+    </g>
+  </g>
+
+  <!-- arcane sigil ring, off the tunic -->
+  <g transform="translate(500 330)" fill="none" stroke="#e2703a">
+    <circle r="252" stroke-opacity=".34" stroke-width="2"/>
+    <circle r="236" stroke-opacity=".14" stroke-width="1"/>
+    <circle r="288" stroke-opacity=".10" stroke-width="1"/>
+    <g stroke-opacity=".52" stroke-linecap="round">
+      <g stroke-width="3">
+        <path d="M0 -252 v-20"/><path d="M0 252 v20"/>
+        <path d="M-252 0 h-20"/><path d="M252 0 h20"/>
+      </g>
+      <g stroke-width="2" stroke-opacity=".34">
+        <g transform="rotate(30)"><path d="M0 -252 v-11"/><path d="M0 252 v11"/></g>
+        <g transform="rotate(60)"><path d="M0 -252 v-11"/><path d="M0 252 v11"/></g>
+        <g transform="rotate(120)"><path d="M0 -252 v-11"/><path d="M0 252 v11"/></g>
+        <g transform="rotate(150)"><path d="M0 -252 v-11"/><path d="M0 252 v11"/></g>
+      </g>
+    </g>
+  </g>
+
+  <!-- the driver, mid-fire -->
+  <g transform="translate(500 330)">
+    <!-- housing -->
+    <path d="M-62 -238 h124 a12 12 0 0 1 12 12 v58 a12 12 0 0 1 -12 12 h-124
+             a12 12 0 0 1 -12 -12 v-58 a12 12 0 0 1 12 -12 z" fill="url(#collar)"/>
+    <path d="M-62 -238 h124 a12 12 0 0 1 12 12 v58 a12 12 0 0 1 -12 12 h-124
+             a12 12 0 0 1 -12 -12 v-58 a12 12 0 0 1 12 -12 z" fill="none"
+          stroke="#1e252d" stroke-width="4"/>
+    <g fill="#242c35">
+      <rect x="-44" y="-224" width="88" height="11" rx="5"/>
+      <rect x="-44" y="-206" width="88" height="11" rx="5"/>
+    </g>
+    <!-- breech, where the charge sits -->
+    <path d="M-78 -152 h156 a10 10 0 0 1 10 10 v30 a10 10 0 0 1 -10 10 h-156
+             a10 10 0 0 1 -10 -10 v-30 a10 10 0 0 1 10 -10 z" fill="#75838f"/>
+    <path d="M-78 -152 h156 a10 10 0 0 1 10 10 v30 a10 10 0 0 1 -10 10 h-156
+             a10 10 0 0 1 -10 -10 v-30 a10 10 0 0 1 10 -10 z" fill="none"
+          stroke="#1e252d" stroke-width="4"/>
+    <circle cx="-56" cy="-127" r="8" fill="#ffab52"/>
+    <circle cx="56"  cy="-127" r="8" fill="#ffab52"/>
+    <!-- muzzle flash at the moment of firing -->
+    <path d="M-52 -102 L52 -102 L30 -30 L-30 -30 Z" fill="url(#heat)"/>
+    <!-- the spike -->
+    <path d="M-21 -104 L21 -104 L13 208 L0 292 L-13 208 Z" fill="url(#iron)"/>
+    <path d="M-21 -104 L21 -104 L13 208 L0 292 L-13 208 Z" fill="none"
+          stroke="#1b222a" stroke-width="3.5"/>
+    <path d="M-6.5 -104 L6.5 -104 L4 200 L0 262 L-4 200 Z" fill="#f2f7fb" opacity=".5"/>
+    <g fill="#2c343d">
+      <rect x="-20.2" y="-46" width="40.4" height="9" rx="2"/>
+      <rect x="-18.4" y="26"  width="36.8" height="9" rx="2"/>
+      <rect x="-16.6" y="98"  width="33.2" height="9" rx="2"/>
+    </g>
+  </g>
+
+  <!-- thrown sparks -->
+  <g fill="#ffcf9a">
+    <circle cx="292" cy="188" r="4"   opacity=".8"/>
+    <circle cx="722" cy="236" r="5"   opacity=".65"/>
+    <circle cx="214" cy="432" r="3"   opacity=".55"/>
+    <circle cx="796" cy="452" r="4"   opacity=".72"/>
+    <circle cx="356" cy="104" r="2.5" opacity=".5"/>
+    <circle cx="648" cy="120" r="3"   opacity=".5"/>
+    <circle cx="168" cy="292" r="2.5" opacity=".42"/>
+    <circle cx="842" cy="336" r="3"   opacity=".48"/>
+    <circle cx="404" cy="560" r="3"   opacity=".4"/>
+    <circle cx="606" cy="596" r="2.5" opacity=".36"/>
+  </g>
+
+  <rect width="1000" height="750" fill="url(#vign)"/>
+</svg>
