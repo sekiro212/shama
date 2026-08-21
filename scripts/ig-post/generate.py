@@ -139,7 +139,7 @@ def conc_label(conc):
 def fetch_product(base, key, term):
     q = {
         "or": f"(slug.eq.{term},name.eq.{term})",
-        "select": "name,name_ar,price,size,gender,concentration,description,fragrance_notes,"
+        "select": "name,name_ar,price,size,gender,concentration,description,fragrance_notes,image,"
                   "perfume_images(image_url,is_primary),"
                   "perfume_samples(size,price,is_active),"
                   "perfume_bottle_sizes(size,price,is_active)",
@@ -152,13 +152,30 @@ def fetch_product(base, key, term):
         sys.exit(f"No product found for: {term}")
     return rows[0]
 
+# Images stored as a site-relative path ("/perfumes/x.jpg") are served fine by
+# the storefront but cannot be fetched here, and a stale relative row marked
+# primary shadowed the real upload. Prefer an absolute URL wherever one exists,
+# and resolve anything still relative against the live site.
+SITE_ORIGIN = "https://shama.ly"
+
+
 def primary_image_url(p):
     imgs = p.get("perfume_images") or []
-    prim = [i for i in imgs if i.get("is_primary")]
-    pick = (prim or imgs)
-    if not pick:
-        sys.exit("Product has no image.")
-    return pick[0]["image_url"]
+    absolute = lambda u: str(u or "").startswith("http")
+    candidates = (
+        [i["image_url"] for i in imgs if i.get("is_primary") and absolute(i.get("image_url"))]
+        + [i["image_url"] for i in imgs if absolute(i.get("image_url"))]
+        + ([p["image"]] if absolute(p.get("image")) else [])
+        + [i["image_url"] for i in imgs if i.get("is_primary")]
+        + [i["image_url"] for i in imgs]
+        + ([p["image"]] if p.get("image") else [])
+    )
+    for u in candidates:
+        if absolute(u):
+            return u
+        if u:
+            return SITE_ORIGIN + "/" + str(u).lstrip("/")
+    sys.exit("Product has no image.")
 
 # ---------- color helpers ----------
 def hx(r, g, b): return f"#{int(r):02X}{int(g):02X}{int(b):02X}"
