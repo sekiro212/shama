@@ -1,0 +1,705 @@
+[
+  {
+    "slug": "guerlain-lhomme-ideal-lintense",
+    "name": "Guerlain L'Homme Idéal L'Intense",
+    "name_ar": "غيرلان لوم إيديال لانتنس",
+    "price": 920.0,
+    "fragrance_notes": {
+      "top": [
+        "Almond",
+        "Chili Pepper",
+        "Cardamom"
+      ],
+      "middle": [
+        "Leather",
+        "Bulgarian Rose",
+        "Labdanum"
+      ],
+      "base": [
+        "Smoke",
+        "Tonka Bean",
+        "Vanilla",
+        "Sandalwood",
+        "Patchouli"
+      ]
+    },
+    "description": "Almond opens it, then chilli and cardamom set it alight. Leather and Bulgarian rose hold the heart before smoke, tonka and vanilla close it. The ideal man, with a temper.",
+    "description_ar": "يفتتحه اللوز، ثم يُشعله الفلفل الحارّ والهيل. جلدٌ ووردٌ بلغاريّ في القلب، ثم دخانٌ وتونكا وفانيليا في الختام. الرجل المثالي، ولكن بمزاجٍ حادّ.",
+    "size": "100ml",
+    "concentration": "edp",
+    "gender": "men",
+    "type": "bottle",
+    "is_active": true,
+    "has_samples": false,
+    "has_bottle_sizes": false,
+    "stock_quantity": 2,
+    "reviews": []
+  },
+  {
+    "slug": "guerlain-lhomme-ideal-extreme",
+    "name": "Guerlain L'Homme Idéal Extrême",
+    "name_ar": "غيرلان لوم إيديال إكستريم",
+    "price": 920.0,
+    "fragrance_notes": {
+      "top": [
+        "Pink Bergamot",
+        "Almond",
+        "Berry"
+      ],
+      "middle": [
+        "Plum",
+        "Cinnamon",
+        "Heliotrope"
+      ],
+      "base": [
+        "Leather",
+        "Patchouli",
+        "Cedar",
+        "Tobacco"
+      ]
+    },
+    "description": "The almond taken darker. Plum and cinnamon over a heliotrope heart, closing on leather, cedar and tobacco — comfortable, but never soft.",
+    "description_ar": "اللوز وقد ازداد عتمة. برقوقٌ وقرفة فوق قلبٍ من الهليوتروب، ويُختم بالجلد والأرز والتبغ — مريحٌ، لكنه ليس ليّنًا أبدًا.",
+    "size": "100ml",
+    "concentration": "edp",
+    "gender": "men",
+    "type": "bottle",
+    "is_active": true,
+    "has_samples": false,
+    "has_bottle_sizes": false,
+    "stock_quantity": 2,
+    "reviews": []
+  },
+  {
+    "slug": "guerlain-linstant-pour-homme",
+    "name": "Guerlain L'Instant de Guerlain pour Homme",
+    "name_ar": "غيرلان لانستان بور أوم",
+    "price": 920.0,
+    "fragrance_notes": {
+      "top": [
+        "Lemon",
+        "Anise",
+        "Bergamot",
+        "Grapefruit",
+        "Jasmine"
+      ],
+      "middle": [
+        "Cacao",
+        "Patchouli",
+        "Sandalwood",
+        "Tea",
+        "Cedar",
+        "Lavender"
+      ],
+      "base": [
+        "Musk",
+        "Hibiscus Seed",
+        "Elemi"
+      ]
+    },
+    "description": "Citrus and anise open bright, then cacao and tea turn it quiet and dry. A 2004 classic that still reads modern — bitter chocolate on clean skin.",
+    "description_ar": "حمضياتٌ ويانسون في فتحةٍ مشرقة، ثم يُحيله الكاكاو والشاي إلى الهدوء والجفاف. كلاسيكيٌّ من ٢٠٠٤ ما زال عصريًّا — شوكولاتة مُرّة على بشرةٍ نظيفة.",
+    "size": "80ml",
+    "concentration": "edp",
+    "gender": "men",
+    "type": "bottle",
+    "is_active": true,
+    "has_samples": false,
+    "has_bottle_sizes": false,
+    "stock_quantity": 2,
+    "reviews": []
+  },
+  {
+    "slug": "guerlain-liu",
+    "name": "Guerlain Liu",
+    "name_ar": "غيرلان ليو",
+    "price": 890.0,
+    "fragrance_notes": {
+      "top": [
+        "Aldehydes",
+        "Neroli",
+        "Bergamot"
+      ],
+      "middle": [
+        "Rose",
+        "Jasmine",
+        "Rosemary"
+      ],
+      "base": [
+        "Vanilla",
+        "Iris",
+        "Woody Notes"
+      ]
+    },
+    "description": "Jacques Guerlain, 1929, written for Puccini's Turandot. Aldehydes sparkle over rose and jasmine, then powdery iris and vanilla. One of the great aldehyde florals, and long out of production.",
+    "description_ar": "جاك غيرلان، ١٩٢٩، كُتب لأوبرا «توراندوت» لبوتشيني. ألدهيداتٌ تتلألأ فوق الورد والياسمين، ثم سوسنٌ مُبوْدَر وفانيليا. أحد أعظم العطور الزهرية الألدهيدية، ومتوقّفٌ عن الإنتاج منذ زمن.",
+    "size": "75ml",
+    "concentration": "edp",
+    "gender": "women",
+    "type": "bottle",
+    "is_active": true,
+    "has_samples": false,
+    "has_bottle_sizes": false,
+    "stock_quantity": 2,
+    "reviews": []
+  },
+  {
+    "slug": "guerlain-champs-elysees",
+    "name": "Guerlain Champs-Élysées",
+    "name_ar": "غيرلان شانزليزيه",
+    "price": 820.0,
+    "fragrance_notes": {
+      "top": [
+        "Melon",
+        "Peach",
+        "Almond",
+        "Violet",
+        "Blackcurrant",
+        "Anise"
+      ],
+      "middle": [
+        "Lilac",
+        "Mimosa",
+        "Lily-of-the-Valley",
+        "Peony",
+        "Rose",
+        "Almond Blossom",
+        "Hibiscus"
+      ],
+      "base": [
+        "Vanilla",
+        "Sandalwood",
+        "Benzoin",
+        "Cedar"
+      ]
+    },
+    "description": "Mimosa and almond blossom, sweet to the point of defiance. A 1996 Guerlain in the heart-stoppered flacon — unmistakably feminine and unapologetic about it.",
+    "description_ar": "ميموزا وزهر اللوز، حلوٌ إلى حدّ التحدّي. غيرلان من ١٩٩٦ في القارورة ذات السدادة القلبية — أنثويٌّ لا يلتبس، ولا يعتذر عن ذلك.",
+    "size": "75ml",
+    "concentration": "parfum",
+    "gender": "women",
+    "type": "bottle",
+    "is_active": true,
+    "has_samples": false,
+    "has_bottle_sizes": false,
+    "stock_quantity": 2,
+    "reviews": []
+  },
+  {
+    "slug": "rabanne-fame-intense",
+    "name": "Rabanne Fame Intense",
+    "name_ar": "رابان فيم إنتنس",
+    "price": 750.0,
+    "fragrance_notes": {
+      "top": [
+        "Coconut Water",
+        "Pink Pepper",
+        "Bergamot"
+      ],
+      "middle": [
+        "Jasmine",
+        "Incense",
+        "Ylang-Ylang"
+      ],
+      "base": [
+        "Sandalwood",
+        "Musk",
+        "Virginian Cedar"
+      ]
+    },
+    "description": "Coconut water and pink pepper open it, then solar jasmine meets smoky incense. Creamy sandalwood and mineral musk carry it out. Fame, turned up.",
+    "description_ar": "ماء جوز الهند والفلفل الوردي في الفتحة، ثم يلتقي الياسمين الشمسي بالبخور المدخّن. صندلٌ كريميّ ومسكٌ معدنيّ يحملانه إلى النهاية. «فيم» بصوتٍ أعلى.",
+    "size": "80ml",
+    "concentration": "edp",
+    "gender": "women",
+    "type": "bottle",
+    "is_active": true,
+    "has_samples": false,
+    "has_bottle_sizes": false,
+    "stock_quantity": 2,
+    "reviews": []
+  },
+  {
+    "slug": "paco-rabanne-lady-million-prive",
+    "name": "Paco Rabanne Lady Million Privé",
+    "name_ar": "باكو رابان ليدي ميليون بريفيه",
+    "price": 730.0,
+    "fragrance_notes": {
+      "top": [
+        "Woody Notes",
+        "Orange Blossom"
+      ],
+      "middle": [
+        "Vanilla",
+        "Raspberry",
+        "Heliotrope"
+      ],
+      "base": [
+        "Cacao",
+        "Honey",
+        "Patchouli"
+      ]
+    },
+    "description": "Orange blossom over a heart of vanilla, raspberry and heliotrope, on cacao, honey and patchouli. Lady Million after dark, and heavier for it.",
+    "description_ar": "زهر البرتقال فوق قلبٍ من الفانيليا والتوت والهليوتروب، على الكاكاو والعسل والباتشولي. «ليدي ميليون» بعد حلول الظلام، وأثقل بسببه.",
+    "size": "80ml",
+    "concentration": "edp",
+    "gender": "women",
+    "type": "bottle",
+    "is_active": true,
+    "has_samples": false,
+    "has_bottle_sizes": false,
+    "stock_quantity": 2,
+    "reviews": []
+  },
+  {
+    "slug": "cartier-la-panthere",
+    "name": "Cartier La Panthère",
+    "name_ar": "كارتييه لا بانتير",
+    "price": 930.0,
+    "fragrance_notes": {
+      "top": [
+        "Dried Fruits",
+        "Rhubarb",
+        "Strawberry",
+        "Anise",
+        "Bergamot"
+      ],
+      "middle": [
+        "Gardenia",
+        "Rose",
+        "Ylang-Ylang",
+        "Orange Blossom",
+        "Pear"
+      ],
+      "base": [
+        "Oakmoss",
+        "Musk",
+        "Patchouli",
+        "Leather"
+      ]
+    },
+    "description": "Mathilde Laurent's feline gardenia. Rhubarb and strawberry open tart, gardenia and rose fill the heart, and oakmoss, musk and leather give it claws.",
+    "description_ar": "غاردينيا ماتيلد لوران المفترسة. راوندٌ وفراولة في فتحةٍ حامضة، وغاردينيا وورد يملآن القلب، وطحلب البلوط والمسك والجلد يمنحونها مخالب.",
+    "size": "75ml",
+    "concentration": "edp",
+    "gender": "women",
+    "type": "bottle",
+    "is_active": true,
+    "has_samples": false,
+    "has_bottle_sizes": false,
+    "stock_quantity": 2,
+    "reviews": []
+  },
+  {
+    "slug": "cartier-pasha-edition-noire",
+    "name": "Cartier Pasha Édition Noire",
+    "name_ar": "كارتييه باشا إديسيون نوار",
+    "price": 930.0,
+    "fragrance_notes": {
+      "top": [
+        "Mint",
+        "Citruses",
+        "Water Notes",
+        "Pepper"
+      ],
+      "middle": [
+        "Heliotrope",
+        "Violet",
+        "Green Notes"
+      ],
+      "base": [
+        "Cedar",
+        "Iris",
+        "Amber",
+        "Cloves"
+      ]
+    },
+    "description": "Mint and pepper over cold water notes, then heliotrope and violet soften it before cedar, iris and clove close it dry. Sharp, dark, and very Cartier.",
+    "description_ar": "نعناعٌ وفلفل فوق نفحاتٍ مائيّة باردة، ثم يُليّنه الهليوتروب والبنفسج قبل أن يُغلقه الأرز والسوسن والقرنفل جافًّا. حادٌّ وداكن، وكارتييه بامتياز.",
+    "size": "100ml",
+    "concentration": "edt",
+    "gender": "men",
+    "type": "bottle",
+    "is_active": true,
+    "has_samples": false,
+    "has_bottle_sizes": false,
+    "stock_quantity": 2,
+    "reviews": []
+  },
+  {
+    "slug": "must-de-cartier-gold",
+    "name": "Must de Cartier Gold",
+    "name_ar": "مست دو كارتييه غولد",
+    "price": 1100.0,
+    "fragrance_notes": {
+      "top": [
+        "Galbanum",
+        "Green Leaves"
+      ],
+      "middle": [
+        "Osmanthus",
+        "Jasmine"
+      ],
+      "base": [
+        "Vanilla"
+      ]
+    },
+    "description": "Green galbanum cut straight into vanilla, with osmanthus and jasmine between them. Almost nothing else — and that restraint is the whole point.",
+    "description_ar": "غلبانومٌ أخضر يُقطع مباشرةً إلى الفانيليا، وبينهما الأوسمانثوس والياسمين. لا شيء آخر تقريبًا — وهذا التقشّف هو جوهر العطر كلّه.",
+    "size": "100ml",
+    "concentration": "edp",
+    "gender": "women",
+    "type": "bottle",
+    "is_active": true,
+    "has_samples": false,
+    "has_bottle_sizes": false,
+    "stock_quantity": 2,
+    "reviews": []
+  },
+  {
+    "slug": "roberto-cavalli-florence",
+    "name": "Roberto Cavalli Florence",
+    "name_ar": "روبرتو كافالي فلورنس",
+    "price": 420.0,
+    "fragrance_notes": {
+      "top": [
+        "Mandarin",
+        "Blackcurrant"
+      ],
+      "middle": [
+        "Orange Blossom",
+        "Grapefruit Blossom",
+        "Hibiscus Seed"
+      ],
+      "base": [
+        "Patchouli",
+        "Amber",
+        "Musk"
+      ]
+    },
+    "description": "A modern chypre for Tuscany. Mandarin and blackcurrant into orange and grapefruit blossom, landing on patchouli, amber and musk.",
+    "description_ar": "شيبر عصريّ لتوسكانا. ماندرين وكشمش أسود إلى زهر البرتقال وزهر الجريب فروت، ليستقرّ على الباتشولي والعنبر والمسك.",
+    "size": "75ml",
+    "concentration": "edp",
+    "gender": "women",
+    "type": "bottle",
+    "is_active": true,
+    "has_samples": false,
+    "has_bottle_sizes": false,
+    "stock_quantity": 2,
+    "reviews": []
+  },
+  {
+    "slug": "roberto-cavalli-paradiso",
+    "name": "Roberto Cavalli Paradiso",
+    "name_ar": "روبرتو كافالي باراديزو",
+    "price": 420.0,
+    "fragrance_notes": {
+      "top": [
+        "Bergamot",
+        "Mandarin"
+      ],
+      "middle": [
+        "Jasmine"
+      ],
+      "base": [
+        "Cypress",
+        "Parasol Pine",
+        "Pink Laurel"
+      ]
+    },
+    "description": "Mediterranean and green. Bergamot and mandarin over jasmine, closing on cypress and parasol pine — a garden on the coast, not a bouquet.",
+    "description_ar": "متوسّطيٌّ وأخضر. برغموت وماندرين فوق الياسمين، ويُختم بالسرو والصنوبر المظلّي — حديقةٌ على الساحل، لا باقةُ زهور.",
+    "size": "75ml",
+    "concentration": "edp",
+    "gender": "women",
+    "type": "bottle",
+    "is_active": true,
+    "has_samples": false,
+    "has_bottle_sizes": false,
+    "stock_quantity": 2,
+    "reviews": []
+  },
+  {
+    "slug": "roberto-cavalli-serpentine",
+    "name": "Roberto Cavalli Serpentine",
+    "name_ar": "روبرتو كافالي سربنتين",
+    "price": 730.0,
+    "fragrance_notes": {
+      "top": [
+        "Mango Blossom",
+        "Mandarin",
+        "Tahitian Gardenia",
+        "Artemisia"
+      ],
+      "middle": [
+        "Frangipani",
+        "Tiare Flower",
+        "Pepper",
+        "Violet Leaf"
+      ],
+      "base": [
+        "Amber",
+        "Tolu Balsam",
+        "Sandalwood"
+      ]
+    },
+    "description": "Tropical white flowers with a bite. Mango blossom and Tahitian gardenia over frangipani and tiare, on amber, tolu balsam and sandalwood.",
+    "description_ar": "زهورٌ بيضاء استوائية بلدغة. زهر المانجو وغاردينيا تاهيتي فوق الفرانجيباني والتياري، على العنبر وبلسم تولو والصندل.",
+    "size": "75ml",
+    "concentration": "edp",
+    "gender": "women",
+    "type": "bottle",
+    "is_active": true,
+    "has_samples": false,
+    "has_bottle_sizes": false,
+    "stock_quantity": 2,
+    "reviews": []
+  },
+  {
+    "slug": "givenchy-linterdit-absolu",
+    "name": "Givenchy L'Interdit Absolu",
+    "name_ar": "جيفنشي لانتردي أبسولو",
+    "price": 950.0,
+    "fragrance_notes": {
+      "top": [
+        "Neroli",
+        "Lavender",
+        "Cardamom"
+      ],
+      "middle": [
+        "Orange Blossom",
+        "Tuberose",
+        "Jasmine"
+      ],
+      "base": [
+        "Tobacco",
+        "Patchouli",
+        "Vetiver"
+      ]
+    },
+    "description": "The L'Interdit white bouquet, pushed darker. Lavender and cardamom open it, tuberose and jasmine fill the heart, and tobacco with vetiver drags it down into shadow.",
+    "description_ar": "باقة «لانتردي» البيضاء، مدفوعةً إلى العتمة. لافندرٌ وهيل في الفتحة، ومسك الروم والياسمين يملآن القلب، والتبغ مع الفيتيفر يجرّانه إلى الظلّ.",
+    "size": "80ml",
+    "concentration": "edp",
+    "gender": "women",
+    "type": "bottle",
+    "is_active": true,
+    "has_samples": false,
+    "has_bottle_sizes": false,
+    "stock_quantity": 2,
+    "reviews": []
+  },
+  {
+    "slug": "boss-bottled-absolu",
+    "name": "Boss Bottled Absolu",
+    "name_ar": "بوس بوتلد أبسولو",
+    "price": 795.0,
+    "fragrance_notes": {
+      "top": [
+        "Incense",
+        "Leather"
+      ],
+      "middle": [
+        "Myrrh",
+        "Patchouli"
+      ],
+      "base": [
+        "Cedarwood",
+        "Davana"
+      ]
+    },
+    "description": "Incense and leather from the first second — no citrus overture at all. Myrrh and patchouli into cedar and davana. Roasted, dark, and nothing like the original Bottled.",
+    "description_ar": "بخورٌ وجلدٌ من الثانية الأولى — بلا أيّ افتتاحيةٍ حمضية. مُرٌّ وباتشولي إلى الأرز والدافانا. محمّصٌ وداكن، ولا يشبه «بوتلد» الأصلي في شيء.",
+    "size": "100ml",
+    "concentration": "parfum",
+    "gender": "men",
+    "type": "bottle",
+    "is_active": true,
+    "has_samples": false,
+    "has_bottle_sizes": false,
+    "stock_quantity": 2,
+    "reviews": []
+  },
+  {
+    "slug": "carolina-herrera-212-vip-rose-red",
+    "name": "Carolina Herrera 212 VIP Rosé Red",
+    "name_ar": "كارولينا هيريرا ٢١٢ في آي بي روزيه ريد",
+    "price": 730.0,
+    "fragrance_notes": {
+      "top": [
+        "Liquor",
+        "Tomato",
+        "Raspberry"
+      ],
+      "middle": [
+        "Tiramisu",
+        "Spices",
+        "Bulgarian Rose"
+      ],
+      "base": [
+        "Patchouli",
+        "Musk",
+        "Woody Notes"
+      ]
+    },
+    "description": "Liquor and raspberry over a tiramisu heart with Bulgarian rose. Sweet, loud, and built for a night out — patchouli and musk keep it standing.",
+    "description_ar": "خمرٌ وتوت فوق قلبٍ من التيراميسو مع الورد البلغاري. حلوٌ وصاخب، مصنوعٌ لليلة بالخارج — والباتشولي والمسك يُبقيانه واقفًا.",
+    "size": "80ml",
+    "concentration": "edp",
+    "gender": "women",
+    "type": "bottle",
+    "is_active": true,
+    "has_samples": false,
+    "has_bottle_sizes": false,
+    "stock_quantity": 2,
+    "reviews": []
+  },
+  {
+    "slug": "la-femme-prada",
+    "name": "La Femme Prada",
+    "name_ar": "لا فام برادا",
+    "price": 890.0,
+    "fragrance_notes": {
+      "top": [
+        "Magnolia",
+        "Bergamot",
+        "Carrot Seeds"
+      ],
+      "middle": [
+        "Frangipani",
+        "Tuberose",
+        "Ylang-Ylang",
+        "Iris",
+        "Spices"
+      ],
+      "base": [
+        "Beeswax",
+        "Vanilla",
+        "Vetiver"
+      ]
+    },
+    "description": "Frangipani and tuberose over iris, mellowed by beeswax and vanilla. A vetiver underneath keeps it from ever turning sweet. Prada's tribute to an unexpected flower.",
+    "description_ar": "فرانجيباني ومسك الروم فوق السوسن، يُلطّفهما شمع العسل والفانيليا. وفيتيفرٌ في الأسفل يمنعه من أن يصير حلوًا. تحيّة برادا لزهرةٍ غير متوقّعة.",
+    "size": "100ml",
+    "concentration": "edp",
+    "gender": "women",
+    "type": "bottle",
+    "is_active": true,
+    "has_samples": false,
+    "has_bottle_sizes": true,
+    "stock_quantity": 2,
+    "reviews": [],
+    "_bottle_sizes": [
+      {
+        "size": "50ml",
+        "price": 690.0
+      },
+      {
+        "size": "100ml",
+        "price": 890.0
+      }
+    ]
+  },
+  {
+    "slug": "my-burberry-blush",
+    "name": "My Burberry Blush",
+    "name_ar": "ماي بربري بلاش",
+    "price": 690.0,
+    "fragrance_notes": {
+      "top": [
+        "Pomegranate",
+        "Lemon"
+      ],
+      "middle": [
+        "Green Apple",
+        "Rose Petals",
+        "Geranium"
+      ],
+      "base": [
+        "Wisteria",
+        "Jasmine"
+      ]
+    },
+    "description": "Francis Kurkdjian's lightest Burberry. Pomegranate and lemon into green apple and rose petals, closing on wisteria and jasmine — a London garden after rain.",
+    "description_ar": "أخفّ ما صنع فرانسيس كركدجان لبربري. رمّانٌ وليمون إلى التفاح الأخضر وبتلات الورد، ويُختم بالوستارية والياسمين — حديقةٌ لندنية بعد المطر.",
+    "size": "90ml",
+    "concentration": "edp",
+    "gender": "women",
+    "type": "bottle",
+    "is_active": true,
+    "has_samples": false,
+    "has_bottle_sizes": false,
+    "stock_quantity": 2,
+    "reviews": []
+  },
+  {
+    "slug": "trussardi-elegantly-cool",
+    "name": "Trussardi Elegantly Cool",
+    "name_ar": "تروساردي إيليغانتلي كول",
+    "price": 590.0,
+    "fragrance_notes": {
+      "top": [
+        "Sesame",
+        "Neroli",
+        "White Grapefruit"
+      ],
+      "middle": [
+        "Mimosa",
+        "Ylang-Ylang",
+        "Jasmine"
+      ],
+      "base": [
+        "White Musk",
+        "Tonka Bean",
+        "Sandalwood"
+      ]
+    },
+    "description": "Sesame and white grapefruit open it strangely and well, then mimosa and ylang soften into white musk, tonka and sandalwood. Quiet, clean, and more interesting than it looks.",
+    "description_ar": "سمسمٌ وجريب فروت أبيض يفتحانه بغرابةٍ موفّقة، ثم تلين الميموزا واليلانغ إلى المسك الأبيض والتونكا والصندل. هادئٌ ونظيف، وأكثر إثارةً للاهتمام ممّا يبدو.",
+    "size": "90ml",
+    "concentration": "edp",
+    "gender": "women",
+    "type": "bottle",
+    "is_active": true,
+    "has_samples": false,
+    "has_bottle_sizes": false,
+    "stock_quantity": 2,
+    "reviews": []
+  },
+  {
+    "slug": "billie-eilish-eilish",
+    "name": "Billie Eilish Eilish",
+    "name_ar": "بيلي أيليش أيليش",
+    "price": 600.0,
+    "fragrance_notes": {
+      "top": [
+        "Red Berries",
+        "Mandarin",
+        "Sugared Petals"
+      ],
+      "middle": [
+        "Vanilla Bourbon",
+        "Soft Spices",
+        "Cocoa"
+      ],
+      "base": [
+        "Warm Musk",
+        "Creamy Woods",
+        "Tonka"
+      ]
+    },
+    "description": "Sugared petals into bourbon vanilla and cocoa, on warm musk and creamy woods. An amber gourmand that stays close to the skin rather than filling a room.",
+    "description_ar": "بتلاتٌ مسكّرة إلى فانيليا البوربون والكاكاو، على مسكٍ دافئ وأخشابٍ كريميّة. عطرٌ عنبريٌّ حلو يبقى ملاصقًا للبشرة بدل أن يملأ الغرفة.",
+    "size": "50ml",
+    "concentration": "edp",
+    "gender": "women",
+    "type": "bottle",
+    "is_active": true,
+    "has_samples": false,
+    "has_bottle_sizes": false,
+    "stock_quantity": 2,
+    "reviews": []
+  }
+]
