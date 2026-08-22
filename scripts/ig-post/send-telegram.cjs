@@ -48,8 +48,17 @@ async function main() {
     (groups[slug] ||= []).push(f);
   }
   let slugs = Object.keys(groups).sort();
-  const want = process.argv.slice(2);
+  const argv = process.argv.slice(2);
+  // --first sends only slide 1 of each product, for contact-sheet style sends
+  // where the cover is the point and the rest is noise.
+  const firstOnly = argv.includes("--first");
+  const want = argv.filter((a) => !a.startsWith("--"));
   if (want.length) slugs = slugs.filter((s) => want.includes(s));
+  if (firstOnly) {
+    for (const s of slugs) {
+      groups[s] = groups[s].filter((f) => /-1\.png$/.test(f));
+    }
+  }
 
   const url = `https://api.telegram.org/bot${token}/sendMediaGroup`;
   // Telegram caps a media group at 10. An 11-slide cast carousel silently
