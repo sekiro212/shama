@@ -1,0 +1,177 @@
+// مولَّد آليًّا بواسطة scripts/ig-post/build-reels.py — لا يُحرَّر يدويًّا.
+// المصدر: scripts/ig-post/lore/*.json
+import type { LoreReelProps } from "./LoreReel";
+import type { LorePalette } from "./theme";
+
+export type CharacterEntry = Omit<LoreReelProps, "language"> & {
+  id: string;
+  palette: LorePalette;
+};
+
+export const CHARACTERS: CharacterEntry[] = [
+  {
+    id: "antarah",
+    characterImage: "lore/antarah-art.jpg",
+    bottleImages: ["lore/antarah-bottle1.jpg", "lore/antarah-bottle2.jpg"],
+    kicker: "لو كان له عطر",
+    character: "عنترة بن شداد",
+    epithet: "فارس بني عبس وشاعر المعلّقات",
+    question: "فارسٌ في النهار، شاعرٌ في الليل. فأي عطرٍ يليق برجلٍ نصفه سيف ونصفه قصيدة؟",
+    house: "",
+    product: "ليكيد إيماجينير فورتيس + ليكيد إيماجينير ديزير سواف",
+    why: "وديزير سواف هو الشاعر: هيلٌ وتمرٌ وورد وزهر البرتقال على خشب الأرز — ليل الصحراء حين يهدأ السيف ويبدأ الشِّعر.",
+    notes: ["عود", "كمون", "زعفران", "هيل", "تمر", "ورد"],
+    price: "1400 د.ل · 100ml",
+    palette: {"g0": "#7a4a1c", "g1": "#3a2110", "g2": "#150c06", "ink": "#f7ece0", "soft": "#d3b28c", "acc": "#c98a3e"}
+  },
+  {
+    id: "dostoevsky",
+    characterImage: "lore/dostoevsky-art.jpg",
+    bottleImages: ["lore/dostoevsky-bottle1.jpg", "lore/dostoevsky-bottle2.jpg"],
+    kicker: "لو كان له عطر",
+    character: "فيودور دوستويفسكي",
+    epithet: "روائي القبو والقدّيسين",
+    question: "قارورةٌ للكنيسة، وأخرى للحمّى. وكلتاهما هو.",
+    house: "",
+    product: "ليكيد إيماجينير سانكتي + أمواج إنترلود مان",
+    why: "وإنترلود مان هو الحمّى: لبانٌ وأوبوبوناكس وجلدٌ وعود — دخانٌ لا يهدأ، كليلةٍ لا تنتهي على طاولة القمار.",
+    notes: ["لبان", "مُرّ", "بنزوين", "سرو", "أوبوبوناكس", "جلد"],
+    price: "1400 د.ل · 100ml",
+    palette: {"g0": "#2f2619", "g1": "#171208", "g2": "#070603", "ink": "#f2ece0", "soft": "#b9a88c", "acc": "#c9a13f"}
+  },
+  {
+    id: "firas",
+    characterImage: "lore/firas-art.jpg",
+    bottleImages: ["lore/firas-bottle1.jpg", "lore/firas-bottle2.jpg"],
+    kicker: "النوتات التي يحبّها",
+    character: "فراس العالم",
+    epithet: "صانع محتوى عطري",
+    question: "أربع نوتات يعود إليها دائمًا. فماذا نناوله من الرفّ؟",
+    house: "",
+    product: "بي دي كي غري شارنيل + مارك أنطوان باروا تيليا",
+    why: "وتيليا يكمل الباقي: زهر الزيزفون وزهر البرتقال والهيليوتروب فوق الأمبروفيكس — بياضٌ عسليٌّ يلتصق بالبشرة.",
+    notes: ["تين", "سوسن", "شاي أسود", "هيل", "زهر البرتقال", "زهر الزيزفون"],
+    price: "1950 د.ل · 100ml",
+    palette: {"g0": "#20443c", "g1": "#122420", "g2": "#080f0d", "ink": "#f2f6f2", "soft": "#a9c3b6", "acc": "#d0a45e"}
+  },
+  {
+    id: "grimm",
+    characterImage: "lore/grimm-art.jpg",
+    bottleImages: ["lore/grimm-bottle1.jpg"],
+    kicker: "لو كان له عطر",
+    character: "غريم",
+    epithet: "سيّد الكابوس · ربّ الفرقة",
+    question: "أحمرُ وأسود، ونارٌ في القلب. فماذا يرتدي مَن يجعل من الرعب عرضًا؟",
+    house: "",
+    product: "بورتريه أوف إيه ليدي فريدريك مال",
+    why: "عطرٌ لا يدخل الغرفة بهدوء. يفتح الستار، ويشتعل، ويبقى ساعاتٍ بعد أن ينتهي العرض.",
+    notes: ["وردة تركية", "توت العليق", "قرنفل", "قرفة", "لبان", "بخور"],
+    price: "3000 د.ل · 100ml",
+    palette: {"g0": "#4a1016", "g1": "#25070b", "g2": "#0a0203", "ink": "#fbeef0", "soft": "#d3a3a8", "acc": "#e0484f"}
+  },
+  {
+    id: "harun",
+    characterImage: "lore/harun-art.jpg",
+    bottleImages: ["lore/harun-bottle1.jpg", "lore/harun-bottle2.jpg"],
+    kicker: "لو كان له عطر",
+    character: "هارون الرشيد",
+    epithet: "خامس خلفاء بني العباس · بغداد",
+    question: "حياتان في ليلةٍ واحدة: عرشٌ في النهار، وأسواقُ بغداد متنكّرًا في الليل. فماذا يرتدي كلٌّ منهما؟",
+    house: "",
+    product: "أمواج غايدنس + سوسبيرو سوبرانو",
+    why: "وسوبرانو هو الليل: وردٌ بلغاريّ وجلدٌ وعودٌ وباتشولي — الرجلُ نفسه بعد أن خلع التاج ونزل إلى السوق.",
+    notes: ["لبان", "زعفران", "ورد", "ياسمين سامباك", "عنبر", "خشب الصندل"],
+    price: "2850 د.ل · 100ml",
+    palette: {"g0": "#5c4220", "g1": "#2a1d0e", "g2": "#0d0804", "ink": "#f8f0de", "soft": "#cdb488", "acc": "#d9a441"}
+  },
+  {
+    id: "hollowknight",
+    characterImage: "lore/hollowknight-art.jpg",
+    bottleImages: ["lore/hollowknight-bottle1.jpg", "lore/hollowknight-bottle2.jpg"],
+    kicker: "لو كان له عطر",
+    character: "الفارس",
+    epithet: "وعاءٌ من هالونست",
+    question: "قوقعةٌ لا شيء بداخلها. فماذا عساها ترتدي؟",
+    house: "",
+    product: "فرينش لوفر فريدريك مال + ليكيد إيماجينير بيت أومين",
+    why: "وبيت أومان هو الفراغ في الداخل: ورق البنفسج والمستكة فوق البردي وزيت السيبريول وخشب الغاياك — جذورٌ وظلامٌ ولا ضوء.",
+    notes: ["جلبانوم", "عرعر", "لبان", "سوسن", "طحلب البلوط", "أرز"],
+    price: "2800 د.ل · 100ml",
+    palette: {"g0": "#20313a", "g1": "#0e161b", "g2": "#04070a", "ink": "#eef4f6", "soft": "#93a9b3", "acc": "#9ec9d4"}
+  },
+  {
+    id: "malenia",
+    characterImage: "lore/malenia-art.jpg",
+    bottleImages: ["lore/malenia-bottle1.jpg"],
+    kicker: "لو كان لها عطر",
+    character: "مالينيا",
+    epithet: "نصل ميكيلا",
+    question: "محاربة تتفتّح وهي تذبل. فأي عطرٍ يليق بها؟",
+    house: "",
+    product: "ليكيد إيماجينير بلودي وود",
+    why: "يفتتحه النبيذ الأحمر والورد، ثم يتفتّح الكرز وتوت العليق تحتهما: حلاوةٌ ناضجة أكثر من اللازم، جمالٌ بدأ يتحوّل. ويشدّه البلوط وخشب الصندل كنصلٍ مغروسٍ في الأرض.",
+    notes: ["نبيذ أحمر", "ورد", "بنفسج", "كرز", "توت العليق", "بلوط"],
+    price: "1400 د.ل · 100ml",
+    palette: {"g0": "#5c1220", "g1": "#2a0a11", "g2": "#120508", "ink": "#f6e7ea", "soft": "#c99aa4", "acc": "#c84a5c"}
+  },
+  {
+    id: "omar",
+    characterImage: "lore/omar-art.jpg",
+    bottleImages: ["lore/omar-bottle1.jpg"],
+    kicker: "رائحة الأرض التي دافع عنها",
+    character: "عمر المختار",
+    epithet: "أسد الصحراء · شيخ المجاهدين",
+    question: "عشرون عامًا في الجبل الأخضر، وصحراءٌ لم يفرّط فيها. فبأي عطرٍ تُروى تلك الأرض؟",
+    house: "",
+    product: "فراغرنس دو بوا صحراء",
+    why: "وفي القاع عودٌ وخشب صندلٍ وعنبر — دفء الرمل بعد الغروب، وأرضٌ تبقى رائحتها في الثوب.",
+    notes: ["جريب فروت", "مطلق الورد", "إبرة الراعي", "ياسمين", "فلفل أسود", "زعفران"],
+    price: "4700 د.ل · 100ml",
+    palette: {"g0": "#7a4a1c", "g1": "#33200f", "g2": "#140b06", "ink": "#f8efe2", "soft": "#d6b88f", "acc": "#c9973f"}
+  },
+  {
+    id: "ranni",
+    characterImage: "lore/ranni-art.jpg",
+    bottleImages: ["lore/ranni-bottle1.jpg", "lore/ranni-bottle2.jpg"],
+    kicker: "لو كان لها عطر",
+    character: "راني",
+    epithet: "ساحرة الثلج · سيدة القمر المظلم",
+    question: "تركت جسدها لتفلت من الآلهة. فما الذي يبقى عالقًا بدمية؟",
+    house: "",
+    product: "ذا مون فريدريك مال + ليكيد إيماجينير تابي فولان",
+    why: "أما تابي فولان فهو البرد نفسه: سوسنٌ مسحوقٌ وبذور الجزر والألدهيدات على خشب الصندل — سكون الثلج وصمت الدمية.",
+    notes: ["زعفران", "توت العليق", "ليتشي", "برغموت", "بذور الجزر", "ألدهيدات"],
+    price: "5200 د.ل · 100ml",
+    palette: {"g0": "#27467a", "g1": "#131f38", "g2": "#080c16", "ink": "#eaf1fb", "soft": "#9fb6d6", "acc": "#7fa8dd"}
+  },
+  {
+    id: "shahrazad",
+    characterImage: "lore/shahrazad-art.jpg",
+    bottleImages: ["lore/shahrazad-bottle1.jpg", "lore/shahrazad-bottle2.jpg"],
+    kicker: "لو كان لها عطر",
+    character: "شهرزاد",
+    epithet: "راوية ألف ليلة وليلة",
+    question: "ألف ليلة، وحكايةٌ جديدة كل ليلة. فأي عطرٍ يليق بامرأة نجت بالكلام وحده؟",
+    house: "",
+    product: "ذا نايت فريدريك مال + أمواج غايدنس",
+    why: "وغايدنس هي الحكاية: كمثرى ولبانٌ وزعفران وياسمين — الصوت الهادئ الذي أنقذ صاحبته دون سيف.",
+    notes: ["زعفران", "ورد", "عود", "عنبر", "كمثرى", "لبان"],
+    price: "9300 د.ل · 100ml",
+    palette: {"g0": "#6b3a52", "g1": "#301826", "g2": "#150a11", "ink": "#f9ecef", "soft": "#d9aeb8", "acc": "#d8a25f"}
+  },
+  {
+    id: "vangogh",
+    characterImage: "lore/vangogh-art.jpg",
+    bottleImages: ["lore/vangogh-bottle1.jpg", "lore/vangogh-bottle2.jpg"],
+    kicker: "لو كان له عطر",
+    character: "فينسنت فان غوخ",
+    epithet: "رسّام — آرل، ١٨٨٨",
+    question: "سنتان، ومئتا لوحة، ورأسٌ لم يكفّ عن الاشتعال. فماذا يرتدي الحقل، وماذا ترتدي الحمّى؟",
+    house: "",
+    product: "كلايف كريستيان إيمورتيل + ليكيد إيماجينير بوتيه دو ديابل",
+    why: "وبوتيه دو ديابل هي الحمّى: أفسنتينٌ وجِنٌ وبرتقالٌ مُرّ، ثم سروٌ وقرنفل — أخضرُ حادّ، كأشجار السرو التي لم يكفّ عن رسمها.",
+    notes: ["إيمورتيل", "برغموت", "بردي", "فيتيفر", "أفسنتين", "سرو"],
+    price: "3350 د.ل · 50ml",
+    palette: {"g0": "#24386e", "g1": "#101c3a", "g2": "#05080f", "ink": "#fdf6e3", "soft": "#b3c0dd", "acc": "#e9b53a"}
+  },
+];
