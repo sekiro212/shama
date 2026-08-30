@@ -55,6 +55,21 @@ export const CHARACTERS: CharacterEntry[] = [
     palette: {"g0": "#20443c", "g1": "#122420", "g2": "#080f0d", "ink": "#f2f6f2", "soft": "#a9c3b6", "acc": "#d0a45e"}
   },
   {
+    id: "griffith",
+    characterImage: "lore/griffith-art.jpg",
+    bottleImages: ["lore/griffith-bottle1.jpg", "lore/griffith-bottle2.jpg"],
+    kicker: "لو كان له عطر",
+    character: "غريفيث",
+    epithet: "الصقر الأبيض · قائد فرقة الصقر",
+    question: "أرادَ مملكةً تخصّه، وكان ثمنُها كلَّ من أحبّه. فماذا يرتدي كلُّ نصفٍ من ذلك؟",
+    house: "",
+    product: "بارفان دو مارلي فالايا إكسكلوزيف + ذا مون فريدريك مال",
+    why: "وذا مون هو الكسوف: زعفرانٌ وتوتٌ أحمر فوق الورد التركي واللبان، نزولًا إلى العود والجلد والسيبريول — الفاكهة الحمراء تُقرأ دمًا، والجلد هو ما بقي من الحلم.",
+    notes: ["لوز", "زهر البرتقال", "مسك أبيض", "زعفران", "توت أحمر", "جلد"],
+    price: "2950 د.ل · 125ml",
+    palette: {"g0": "#2b3b55", "g1": "#141c28", "g2": "#06090e", "ink": "#f2f5f9", "soft": "#a9b7c9", "acc": "#b8323c"}
+  },
+  {
     id: "grimm",
     characterImage: "lore/grimm-art.jpg",
     bottleImages: ["lore/grimm-bottle1.jpg"],

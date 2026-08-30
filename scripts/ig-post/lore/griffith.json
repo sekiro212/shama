@@ -1,0 +1,43 @@
+{
+  "product_slug": [
+    "parfums-de-marly-valaya-exclusif",
+    "the-moon-frederic-malle"
+  ],
+  "palette": {
+    "G0": "#2b3b55",
+    "G1": "#141c28",
+    "G2": "#06090e",
+    "INK": "#f2f5f9",
+    "SOFT": "#a9b7c9",
+    "ACC": "#b8323c",
+    "BRD": "rgba(184,50,60,.30)",
+    "GLOW0": "rgba(184,50,60,.26)",
+    "GLOW1": "rgba(184,50,60,.06)"
+  },
+  "character_image": "img/griffith.jpg",
+  "name_size": 11,
+  "art_position": "center 24%",
+  "slug_out": "lore-griffith",
+  "series": "SCENT PROFILE · 13",
+  "kicker": "IF HE WORE A PERFUME",
+  "character": "Griffith",
+  "epithet": "The White Hawk · leader of the Band of the Hawk",
+  "quote": "\"I sacrifice.\"",
+  "question": "He wanted a kingdom of his own, and everyone who loved him was the price. What does each half of that wear?",
+  "product_captions": [
+    "THE DREAM",
+    "THE ECLIPSE"
+  ],
+  "note_chips": [
+    "Almond",
+    "Orange Blossom",
+    "White Musk",
+    "Saffron",
+    "Red Berries",
+    "Leather",
+    "Oud",
+    "Cypriol"
+  ],
+  "why_en": "Valaya Exclusif is the dream: almond and bergamot into orange blossom and white flowers, closing on white musk and vanilla — immaculate, aristocratic, the castle a commoner was never meant to want.",
+  "why_ar": "وذا مون هو الكسوف: زعفرانٌ وتوتٌ أحمر فوق الورد التركي واللبان، نزولًا إلى العود والجلد والسيبريول — الفاكهة الحمراء تُقرأ دمًا، والجلد هو ما بقي من الحلم."
+}
