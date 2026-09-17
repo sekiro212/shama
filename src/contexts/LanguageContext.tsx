@@ -47,38 +47,42 @@ function getNestedValue(obj: Record<string, unknown>, path: string): string | un
 const LanguageContext = createContext<LanguageContextType | null>(null);
 
 /**
- * Provider يحتفظ باللغة النشطة ويحفظها ويعرض دالة الترجمة `t()`
- * إضافةً إلى أعلام RTL. الافتراضي هو العربية ما لم يُحفظ اختيار سابق
- * أو تكن لغة المتصفّح إنجليزية صريحة.
+ * Provider يحتفظ باللغة النشطة ويعرض دالة الترجمة `t()` إضافةً إلى أعلام
+ * RTL. الافتراضي هو العربية دائمًا، ولا تُستعمل الإنجليزية إلا إذا بدّلها
+ * الزائر بنفسه — ولغة المتصفّح لا دخل لها.
  */
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  // استعادة آخر لغة مختارة من localStorage.
-  // الافتراضي هو العربية: شمّة متجر ليبي، وأغلب الزوار الجدد عرب — وكان
-  // الافتراضي الإنجليزي يجبرهم على البحث عن زر التبديل أولًا. تُحترم لغة
-  // المتصفّح إن كانت إنجليزية صريحة (للزوار من الخارج).
+  // العربية هي الافتراض غير المشروط، ولا يُخرج عنه إلا تبديلٌ صريح من الزائر.
+  //
+  // كانت لغة المتصفّح تُحترَم سابقًا، فيحصل الزائر ذو المتصفّح الإنجليزي على
+  // الإنجليزية. لكنّ كثيرًا من الليبيين هواتفهم مضبوطة على الإنجليزية وهم
+  // يقرأون العربية، فكان ذلك يعطي أغلب السوق لغةً لا يريدها.
+  //
+  // المفتاح جديد (`shama-lang-choice`) عن قصد: المفتاح القديم كان يُكتب في كل
+  // تحميلٍ للصفحة، فحُفظت "en" لزوّارٍ لم يختاروها قطّ — ولا سبيل للتمييز بين
+  // تلك القيمة وبين اختيارٍ حقيقي. المفتاح الجديد لا يُكتب إلا من `setLanguage`،
+  // فوجودُه يعني اختيارًا صريحًا، ومن اختار الإنجليزية فعلًا يبقى عليها.
   const [language, setLanguageState] = useState<Language>(() => {
-    const saved = localStorage.getItem("shama-language");
-    if (saved === "ar" || saved === "en") return saved;
-    const prefs = navigator.languages ?? [navigator.language];
-    const firstKnown = prefs.find((l) => /^(ar|en)\b/i.test(l));
-    return firstKnown?.toLowerCase().startsWith("en") ? "en" : "ar";
+    const chosen = localStorage.getItem("shama-lang-choice");
+    return chosen === "en" ? "en" : "ar";
   });
 
   // العربية هي اللغة الوحيدة RTL هنا؛ تُغذّي `dir` خاصية عنصر <html>.
   const isRTL = language === "ar";
   const dir = isRTL ? "rtl" : "ltr";
 
-  // تطبيق الاتجاه/اللغة على جذر المستند وحفظ الاختيار بحيث تنقلب
-  // الصفحة بأكملها (خصائص CSS المنطقية والتخطيط) عند العربية.
+  // تطبيق الاتجاه/اللغة على جذر المستند بحيث تنقلب الصفحة بأكملها
+  // (خصائص CSS المنطقية والتخطيط) عند العربية. لا حفظ هنا: الحفظ في
+  // `setLanguage` وحده حتى يبقى المفتاح دليلًا على اختيارٍ صريح.
   useEffect(() => {
     document.documentElement.dir = dir;
     document.documentElement.lang = language;
-    localStorage.setItem("shama-language", language);
   }, [language, dir]);
 
-  /** تبديل اللغة النشطة (يُشغّل الحفظ وتحديث المستند). */
+  /** تبديل اللغة النشطة وتسجيل الاختيار (وهذا الموضع الوحيد الذي يكتب المفتاح). */
   const setLanguage = useCallback((lang: Language) => {
     setLanguageState(lang);
+    localStorage.setItem("shama-lang-choice", lang);
   }, []);
 
   /**

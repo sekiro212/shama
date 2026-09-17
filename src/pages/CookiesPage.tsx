@@ -21,7 +21,7 @@ type Row = {
 // قائمة المفاتيح المخزّنة فعليًا في المتصفّح مع غرض كلٍّ منها وتصنيفه
 const ROWS: Row[] = [
   { keyName: "cart", purposeKey: "rows.cart", category: "catFunctional" },
-  { keyName: "shama-language", purposeKey: "rows.language", category: "catFunctional" },
+  { keyName: "shama-lang-choice", purposeKey: "rows.language", category: "catFunctional" },
   { keyName: "shama-theme", purposeKey: "rows.theme", category: "catFunctional" },
   { keyName: "recently_viewed", purposeKey: "rows.recentlyViewed", category: "catFunctional" },
   { keyName: "wishlist", purposeKey: "rows.wishlist", category: "catFunctional" },
