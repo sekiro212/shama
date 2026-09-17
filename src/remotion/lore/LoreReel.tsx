@@ -21,7 +21,11 @@ import {
 import { BEAT_START, BEATS, FALLBACK_PALETTE, LorePalette } from "./theme";
 import { getFonts } from "../fonts";
 
-export interface LoreReelProps {
+/* نوعٌ مُستعار (type) لا واجهة (interface) عن قصد: قيد Remotion على
+   <Composition> هو `Props extends Record<string, unknown>`، وTypeScript
+   يمنح فهرسًا ضمنيًّا للأنواع المُستعارة دون الواجهات. تحويله إلى واجهة
+   يُفشل الاستنتاج فتتحوّل الخصائص إلى Record<string, unknown> ويسقط البناء. */
+export type LoreReelProps = {
   language: "ar" | "en";
   characterImage: string;
   bottleImages: string[]; // واحدة أو اثنتان — بعض الشخصيات مبنيّة على ثنائية
@@ -34,7 +38,7 @@ export interface LoreReelProps {
   why: string;
   notes: string[];
   price: string;
-}
+};
 
 const asset = (p: string) => (p.startsWith("http") ? p : staticFile(p));
 

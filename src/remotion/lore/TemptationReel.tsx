@@ -39,7 +39,11 @@ export const T_START = {
 export const T_TOTAL =
   T_BEATS.setup + T_BEATS.snake + T_BEATS.payoff + T_BEATS.cta;
 
-export interface TemptationReelProps {
+/* نوعٌ مُستعار (type) لا واجهة (interface) عن قصد: قيد Remotion على
+   <Composition> هو `Props extends Record<string, unknown>`، وTypeScript
+   يمنح فهرسًا ضمنيًّا للأنواع المُستعارة دون الواجهات. تحويله إلى واجهة
+   يُفشل الاستنتاج فتتحوّل الخصائص إلى Record<string, unknown> ويسقط البناء. */
+export type TemptationReelProps = {
   setupA: string; // «عطر واحد يكفي»
   setupB: string; // «بس»
   payoff: string; // «لا، ما يكفيش!»
@@ -48,7 +52,7 @@ export interface TemptationReelProps {
   bg: string;
   ink: string;
   acc: string;
-}
+};
 
 const asset = (p: string) => (p.startsWith("http") ? p : staticFile(p));
 

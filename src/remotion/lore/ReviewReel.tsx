@@ -52,7 +52,11 @@ export interface ReviewLine {
   body: string;
 }
 
-export interface ReviewReelProps {
+/* نوعٌ مُستعار (type) لا واجهة (interface) عن قصد: قيد Remotion على
+   <Composition> هو `Props extends Record<string, unknown>`، وTypeScript
+   يمنح فهرسًا ضمنيًّا للأنواع المُستعارة دون الواجهات. تحويله إلى واجهة
+   يُفشل الاستنتاج فتتحوّل الخصائص إلى Record<string, unknown> ويسقط البناء. */
+export type ReviewReelProps = {
   language: "ar" | "en";
   bottleImage: string;
   hook: string;
@@ -61,7 +65,7 @@ export interface ReviewReelProps {
   lines: ReviewLine[]; // الفتحة · على البشرة · الثبات · متى · الحكم
   price: string;
   size: string;
-}
+};
 
 const asset = (p: string) => (p.startsWith("http") ? p : staticFile(p));
 
