@@ -11,9 +11,9 @@ const PASSWORD = process.env.ADMIN_TEST_PASSWORD;
 // src/pages/AdminRedirect.tsx في وضع التطوير)، وكروميوم يحلّ تلقائيًا أي
 // *.localhost إلى loopback فيخدمه نفس خادم Vite. مساراته جذرية (بلا بادئة
 // /admin) — صفحة المشاهير هي /influencers وليست /admin/influencers.
-// المنفذ 5173 مثبّت يدويًا ليطابق baseURL في playwright.config.ts — حدِّثه
+// المنفذ 5179 مثبّت يدويًا ليطابق baseURL في playwright.config.ts — حدِّثه
 // هناك أولًا إذا تغيّر هذا المنفذ.
-const ADMIN_BASE = "http://admin.localhost:5173";
+const ADMIN_BASE = "http://admin.localhost:5179";
 const INFLUENCERS_URL = `${ADMIN_BASE}/influencers`;
 
 // تُتخطّى المجموعة كاملة بلا بيانات دخول، حتى لا تمر بصمت دون تشغيل فعلي.
