@@ -46,12 +46,44 @@ function writeSnapshot(route, html) {
   fs.writeFileSync(path.join(dir, "index.html"), html);
 }
 
+/**
+ * Snapshot one route.
+ *
+ * Deliberately NOT `waitUntil: "networkidle"`: the app opens a Supabase
+ * realtime socket that never closes, so idle frequently never fires and the
+ * route dies on timeout. A run that way lost 150 of 325 pages — including the
+ * home page — and still exited 0. Wait for React to paint real text instead,
+ * then treat network quiet as a best-effort bonus.
+ */
 async function snapshot(page, route) {
   const url = `${BASE}/${route}`;
-  await page.goto(url, { waitUntil: "networkidle", timeout: 45000 });
-  // give lazy chunks + data a beat to paint
+  await page.goto(url, { waitUntil: "domcontentloaded", timeout: 45000 });
+
+  // React has mounted and painted something with actual content in it.
+  await page.waitForFunction(
+    () => {
+      const root = document.querySelector("#root");
+      return !!root && root.children.length > 0 && document.body.innerText.trim().length > 200;
+    },
+    null,
+    { timeout: 45000 }
+  );
+
+  // Data fetches usually settle right after paint; if the realtime socket keeps
+  // the connection busy, carry on rather than failing the page.
+  await page.waitForLoadState("networkidle", { timeout: 8000 }).catch(() => {});
   await page.waitForTimeout(400);
   return page.content();
+}
+
+/** One retry: most failures here are load-contention timeouts, not bad routes. */
+async function snapshotWithRetry(page, route) {
+  try {
+    return await snapshot(page, route);
+  } catch (e) {
+    await page.waitForTimeout(1500);
+    return await snapshot(page, route);
+  }
 }
 
 async function main() {
@@ -66,7 +98,7 @@ async function main() {
     while (queue.length) {
       const route = queue.shift();
       try {
-        const html = await snapshot(page, route);
+        const html = await snapshotWithRetry(page, route);
         writeSnapshot(route, html);
         done++;
       } catch (e) {
@@ -83,7 +115,8 @@ async function main() {
   if (!PRODUCTS_ONLY) {
     const page = await ctx.newPage();
     try {
-      writeSnapshot("", await snapshot(page, ""));
+      writeSnapshot("", await snapshotWithRetry(page, ""));
+      done++;
       console.log("  root (home) snapshot written");
     } catch (e) {
       console.error(`FAIL root: ${e.message.split("\n")[0]}`);
@@ -93,7 +126,15 @@ async function main() {
   }
 
   await browser.close();
-  console.log(`\nPRERENDER done: ${done + 1} pages, ${fail} failed`);
+  console.log(`\nPRERENDER done: ${done} pages, ${fail} failed`);
+
+  // Exit non-zero on any failure so build-deploy.sh (set -e) refuses to zip a
+  // half-rendered site. Shipping one is an SEO regression that is invisible
+  // until search traffic drops.
+  if (fail > 0) {
+    console.error(`PRERENDER INCOMPLETE: ${fail} route(s) failed — not safe to deploy`);
+    process.exit(1);
+  }
 }
 
 main().catch((e) => {
