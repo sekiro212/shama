@@ -180,10 +180,14 @@ export const fetchProducts = async (
 
     // استخدام head:true مع count:"exact" يُعيد عدد الصفوف فقط (بدون الصفوف نفسها)
     // حتى نحسب عدد الصفحات بتكلفة منخفضة.
+    // استبعاد type=gift: أطقم الهدايا يصنعها الزبائن بأنفسهم في /gift-sets
+    // وتحمل أسماءهم ("mostafa's Gift Set")، فليست جزءًا من كتالوج العطور.
+    // صفحة الهدايا تجلبها وحدها عبر filterProducts({ type: "gift" }).
     const { count, error: countError } = await supabase
       .from("perfumes")
       .select("id", { count: "exact", head: true })
-      .eq("is_active", true);
+      .eq("is_active", true)
+      .neq("type", "gift");
 
     if (countError) {
       console.error("Error fetching product count:", countError);
@@ -195,6 +199,7 @@ export const fetchProducts = async (
       .from("perfumes")
       .select("*")
       .eq("is_active", true)
+      .neq("type", "gift")
       .order("created_at", { ascending: false })
       .range(from, to);
 
@@ -312,10 +317,13 @@ export const searchProducts = async (query: string): Promise<Product[]> => {
   try {
     // استخدام .or() مع شرطي ilike = مطابقة جزئية غير حسّاسة لحالة الأحرف على الاسم
     // الإنجليزي أو العربي. تجعل علامات %...% البحث من نوع "يحتوي على".
+    // نفس سبب الاستبعاد في fetchProducts: البحث عن عطر يجب ألّا يُظهر
+    // طقم هدية باسم زبون آخر.
     const { data, error } = await supabase
       .from("perfumes")
       .select("*")
       .eq("is_active", true)
+      .neq("type", "gift")
       .or(`name.ilike.%${query}%,name_ar.ilike.%${query}%`)
       .order("name");
 
