@@ -50,6 +50,7 @@ const ContactPage = lazy(() => import("@/pages/ContactPage"));
 const ReviewsPage = lazy(() => import("@/pages/ReviewsPage"));
 const CheckoutPage = lazy(() => import("@/pages/CheckoutPage"));
 const OrderSuccessPage = lazy(() => import("@/pages/OrderSuccessPage"));
+const NotFoundPage = lazy(() => import("@/pages/NotFoundPage"));
 
 /**
  * مكوّن غلاف يضيف حركة انتقالية ناعمة عند الدخول والخروج من كل صفحة.
@@ -118,6 +119,9 @@ function AnimatedRoutes({ isCartOpen, setIsCartOpen }: { isCartOpen: boolean; se
               <Route path="/reviews" element={<PageTransition><ReviewsPage /></PageTransition>} />
               <Route path="/checkout" element={<PageTransition><CheckoutPage /></PageTransition>} />
               <Route path="/order-success/:orderId" element={<PageTransition><OrderSuccessPage /></PageTransition>} />
+              {/* المسار الاحتياطي، ويجب بقاؤه الأخير: بدونه كان أي عنوان
+                  غير معروف يعرض صفحة بيضاء بين الهيدر والفوتر. */}
+              <Route path="*" element={<PageTransition><NotFoundPage /></PageTransition>} />
             </Routes>
           </Suspense>
         </AnimatePresence>
