@@ -43,10 +43,12 @@ test.describe("Cart & Checkout", () => {
 
   test("cart button opens cart sidebar", async ({ page }) => {
     await page.getByRole("button", { name: /cart/i }).click();
-    // Cart sidebar/sheet should open
+    // Radix renders the sheet as a dialog. The previous selector looked for a
+    // "SheetContent" class, which is a component name and never reaches the DOM.
+    await expect(page.getByRole("dialog")).toBeVisible({ timeout: 5000 });
     await expect(
-      page.locator('[data-radix-scroll-area-viewport], [class*="SheetContent"], [class*="cart"]').first()
-    ).toBeVisible({ timeout: 5000 });
+      page.getByRole("dialog").getByText(/shopping cart|السلة/i).first()
+    ).toBeVisible();
   });
 
   test("empty cart shows empty state message", async ({ page }) => {
@@ -83,8 +85,9 @@ test.describe("Cart & Checkout", () => {
     }
   });
 
-  test("checkout dialog opens from cart", async ({ page }) => {
-    // First add something to cart via localStorage to bypass needing real products
+  test("checkout sends a guest to login, keeping a return path", async ({ page }) => {
+    // Checkout stopped being a dialog in fbe3f03, which made it a real page
+    // behind an auth gate. Both older tests here still described the dialog.
     await page.addInitScript(() => {
       localStorage.setItem(
         "cart",
@@ -106,24 +109,21 @@ test.describe("Cart & Checkout", () => {
     await page.goto("/");
     await page.waitForLoadState("domcontentloaded");
 
-    // Open cart
     await page.getByRole("button", { name: /cart/i }).click();
-    await page.waitForTimeout(800);
+    await expect(page.getByRole("dialog")).toBeVisible();
 
-    // Proceed to checkout button
-    const checkoutBtn = page.getByRole("button", { name: /checkout|proceed/i });
-    if (await checkoutBtn.count() > 0) {
-      await checkoutBtn.first().click();
-      await page.waitForTimeout(800);
-      // Checkout dialog / form should appear
-      const formVisible =
-        (await page.locator('[role="dialog"]').count()) > 0 ||
-        (await page.getByLabel(/first name|name/i).count()) > 0;
-      expect(formVisible).toBeTruthy();
-    }
+    await page.getByRole("button", { name: /checkout|proceed/i }).first().click();
+
+    await expect(page).toHaveURL(/\/login/);
+    await expect(
+      page.getByRole("textbox", { name: /email/i })
+        .or(page.getByPlaceholder(/email|your@email/i)).first()
+    ).toBeVisible();
   });
 
-  test("checkout form has all required fields", async ({ page }) => {
+  test("the cart survives the login redirect", async ({ page }) => {
+    // Bouncing to login must not drop the cart, or the guest returns to an
+    // empty basket and the sale is gone.
     await page.addInitScript(() => {
       localStorage.setItem(
         "cart",
@@ -144,29 +144,12 @@ test.describe("Cart & Checkout", () => {
 
     await page.goto("/");
     await page.waitForLoadState("domcontentloaded");
-
     await page.getByRole("button", { name: /cart/i }).click();
-    await page.waitForTimeout(500);
+    await page.getByRole("button", { name: /checkout|proceed/i }).first().click();
+    await expect(page).toHaveURL(/\/login/);
 
-    const checkoutBtn = page.getByRole("button", { name: /checkout|proceed/i });
-    if (await checkoutBtn.count() === 0) {
-      test.skip();
-      return;
-    }
-    await checkoutBtn.first().click();
-    await page.waitForTimeout(800);
-
-    // Check for form fields
-    const dialog = page.locator('[role="dialog"]');
-    if (await dialog.count() === 0) {
-      test.skip();
-      return;
-    }
-
-    await expect(dialog.getByPlaceholder(/first name/i).or(dialog.getByLabel(/first name/i))).toBeVisible();
-    await expect(dialog.getByPlaceholder(/last name/i).or(dialog.getByLabel(/last name/i))).toBeVisible();
-    await expect(dialog.getByPlaceholder(/email/i).or(dialog.getByLabel(/email/i))).toBeVisible();
-    await expect(dialog.getByPlaceholder(/phone/i).or(dialog.getByLabel(/phone/i))).toBeVisible();
+    const cart = await page.evaluate(() => localStorage.getItem("cart"));
+    expect(cart).toContain("test-product-1");
   });
 
   test("city dropdown loads Vanex cities from mocked API", async ({ page }) => {

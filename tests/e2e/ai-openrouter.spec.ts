@@ -29,7 +29,7 @@ async function interceptOpenRouter(
   page: Page,
   handler: (body: Record<string, unknown>) => { status?: number; json?: unknown; sse?: string }
 ) {
-  await page.route("**/openrouter.ai/api/v1/chat/completions", async (route: Route) => {
+  await page.route("**/functions/v1/ai-proxy", async (route: Route) => {
     const postBody = JSON.parse(route.request().postData() || "{}");
     const result = handler(postBody);
 
@@ -141,9 +141,9 @@ test.describe("AI Migration — OpenRouter Integration", () => {
       await expect(page.locator("text=Oud collection").first()).toBeVisible({ timeout: 5000 });
     });
 
-    test("chatbot request includes correct OpenRouter headers", async ({ page }) => {
+    test("chatbot request carries no OpenRouter credential", async ({ page }) => {
       let headers: Record<string, string> = {};
-      await page.route("**/openrouter.ai/api/v1/chat/completions", async (route) => {
+      await page.route("**/functions/v1/ai-proxy", async (route) => {
         headers = route.request().headers();
         await route.fulfill({
           status: 200,
@@ -169,8 +169,11 @@ test.describe("AI Migration — OpenRouter Integration", () => {
       await page.waitForTimeout(3000);
 
       if (Object.keys(headers).length > 0) {
-        expect(headers["http-referer"]).toBe("https://shama.ly");
-        expect(headers["x-title"]).toBe("Shama Perfumes");
+        // The OpenRouter credential must never leave the browser. HTTP-Referer
+        // and X-Title are OpenRouter attribution and are now attached inside
+        // the edge function, so they are deliberately absent here.
+        expect(headers["authorization"] ?? "").not.toMatch(/sk-or-/);
+        expect(JSON.stringify(headers)).not.toMatch(/sk-or-/);
       }
     });
   });
@@ -331,16 +334,16 @@ test.describe("AI Migration — OpenRouter Integration", () => {
   });
 
   test.describe("OpenRouter request format validation", () => {
-    test("all AI requests use correct model and headers", async ({ page }) => {
+    test("no AI request leaks a credential from the browser", async ({ page }) => {
       const requests: { model: string; hasReferer: boolean; hasTitle: boolean }[] = [];
 
-      await page.route("**/openrouter.ai/api/v1/chat/completions", async (route) => {
+      await page.route("**/functions/v1/ai-proxy", async (route) => {
         const body = JSON.parse(route.request().postData() || "{}");
         const headers = route.request().headers();
         requests.push({
           model: body.model,
-          hasReferer: headers["http-referer"] === "https://shama.ly",
-          hasTitle: headers["x-title"] === "Shama Perfumes",
+          hasReferer: !/sk-or-/.test(JSON.stringify(headers)),
+          hasTitle: !/sk-or-/.test(route.request().postData() || ""),
         });
 
         // Return generic response
@@ -386,7 +389,7 @@ test.describe("AI Migration — OpenRouter Integration", () => {
   test.describe("Graceful fallback when API key missing", () => {
     test("pages render without errors when no API key is set", async ({ page }) => {
       // Without mocking OpenRouter, calls will fail — but the app should handle gracefully
-      await page.route("**/openrouter.ai/**", (route) => {
+      await page.route("**/functions/v1/ai-proxy", (route) => {
         route.fulfill({ status: 401, body: JSON.stringify({ error: "unauthorized" }) });
       });
 

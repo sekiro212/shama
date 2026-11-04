@@ -41,10 +41,14 @@ test.describe("Navigation", () => {
     await expect(page).toHaveURL(/\/$/);
   });
 
-  test("order tracking page loads", async ({ page }) => {
+  test("an unknown URL shows the 404 page, not a blank one", async ({ page }) => {
+    // /track-order was a real route until fbe3f03 replaced it with the
+    // login-gated /my-orders, so stale links to it still arrive.
     await page.goto("/track-order");
     await page.waitForLoadState("domcontentloaded");
-    await expect(page.locator("body")).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await expect(page.getByRole("link", { name: /المجموعة|collection/i }).first())
+      .toBeVisible();
   });
 
   test("wishlist page loads", async ({ page }) => {
