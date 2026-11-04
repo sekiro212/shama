@@ -27,19 +27,30 @@ export interface SmartSearchResult {
 }
 
 // --- إعدادات OpenRouter ---
-// مفتاح الـ API يأتي من متغير بيئة Vite (يجب أن يبدأ بـ VITE_ لكي يُتاح داخل حزمة المتصفح).
-const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
-const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+// لا يُستعمل مفتاح OpenRouter هنا إطلاقًا. كان سابقًا يُقرأ من
+// VITE_OPENROUTER_API_KEY، وVite يحقن كل متغيّر VITE_* نصًّا صريحًا داخل حزمة
+// المتصفّح — فكان المفتاح يُشحن داخل dist/assets/index-*.js، يستطيع أي زائر
+// استخراجه من أدوات المطوّر وإنفاق رصيد الحساب.
+//
+// الطلبات تمرّ الآن عبر دالة طرفية (supabase/functions/ai-proxy) تحتفظ
+// بالمفتاح في بيئتها وحدها. المتصفّح يرسل الرسائل فقط.
+const AI_PROXY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-proxy`;
+// مفتاح anon عام بطبيعته (محميّ بسياسات RLS) ومطلوب لاستدعاء الدوال الطرفية.
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// عَلَم تهيئة، لا سرّ: هل الذكاء الاصطناعي مُهيّأ أصلًا؟
+const AI_ENABLED = Boolean(
+  import.meta.env.VITE_SUPABASE_URL && SUPABASE_ANON_KEY
+);
 // النموذج الافتراضي للأغراض العامة: روبوت المحادثة، البحث، الأوصاف، الاختبار.
 const OPENROUTER_MODEL = "openai/gpt-5.2";
 // نموذج مخصّص لتدقيق التقييمات — يُستخدم مصنّف أكثر صرامة في قرارات الأمان.
 const OPENROUTER_MODERATION_MODEL = "anthropic/claude-sonnet-4-6";
-// الترويستان HTTP-Referer / X-Title هما اصطلاح من OpenRouter لنسب التطبيق في لوحتهم.
+// ترويسات الوسيط. ترويستا HTTP-Referer / X-Title تُضافان داخل الدالة الطرفية
+// لأنّهما تخصّان OpenRouter لا نحن.
 const OPENROUTER_HEADERS: Record<string, string> = {
   "Content-Type": "application/json",
-  "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-  "HTTP-Referer": "https://shama.ly",
-  "X-Title": "Shama Perfumes",
+  "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+  "apikey": SUPABASE_ANON_KEY,
 };
 
 /**
@@ -89,9 +100,9 @@ async function callOpenRouter(
   config: { temperature: number; maxTokens: number; model?: string }
 ): Promise<string | null> {
   // لا يوجد مفتاح API -> نتصرّف كأن "الذكاء الاصطناعي غير متاح" بدل إطلاق خطأ.
-  if (!OPENROUTER_API_KEY) return null;
+  if (!AI_ENABLED) return null;
 
-  const response = await fetch(OPENROUTER_URL, {
+  const response = await fetch(AI_PROXY_URL, {
     method: "POST",
     headers: OPENROUTER_HEADERS,
     body: JSON.stringify({
@@ -126,9 +137,9 @@ async function* callOpenRouterStream(
   messages: { role: string; content: string }[],
   config: { temperature: number; maxTokens: number }
 ): AsyncGenerator<string> {
-  if (!OPENROUTER_API_KEY) return;
+  if (!AI_ENABLED) return;
 
-  const response = await fetch(OPENROUTER_URL, {
+  const response = await fetch(AI_PROXY_URL, {
     method: "POST",
     headers: OPENROUTER_HEADERS,
     body: JSON.stringify({
@@ -291,7 +302,7 @@ export async function chatWithAI(
   userMessage: string,
   conversationHistory: { role: "user" | "model"; text: string }[]
 ): Promise<string> {
-  if (!OPENROUTER_API_KEY) {
+  if (!AI_ENABLED) {
     return "I'm currently unavailable. Please make sure the AI service is configured with a valid API key.";
   }
 
@@ -329,7 +340,7 @@ export async function* chatWithAIStream(
   userMessage: string,
   conversationHistory: { role: "user" | "model"; text: string }[]
 ): AsyncGenerator<string> {
-  if (!OPENROUTER_API_KEY) {
+  if (!AI_ENABLED) {
     yield "I'm currently unavailable. Please make sure the AI service is configured with a valid API key.";
     return;
   }
@@ -365,7 +376,7 @@ export async function* chatWithAIStream(
  * @returns المنتجات المطابقة (حتى 6 تقريباً)، أو [] إذا كان الذكاء مُعطّلاً أو لا تطابق.
  */
 export async function aiSearch(query: string): Promise<Product[]> {
-  if (!OPENROUTER_API_KEY) return [];
+  if (!AI_ENABLED) return [];
 
   try {
     const productContext = await buildProductContext();
@@ -404,7 +415,7 @@ export async function aiSearch(query: string): Promise<Product[]> {
  * @returns مصفوفة {product, reason, matchScore} مرتّبة تنازلياً بالدرجة؛ [] عند الفشل/عدم التطابق.
  */
 export async function smartSearch(query: string): Promise<SmartSearchResult[]> {
-  if (!OPENROUTER_API_KEY) return [];
+  if (!AI_ENABLED) return [];
 
   if (!query.trim()) return [];
 
@@ -502,7 +513,7 @@ export async function generateProductDescription(
   notes: { top: string[]; middle: string[]; base: string[] },
   gender?: string
 ): Promise<string> {
-  if (!OPENROUTER_API_KEY) {
+  if (!AI_ENABLED) {
     return "AI service is not configured. Please add your OpenRouter API key.";
   }
 
@@ -549,7 +560,7 @@ export async function evaluateReview(
   productName: string
 ): Promise<ReviewEvaluation> {
   // لا ذكاء اصطناعي مُهيّأ -> نلجأ للمراجعة اليدوية (لا نوافق تلقائياً بشكل أعمى).
-  if (!OPENROUTER_API_KEY) {
+  if (!AI_ENABLED) {
     return { decision: "pending", reason: "AI moderator unavailable — manual review required." };
   }
 
@@ -654,7 +665,7 @@ export async function getQuizRecommendations(
 ): Promise<
   { name: string; matchScore: number; reason: string }[]
 > {
-  if (!OPENROUTER_API_KEY) return [];
+  if (!AI_ENABLED) return [];
 
   try {
     const productContext = await buildProductContext();
@@ -724,7 +735,7 @@ export async function generateGiftImage(
   prompt: string,
   productImageUrls: string[]
 ): Promise<string | null> {
-  if (!OPENROUTER_API_KEY) return null;
+  if (!AI_ENABLED) return null;
 
   // نبني محتوى متعدد الوسائط: نص الـ prompt المفصّل + صور المنتجات كمرجع بصري.
   const content: object[] = [{ type: "text", text: prompt }];
@@ -734,7 +745,7 @@ export async function generateGiftImage(
   });
 
   try {
-    const response = await fetch(OPENROUTER_URL, {
+    const response = await fetch(AI_PROXY_URL, {
       method: "POST",
       headers: OPENROUTER_HEADERS,
       body: JSON.stringify({
@@ -791,7 +802,7 @@ export async function generateGiftImage(
 }
 
 export async function getGiftSuggestions(description: string): Promise<Product[]> {
-  if (!OPENROUTER_API_KEY) return [];
+  if (!AI_ENABLED) return [];
   try {
     const { products } = await fetchProducts(1, 100);
     const productContext = products
@@ -854,7 +865,7 @@ export async function generateTimelineDescriptions(
     middle: notes.middle?.join(", ") || "—",
     base: notes.base?.join(", ") || "—",
   };
-  if (!OPENROUTER_API_KEY) return fallback;
+  if (!AI_ENABLED) return fallback;
 
   try {
     const lang = language === "ar" ? "Arabic" : "English";
@@ -900,7 +911,7 @@ export interface ScentDNACard {
 export async function getScentDNACard(
   answers: Record<string, string>
 ): Promise<ScentDNACard | null> {
-  if (!OPENROUTER_API_KEY) return null;
+  if (!AI_ENABLED) return null;
 
   try {
     const prompt = `A person answered a fragrance quiz:

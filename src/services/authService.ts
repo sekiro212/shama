@@ -38,49 +38,49 @@ export const authenticateAdmin = async (
   credentials: LoginCredentials
 ): Promise<AuthResponse> => {
   try {
-    // مطابقة اسم المستخدم وكلمة المرور معًا مع شرط أن يكون الحساب مفعّلًا (is_active)
-    const { data, error } = await supabase
-      .from("users")
-      .select("*")
-      .eq("username", credentials.username)
-      .eq("password", credentials.password)
-      .eq("is_active", true)
-      .single();
-
-    if (error) {
-      // الرمز PGRST116 يعني أن single() لم يجد أي صف مطابق => بيانات دخول غير صحيحة
-      if (error.code === "PGRST116") {
-        return {
-          success: false,
-          error: "Invalid username or password",
-        };
+    // التحقق يجري في دالة طرفية (supabase/functions/admin-auth) بمفتاح الخدمة.
+    //
+    // كان هذا الاستعلام يعمل في المتصفّح مباشرةً:
+    //   .from("users").eq("username", …).eq("password", …)
+    // وهو يستلزم أن يكون جدول users مقروءًا بمفتاح anon — والمفتاح منشور داخل
+    // حزمة الموقع، فكان أي زائر يستطيع قراءة كل صفوف المسؤولين بكلمات مرورها
+    // نصًّا صريحًا. كلمة المرور الآن لا تغادر قاعدة البيانات.
+    const res = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-auth`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({
+          username: credentials.username,
+          password: credentials.password,
+        }),
       }
+    );
+
+    const body = (await res.json().catch(() => null)) as AuthResponse | null;
+
+    if (!res.ok || !body?.success || !body.user) {
       return {
         success: false,
-        error: "Authentication failed",
+        error: body?.error ?? "Invalid username or password",
       };
     }
 
-    if (!data) {
-      return {
-        success: false,
-        error: "Invalid username or password",
-      };
-    }
-
-    // تخزين الجلسة في localStorage مع طابع زمني يُستخدم لاحقًا لحساب انتهاء الصلاحية
+    // تخزين الجلسة في localStorage مع طابع زمني يُستخدم لاحقًا لحساب انتهاء الصلاحية.
+    // الكائن المُخزَّن لا يحوي كلمة المرور — الدالة الطرفية تحذفها قبل الإرجاع.
     localStorage.setItem(
       "admin_auth",
       JSON.stringify({
-        user: data,
+        user: body.user,
         timestamp: new Date().getTime(),
       })
     );
 
-    return {
-      success: true,
-      user: data,
-    };
+    return { success: true, user: body.user };
   } catch (error) {
     console.error("Authentication error:", error);
     return {
