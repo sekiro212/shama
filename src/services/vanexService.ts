@@ -3,20 +3,48 @@
  * ملف: vanexService.ts
  * الغرض: التكامل مع واجهة برمجة شركة التوصيل Vanex (REST API).
  * يغطّي: جلب المدن والمناطق الفرعية، إنشاء شحنة، تتبّع شحنة، إلغاء شحنة، واسترجاعها.
- * المصادقة تتم عبر رمز Bearer (VANEX_TOKEN) في ترويسة كل طلب يتطلّب صلاحية.
+ * المصادقة تجري داخل الدالة الطرفية vanex-proxy؛ المتصفّح لا يرى رمز Vanex.
  * ===========================================================================
  */
 import { Order } from "./ordersService";
 
-// العنوان الأساسي لواجهة Vanex والرمز السري المقروء من متغيّرات البيئة (env)
-const VANEX_BASE = "https://app.vanex.ly/api/v1";
-const VANEX_TOKEN = import.meta.env.VITE_VANEX_TOKEN as string;
+// رمز Vanex لا يُقرأ هنا إطلاقًا. كان يأتي من VITE_VANEX_TOKEN، وVite يحقن كل
+// متغيّر VITE_* نصًّا صريحًا في حزمة المتصفّح — فكان الرمز منشورًا داخل
+// dist/assets/index-*.js. وهو رمز لا يكلّف مالًا عند تسريبه فحسب، بل يسمح
+// بإنشاء الشحنات وإلغائها واسترجاعها على الحساب.
+//
+// كل النداءات تمرّ الآن عبر supabase/functions/vanex-proxy التي تحتفظ بالرمز.
+const VANEX_PROXY_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vanex-proxy`;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// ترويسات الطلبات المصادَق عليها (نوع المحتوى JSON + رمز Bearer للمصادقة)
-const vanexHeaders = () => ({
-  "Content-Type": "application/json",
-  Authorization: `Bearer ${VANEX_TOKEN}`,
-});
+/**
+ * الرمز الموقَّع الصادر عن admin-auth عند تسجيل دخول المسؤول. العمليات
+ * المُعدِّلة (إنشاء/إلغاء/استرجاع) ترفضها الدالة الطرفية بدونه.
+ */
+function adminToken(): string | undefined {
+  try {
+    const raw = localStorage.getItem("admin_auth");
+    return raw ? (JSON.parse(raw).token as string | undefined) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** نداء واحد للوسيط؛ يُعيد الاستجابة الخام ليتولّى كل مستدعٍ تفسيرها. */
+async function callVanexProxy(
+  action: "cities" | "track" | "create" | "cancel" | "recall",
+  body: Record<string, unknown> = {},
+): Promise<Response> {
+  return fetch(VANEX_PROXY_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      apikey: SUPABASE_ANON_KEY,
+    },
+    body: JSON.stringify({ action, adminToken: adminToken(), ...body }),
+  });
+}
 
 export interface VanexLocation {
   id: number;
@@ -83,9 +111,7 @@ export interface VanexCreateResult {
 /** Fetch all Vanex cities (requires auth) */
 export const fetchVanexCities = async (): Promise<VanexCity[]> => {
   try {
-    const res = await fetch(`${VANEX_BASE}/city/all`, {
-      headers: vanexHeaders(),
-    });
+    const res = await callVanexProxy("cities");
     // عند فشل الطلب (حالة غير 2xx) نُعيد مصفوفة فارغة بدل رمي خطأ
     if (!res.ok) return [];
     const json = await res.json();
@@ -155,11 +181,7 @@ export const createVanexPackage = async (
       commission_by: "customer",
     };
 
-    const res = await fetch(`${VANEX_BASE}/customer/package`, {
-      method: "POST",
-      headers: vanexHeaders(),
-      body: JSON.stringify(payload),
-    });
+    const res = await callVanexProxy("create", { package: payload });
 
     const json = await res.json();
 
@@ -199,7 +221,7 @@ export const trackVanexPackage = async (
 ): Promise<VanexTracking | null> => {
   try {
     // ترميز الرمز داخل الرابط لتفادي مشاكل المحارف الخاصة
-    const res = await fetch(`${VANEX_BASE}/tracking?code=${encodeURIComponent(code)}`);
+    const res = await callVanexProxy("track", { code });
     if (!res.ok) return null;
     const json = await res.json();
     const pkg = json.data?.package;
@@ -239,10 +261,7 @@ export const cancelVanexPackage = async (
   packageId: number,
 ): Promise<{ cancelled: boolean; cancelled_at?: string } | null> => {
   try {
-    const res = await fetch(`${VANEX_BASE}/customer/package/${packageId}`, {
-      method: "DELETE",
-      headers: vanexHeaders(),
-    });
+    const res = await callVanexProxy("cancel", { packageId });
     const json = await res.json();
     if (!res.ok) {
       console.error("Vanex cancelPackage error:", json);
@@ -267,11 +286,7 @@ export const recallVanexPackage = async (
 ): Promise<boolean> => {
   try {
     // إرسال السبب في جسم الطلب فقط إن وُجد، وإلا جسم فارغ
-    const res = await fetch(`${VANEX_BASE}/customer/package/${packageId}/recall`, {
-      method: "PUT",
-      headers: vanexHeaders(),
-      body: JSON.stringify(reason ? { reason } : {}),
-    });
+    const res = await callVanexProxy("recall", { packageId, reason });
     if (!res.ok) {
       const json = await res.json().catch(() => ({}));
       console.error("Vanex recallPackage error:", json);

@@ -19,6 +19,7 @@
 // them — see the migration notes.
 import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
 import { getServiceClient } from "../_shared/supabase-client.ts";
+import { issueAdminToken } from "../_shared/admin-token.ts";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -79,5 +80,10 @@ serve(async (req) => {
 
   // Never return the password column to the client.
   const { password: _omit, ...user } = data;
-  return json({ success: true, user });
+
+  // Signed proof of this check, for functions that perform admin-only actions
+  // (vanex-proxy). A localStorage flag cannot authorise anything server-side.
+  const token = await issueAdminToken(data.id);
+
+  return json({ success: true, user, token });
 });

@@ -26,6 +26,8 @@ export interface LoginCredentials {
 export interface AuthResponse {
   success: boolean;
   user?: User;
+  /** رمز موقَّع من admin-auth تتحقّق منه الدوال الطرفية للعمليات الإدارية. */
+  token?: string;
   error?: string;
 }
 
@@ -72,15 +74,18 @@ export const authenticateAdmin = async (
 
     // تخزين الجلسة في localStorage مع طابع زمني يُستخدم لاحقًا لحساب انتهاء الصلاحية.
     // الكائن المُخزَّن لا يحوي كلمة المرور — الدالة الطرفية تحذفها قبل الإرجاع.
+    // يُحفظ الرمز مع الجلسة: vanex-proxy ترفض الإنشاء/الإلغاء/الاسترجاع بدونه،
+    // فعَلَم في localStorage وحده لا يُثبت شيئًا للخادم.
     localStorage.setItem(
       "admin_auth",
       JSON.stringify({
         user: body.user,
+        token: body.token,
         timestamp: new Date().getTime(),
       })
     );
 
-    return { success: true, user: body.user };
+    return { success: true, user: body.user, token: body.token };
   } catch (error) {
     console.error("Authentication error:", error);
     return {
