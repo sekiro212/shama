@@ -127,18 +127,20 @@ test.describe("AI Migration — OpenRouter Integration", () => {
       await page.waitForTimeout(600);
 
       // Find the chat input (ref={inputRef}) inside the chatbot panel
-      const chatInput = page.locator("input[type='text']").last();
+      const chatInput = page.getByRole("textbox", { name: "Ask about fragrances..." });
       if (await chatInput.count() === 0) { test.skip(); return; }
 
       await chatInput.fill("Recommend something for summer");
       await chatInput.press("Enter");
 
-      // Wait for the streamed response
-      await page.waitForTimeout(3000);
-      expect(openRouterCalled).toBe(true);
+      // Wait on the condition, not the clock. A fixed 3s sleep was enough when
+      // this file ran alone but not under full-suite load, where the streamed
+      // reply was still rendering — the test failed with the typing indicator
+      // visible on screen.
+      await expect.poll(() => openRouterCalled, { timeout: 15000 }).toBe(true);
 
-      // The response text should be visible
-      await expect(page.locator("text=Oud collection").first()).toBeVisible({ timeout: 5000 });
+      await expect(page.locator("text=Oud collection").first())
+        .toBeVisible({ timeout: 15000 });
     });
 
     test("chatbot request carries no OpenRouter credential", async ({ page }) => {
@@ -161,7 +163,7 @@ test.describe("AI Migration — OpenRouter Integration", () => {
       await chatFab.click();
       await page.waitForTimeout(600);
 
-      const chatInput = page.locator("input[type='text']").last();
+      const chatInput = page.getByRole("textbox", { name: "Ask about fragrances..." });
       if (await chatInput.count() === 0) { test.skip(); return; }
 
       await chatInput.fill("hello");
@@ -205,9 +207,10 @@ test.describe("AI Migration — OpenRouter Integration", () => {
       await page.keyboard.press("Control+k");
       await page.waitForTimeout(500);
 
-      const searchInput = page.locator("input").filter({ hasNotText: "" }).first()
-        .or(page.locator('[role="dialog"] input').first())
-        .or(page.locator('[cmdk-input]').first());
+      // Was `page.locator("input")…first()`, which also matched the footer
+      // newsletter field. The search box carries its placeholder as an
+      // aria-label, so address it by name.
+      const searchInput = page.getByRole("textbox", { name: "Search perfumes... (e.g. 'woody for winter')" });
 
       if (await searchInput.count() === 0) {
         test.skip();
@@ -436,7 +439,7 @@ test.describe("AI Migration — OpenRouter Integration", () => {
       await chatFab.click();
       await page.waitForTimeout(600);
 
-      const chatInput = page.locator("input[type='text']").last();
+      const chatInput = page.getByRole("textbox", { name: "Ask about fragrances..." });
       if (await chatInput.count() === 0) { test.skip(); return; }
 
       await chatInput.fill("woody scent");

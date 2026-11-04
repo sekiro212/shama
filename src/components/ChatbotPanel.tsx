@@ -207,6 +207,9 @@ export default function ChatbotPanel({ isOpen, onClose }: ChatbotPanelProps) {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={t("chatbot.placeholder")}
+              // اسم وصول صريح: المُعين النائب (placeholder) وحده لا يصلح اسمًا
+              // للعنصر، إذ يختفي عند الكتابة وبعض قارئات الشاشة تتجاهله.
+              aria-label={t("chatbot.placeholder")}
               className="flex-1 bg-white dark:bg-white/5 border border-[#323D50]/10 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm text-[#323D50] dark:text-white placeholder:text-[#6B7B8D] dark:placeholder:text-white/40 focus:outline-none focus:border-[#5B8DD9]/50 focus:ring-1 focus:ring-[#5B8DD9]/30 transition-all"
             />
             <Button

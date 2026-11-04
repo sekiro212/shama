@@ -45,10 +45,11 @@ test.describe("Cart & Checkout", () => {
     await page.getByRole("button", { name: /cart/i }).click();
     // Radix renders the sheet as a dialog. The previous selector looked for a
     // "SheetContent" class, which is a component name and never reaches the DOM.
-    await expect(page.getByRole("dialog")).toBeVisible({ timeout: 5000 });
+    // Matched by accessible name, not role alone: the cookie banner is also
+    // role="dialog", so a bare getByRole("dialog") is a strict-mode violation.
     await expect(
-      page.getByRole("dialog").getByText(/shopping cart|السلة/i).first()
-    ).toBeVisible();
+      page.getByRole("dialog", { name: /shopping cart|السلة/i })
+    ).toBeVisible({ timeout: 5000 });
   });
 
   test("empty cart shows empty state message", async ({ page }) => {
@@ -110,7 +111,7 @@ test.describe("Cart & Checkout", () => {
     await page.waitForLoadState("domcontentloaded");
 
     await page.getByRole("button", { name: /cart/i }).click();
-    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page.getByRole("dialog", { name: /shopping cart|السلة/i })).toBeVisible();
 
     await page.getByRole("button", { name: /checkout|proceed/i }).first().click();
 
