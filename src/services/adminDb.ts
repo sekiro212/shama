@@ -53,6 +53,21 @@ async function call<T>(body: Record<string, unknown>): Promise<T[]> {
   return payload?.data ?? [];
 }
 
+/**
+ * قراءة إدارية. لازمة للجداول التي لم تعد مقروءة بمفتاح anon إطلاقًا:
+ * الطلبات مثلًا يرى الزبون طلبَه عبر RLS، بينما اللوحة تحتاج رؤية الجميع.
+ */
+export const adminSelect = <T = Record<string, unknown>>(
+  table: string,
+  opts: {
+    columns?: string;
+    filters?: Filters;
+    orderBy?: string;
+    ascending?: boolean;
+    limit?: number;
+  } = {},
+): Promise<T[]> => call<T>({ table, action: "select", ...opts });
+
 /** إدراج صف أو عدّة صفوف؛ تُعيد الصفوف المُدرَجة (مع معرّفاتها). */
 export const adminInsert = <T = Record<string, unknown>>(
   table: string,

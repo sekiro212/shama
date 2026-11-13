@@ -17,7 +17,7 @@
  * خطأ واضحًا للمستخدم بدل الاعتماد على قيمة افتراضية.
  */
 import { supabase } from "@/lib/supabase";
-import { adminInsert, adminUpdate, adminDelete } from "./adminDb";
+import { adminSelect, adminInsert, adminUpdate, adminDelete } from "./adminDb";
 
 export interface Influencer {
   id: string;
@@ -153,13 +153,13 @@ export async function fetchInfluencerSummaries(): Promise<
   InfluencerAccountSummary[]
 > {
   try {
-    const { data, error } = await supabase
-      .from("influencer_account_summary")
-      .select("*")
-      .order("balance_due", { ascending: false });
-
-    if (error) throw error;
-    return (data || []).map(hydrateSummary);
+    // عبر admin-db: هذا العرض security_invoker ويقرأ جدول الطلبات، وقد توقّف
+    // عن إرجاع أي شيء للمتصفّح بعد إغلاق قراءة الطلبات عليه.
+    const data = await adminSelect<Record<string, unknown>>(
+      "influencer_account_summary",
+      { orderBy: "balance_due", ascending: false },
+    );
+    return data.map(hydrateSummary);
   } catch (error) {
     console.error("Error fetching influencer summaries:", error);
     throw error;
@@ -171,14 +171,15 @@ export async function fetchInfluencerCodeStats(
   influencerId: string
 ): Promise<InfluencerCodeStat[]> {
   try {
-    const { data, error } = await supabase
-      .from("influencer_code_stats")
-      .select("*")
-      .eq("influencer_id", influencerId)
-      .order("commission_due", { ascending: false });
-
-    if (error) throw error;
-    return (data || []).map(hydrateCodeStat);
+    const data = await adminSelect<Record<string, unknown>>(
+      "influencer_code_stats",
+      {
+        filters: { influencer_id: influencerId },
+        orderBy: "commission_due",
+        ascending: false,
+      },
+    );
+    return data.map(hydrateCodeStat);
   } catch (error) {
     console.error("Error fetching influencer code stats:", error);
     throw error;

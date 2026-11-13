@@ -8,7 +8,7 @@
  * ===========================================================================
  */
 import { supabase } from "@/lib/supabase";
-import { adminUpdate, adminDelete } from "./adminDb";
+import { adminSelect, adminUpdate, adminDelete } from "./adminDb";
 
 export interface VanexOrderLog {
   id: number;
@@ -95,44 +95,39 @@ export interface OrderStats {
 export const fetchOrders = async (filters?: OrderFilters): Promise<Order[]> => {
   try {
     // بناء الاستعلام تدريجيًا: نبدأ بالأساس ثم نضيف الفلاتر المتوفّرة فقط
-    let query = supabase
-      .from("orders")
-      .select("*")
-      .order("order_date", { ascending: false });
+    // عبر admin-db: الطلبات لم تعد مقروءة بمفتاح anon، والزبون يرى طلبه وحده
+    // عبر RLS بينما اللوحة تحتاج رؤية الجميع. المُرشّحات تُطبَّق هنا لأنّ
+    // admin-db يقبل المساواة فقط عن قصد (لا مجالات ولا عوامل مفتوحة).
+    let rows = await adminSelect<Order>("orders", {
+      orderBy: "order_date",
+      ascending: false,
+    });
 
-    // تطبيق الفلاتر إن وُجدت
     if (filters) {
       if (filters.startDate) {
-        query = query.gte("order_date", filters.startDate);
+        rows = rows.filter((o) => o.order_date >= filters.startDate!);
       }
       if (filters.endDate) {
-        query = query.lte("order_date", filters.endDate);
+        rows = rows.filter((o) => o.order_date <= filters.endDate!);
       }
       if (filters.city) {
-        query = query.eq("city", filters.city);
+        rows = rows.filter((o) => o.city === filters.city);
       }
       if (filters.minAmount) {
-        query = query.gte("total", filters.minAmount);
+        rows = rows.filter((o) => o.total >= filters.minAmount!);
       }
       if (filters.maxAmount) {
-        query = query.lte("total", filters.maxAmount);
+        rows = rows.filter((o) => o.total <= filters.maxAmount!);
       }
       if (filters.search) {
-        // بحث نصي غير حسّاس لحالة الأحرف (ilike) عبر عدة أعمدة بشرط OR: الاسم الأول/الأخير/البريد
-        query = query.or(
-          `first_name.ilike.%${filters.search}%,last_name.ilike.%${filters.search}%,email.ilike.%${filters.search}%`
+        const q = filters.search.toLowerCase();
+        rows = rows.filter((o) =>
+          `${o.first_name} ${o.last_name} ${o.email}`.toLowerCase().includes(q)
         );
       }
     }
 
-    const { data, error } = await query;
-
-    if (error) {
-      console.error("Error fetching orders:", error);
-      return [];
-    }
-
-    return data || [];
+    return rows;
   } catch (error) {
     console.error("Error fetching orders:", error);
     return [];
@@ -219,10 +214,11 @@ export const fetchOrderById = async (id: string): Promise<Order | null> => {
 // Get order statistics
 export const getOrderStats = async (): Promise<OrderStats> => {
   try {
-    const { data: orders, error } = await supabase
-      .from("orders")
-      .select("*")
-      .order("order_date", { ascending: false });
+    const orders = await adminSelect<Order>("orders", {
+      orderBy: "order_date",
+      ascending: false,
+    });
+    const error = null as { message?: string } | null;
 
     if (error) {
       console.error("Error fetching order stats:", error);
@@ -312,12 +308,14 @@ export const getOrdersByDateRange = async (
   endDate: string
 ): Promise<Order[]> => {
   try {
-    const { data, error } = await supabase
-      .from("orders")
-      .select("*")
-      .gte("order_date", startDate)
-      .lte("order_date", endDate)
-      .order("order_date", { ascending: false });
+    const all = await adminSelect<Order>("orders", {
+      orderBy: "order_date",
+      ascending: false,
+    });
+    const data = all.filter(
+      (o) => o.order_date >= startDate && o.order_date <= endDate
+    );
+    const error = null as { message?: string } | null;
 
     if (error) {
       console.error("Error fetching orders by date range:", error);
@@ -366,12 +364,7 @@ export const updateOrderStatus = async (
 // Get orders count by status/city
 export const getOrdersAnalytics = async () => {
   try {
-    const { data: orders, error } = await supabase.from("orders").select("*");
-
-    if (error) {
-      console.error("Error fetching orders analytics:", error);
-      return null;
-    }
+    const orders = await adminSelect<Order>("orders");
 
     const analytics = {
       totalOrders: orders?.length || 0,

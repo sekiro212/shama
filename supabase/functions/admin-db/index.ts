@@ -1,4 +1,4 @@
-// admin-db — the admin panel's write path.
+// admin-db — the admin panel's privileged read/write path.
 //
 // Why this exists: the admin panel wrote to the database straight from the
 // browser with the anon key. That only worked because those tables accepted
@@ -11,6 +11,9 @@
 // Writes now arrive here, are authorised against a signed admin token issued by
 // admin-auth, and run with the service role. The tables can then refuse the
 // browser entirely.
+//
+// A few reads come through here too, for tables the browser may no longer see
+// at all: orders, and the two influencer views built on them.
 //
 // This is a narrow gateway, not a generic SQL endpoint: only the table/action
 // pairs the panel actually uses are permitted, and filters may only be equality
@@ -44,13 +47,19 @@ const ALLOWED: Record<string, ReadonlyArray<string>> = {
   perfume_images: ["insert", "update", "delete"],
   perfume_samples: ["insert", "update", "delete"],
   perfume_bottle_sizes: ["insert", "update", "delete"],
-  orders: ["update", "delete"],
+  // "select" only where the browser may no longer read at all: a customer
+  // reads their own orders through RLS, but the panel must see everyone's.
+  orders: ["select", "update", "delete"],
   promo_codes: ["insert", "update", "delete"],
   reviews: ["update", "delete"],
   memories: ["insert", "update", "delete"],
   influencers: ["insert", "update", "delete"],
   influencer_payouts: ["insert", "update", "delete"],
   custom_gift_orders: ["update", "delete"],
+  // Reporting views over orders. They are security_invoker, so once the
+  // browser lost SELECT on orders they stopped returning anything to it.
+  influencer_account_summary: ["select"],
+  influencer_code_stats: ["select"],
 };
 
 // Filter columns the panel actually targets. An open column list would let a
@@ -97,7 +106,9 @@ serve(async (req) => {
   let q = supabase.from(table) as ReturnType<typeof supabase.from>;
 
   try {
-    if (action === "insert") {
+    if (action === "select") {
+      q = q.select(typeof payload.columns === "string" ? payload.columns : "*");
+    } else if (action === "insert") {
       q = q.insert(payload.values as never);
     } else if (action === "update") {
       q = q.update(payload.values as never);
@@ -109,8 +120,21 @@ serve(async (req) => {
       q = Array.isArray(val) ? q.in(col, val) : q.eq(col, val);
     }
 
+    if (action === "select") {
+      const order = typeof payload.orderBy === "string" ? payload.orderBy : null;
+      if (order) {
+        q = q.order(order, { ascending: payload.ascending !== false });
+      }
+      // Bounded: an unbounded select on orders would hand back the whole
+      // customer table in one response.
+      const limit = typeof payload.limit === "number"
+        ? Math.min(Math.max(Math.trunc(payload.limit), 1), 1000)
+        : 1000;
+      q = q.limit(limit);
+    }
+
     // The panel needs inserted ids back; callers that do not can ignore it.
-    const { data, error } = await q.select();
+    const { data, error } = action === "select" ? await q : await q.select();
     if (error) {
       console.error("admin-db:", table, action, error.message);
       return json({ error: error.message }, 400);
