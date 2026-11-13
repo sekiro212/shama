@@ -152,13 +152,63 @@ export const fetchPerfumeBottleSizes = async (
       return [];
     }
 
-    console.log(`Bottle sizes for perfume ${perfumeId}:`, data);
     return data || [];
   } catch (error) {
     console.error("Error fetching perfume bottle sizes:", error);
     return [];
   }
 };
+
+/**
+ * يجلب صور/عيّنات/أحجام مجموعةٍ من العطور في ثلاثة استعلامات بدل ثلاثة لكل عطر.
+ *
+ * كانت صفحة من 100 منتج تُطلق نحو 300 طلب (استعلام لكل منتج لكل جدول). حتى مع
+ * Promise.all يحدّ المتصفّح التوازي لكل نطاق، فكان سياق المحادثة الذي يبنيه
+ * الشات بوت يستغرق عشرات الثواني. هنا `in(perfume_id, ids)` واحد لكل جدول ثم
+ * تجميع النتائج في الذاكرة.
+ */
+async function loadVariantsFor(ids: string[]): Promise<{
+  images: Map<string, PerfumeImage[]>;
+  samples: Map<string, PerfumeSample[]>;
+  bottles: Map<string, PerfumeBottleSize[]>;
+}> {
+  const empty = { images: new Map(), samples: new Map(), bottles: new Map() };
+  if (ids.length === 0) return empty;
+
+  const [imgRes, sampleRes, bottleRes] = await Promise.all([
+    supabase.from("perfume_images").select("*").in("perfume_id", ids)
+      .order("display_order", { ascending: true }),
+    supabase.from("perfume_samples").select("*").in("perfume_id", ids)
+      .eq("is_active", true).order("size"),
+    supabase.from("perfume_bottle_sizes").select("*").in("perfume_id", ids)
+      .eq("is_active", true).order("size"),
+  ]);
+
+  // الفشل هنا لا يُفشل المنتجات نفسها؛ تُعرض البطاقة بلا متغيّرات كما كان
+  // السلوك السابق عند فشل أحد استعلامات المنتج الواحد.
+  if (imgRes.error) console.error("Error fetching perfume images:", imgRes.error);
+  if (sampleRes.error) console.error("Error fetching perfume samples:", sampleRes.error);
+  if (bottleRes.error) console.error("Error fetching perfume bottle sizes:", bottleRes.error);
+
+  // PerfumeSample/PerfumeBottleSize describe the shape the UI consumes and omit
+  // perfume_id, but the rows carry it — group on the raw row, then hand back the
+  // narrower type.
+  const group = <T>(rows: unknown): Map<string, T[]> => {
+    const m = new Map<string, T[]>();
+    for (const r of (rows ?? []) as ({ perfume_id: string } & T)[]) {
+      const list = m.get(r.perfume_id);
+      if (list) list.push(r);
+      else m.set(r.perfume_id, [r]);
+    }
+    return m;
+  };
+
+  return {
+    images: group<PerfumeImage>(imgRes.data),
+    samples: group<PerfumeSample>(sampleRes.data),
+    bottles: group<PerfumeBottleSize>(bottleRes.data),
+  };
+}
 
 /**
  * يجلب صفحة واحدة من المنتجات النشطة لشبكة المجموعة، إضافة إلى العدد الإجمالي
@@ -213,15 +263,14 @@ export const fetchProducts = async (
     // لكل منتج في هذه الصفحة نُحمّل صوره وعيّناته وأحجام قواريره بالتوازي. تُبقي
     // Promise.all على الـ map الخارجي كل المنتجات قيد التحميل دفعة واحدة (صفوف هذه
     // الصفحة فقط، لذا تبقى تكلفة استعلامات N+1 محدودة).
-    const productsWithImagesAndSamples = await Promise.all(
-      data.map(async (product) => {
-        const [images, samples, bottleSizes] = await Promise.all([
-          getPerfumeImages(product.id),
-          fetchPerfumeSamples(product.id),
-          fetchPerfumeBottleSizes(product.id),
-        ]);
-        return transformDatabaseProduct(product, images, samples, bottleSizes);
-      })
+    const v = await loadVariantsFor(data.map((p) => p.id));
+    const productsWithImagesAndSamples = data.map((product) =>
+      transformDatabaseProduct(
+        product,
+        v.images.get(product.id) ?? [],
+        v.samples.get(product.id) ?? [],
+        v.bottles.get(product.id) ?? [],
+      )
     );
 
     return { products: productsWithImagesAndSamples, total: count || 0 };
@@ -335,15 +384,14 @@ export const searchProducts = async (query: string): Promise<Product[]> => {
     if (!data) return [];
 
     // Load images, samples, and bottle sizes for each product
-    const productsWithImagesAndSamples = await Promise.all(
-      data.map(async (product) => {
-        const [images, samples, bottleSizes] = await Promise.all([
-          getPerfumeImages(product.id),
-          fetchPerfumeSamples(product.id),
-          fetchPerfumeBottleSizes(product.id),
-        ]);
-        return transformDatabaseProduct(product, images, samples, bottleSizes);
-      })
+    const v = await loadVariantsFor(data.map((p) => p.id));
+    const productsWithImagesAndSamples = data.map((product) =>
+      transformDatabaseProduct(
+        product,
+        v.images.get(product.id) ?? [],
+        v.samples.get(product.id) ?? [],
+        v.bottles.get(product.id) ?? [],
+      )
     );
 
     return productsWithImagesAndSamples;
@@ -400,15 +448,14 @@ export const filterProducts = async (filters: {
     if (!data) return [];
 
     // Load images, samples, and bottle sizes for each product
-    const productsWithImagesAndSamples = await Promise.all(
-      data.map(async (product) => {
-        const [images, samples, bottleSizes] = await Promise.all([
-          getPerfumeImages(product.id),
-          fetchPerfumeSamples(product.id),
-          fetchPerfumeBottleSizes(product.id),
-        ]);
-        return transformDatabaseProduct(product, images, samples, bottleSizes);
-      })
+    const v = await loadVariantsFor(data.map((p) => p.id));
+    const productsWithImagesAndSamples = data.map((product) =>
+      transformDatabaseProduct(
+        product,
+        v.images.get(product.id) ?? [],
+        v.samples.get(product.id) ?? [],
+        v.bottles.get(product.id) ?? [],
+      )
     );
 
     return productsWithImagesAndSamples;

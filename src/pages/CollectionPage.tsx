@@ -73,7 +73,6 @@ export default function CollectionPage() {
           currentPage,
           itemsPerPage
         );
-        console.log("All fetched products:", fetchedProducts);
         setProducts(fetchedProducts);
         setTotalProducts(total);
       } catch (error) {
