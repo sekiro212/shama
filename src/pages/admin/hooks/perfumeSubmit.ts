@@ -5,7 +5,7 @@
 // (الصور، العيّنات، أحجام القوارير) في Supabase.
 // ===========================================================================
 import { toast } from "sonner";
-import { supabase } from "@/lib/supabase";
+import { adminInsert, adminUpdate, adminDelete } from "@/services/adminDb";
 import type { Perfume, PerfumeSample, PerfumeBottleSize } from "../types";
 
 /** كل ما تحتاجه submitPerfume: قيم النموذج، وهدف التحرير، وسلاسل الروائح الخام
@@ -89,18 +89,16 @@ export async function submitPerfume(args: SubmitArgs): Promise<boolean> {
 
   // تحديث الصف الموجود عند التحرير، وإلا إدراج عطر جديد.
   // (تُعيد ‎.select()‎ الصف المتأثّر حتى نتمكن من قراءة المعرّف (id) المولَّد له.)
-  let result;
-  if (editingPerfume) {
-    result = await supabase
-      .from("perfumes")
-      .update(perfumeData)
-      .eq("id", editingPerfume.id)
-      .select();
-  } else {
-    result = await supabase
-      .from("perfumes")
-      .insert([{ ...perfumeData, image: "dsf" }])
-      .select();
+  // عبر admin-db: جدول العطور لم يعد يقبل الكتابة من المتصفّح. تُحاكى بنية
+  // { data, error } التي يقرأها باقي هذه الدالة بدل إعادة كتابتها بالكامل.
+  let result: { data: { id: string }[] | null; error: unknown };
+  try {
+    const rows = editingPerfume
+      ? await adminUpdate<{ id: string }>("perfumes", perfumeData, { id: editingPerfume.id })
+      : await adminInsert<{ id: string }>("perfumes", { ...perfumeData, image: "dsf" });
+    result = { data: rows, error: null };
+  } catch (e) {
+    result = { data: null, error: e };
   }
 
   if (result.error) throw result.error;
@@ -124,10 +122,8 @@ export async function submitPerfume(args: SubmitArgs): Promise<boolean> {
     if (editingPerfume) {
       // الحذف ثم إعادة الإدراج يُبقي جدول العيّنات مرآةً مطابقة للنموذج (أبسط من
       // مقارنة الصفوف المضافة/المحذوفة/المعدّلة).
-      const { error: deleteError } = await supabase
-        .from("perfume_samples")
-        .delete()
-        .eq("perfume_id", perfumeId);
+      const deleteError = await adminDelete("perfume_samples", { perfume_id: perfumeId })
+        .then(() => null).catch((e) => e as Error);
 
       if (deleteError) {
         console.error("Error deleting existing samples:", deleteError);
@@ -145,9 +141,8 @@ export async function submitPerfume(args: SubmitArgs): Promise<boolean> {
       is_active: sample.is_active,
     }));
 
-    const { error: samplesError } = await supabase
-      .from("perfume_samples")
-      .insert(samplesToInsert);
+    const samplesError = await adminInsert("perfume_samples", samplesToInsert)
+      .then(() => null).catch((e) => e as Error);
 
     if (samplesError) {
       console.error("Error inserting samples:", samplesError);
@@ -159,10 +154,8 @@ export async function submitPerfume(args: SubmitArgs): Promise<boolean> {
     // عند التحرير وتعطيل العيّنات، تُحذف كل العيّنات الموجودة
     const perfumeId = result.data?.[0]?.id;
     if (perfumeId) {
-      const { error: deleteError } = await supabase
-        .from("perfume_samples")
-        .delete()
-        .eq("perfume_id", perfumeId);
+      const deleteError = await adminDelete("perfume_samples", { perfume_id: perfumeId })
+        .then(() => null).catch((e) => e as Error);
 
       if (deleteError) {
         console.error("Error deleting samples:", deleteError);
@@ -188,10 +181,8 @@ export async function submitPerfume(args: SubmitArgs): Promise<boolean> {
 
     if (editingPerfume) {
       // نفس استراتيجية المرآة المتّبعة مع العيّنات: مسح أحجام القوارير الموجودة، ثم إعادة الإدراج.
-      const { error: deleteError } = await supabase
-        .from("perfume_bottle_sizes")
-        .delete()
-        .eq("perfume_id", perfumeId);
+      const deleteError = await adminDelete("perfume_bottle_sizes", { perfume_id: perfumeId })
+        .then(() => null).catch((e) => e as Error);
 
       if (deleteError) {
         console.error("Error deleting existing bottle sizes:", deleteError);
@@ -211,11 +202,13 @@ export async function submitPerfume(args: SubmitArgs): Promise<boolean> {
 
     console.log("Attempting to insert bottle sizes:", bottleSizesToInsert);
 
-    const { data: insertedBottleSizes, error: bottleSizesError } =
-      await supabase
-        .from("perfume_bottle_sizes")
-        .insert(bottleSizesToInsert)
-        .select();
+    let insertedBottleSizes: unknown[] | null = null;
+    let bottleSizesError: Error | null = null;
+    try {
+      insertedBottleSizes = await adminInsert("perfume_bottle_sizes", bottleSizesToInsert);
+    } catch (e) {
+      bottleSizesError = e as Error;
+    }
 
     if (bottleSizesError) {
       console.error("Error inserting bottle sizes:", bottleSizesError);
@@ -230,10 +223,8 @@ export async function submitPerfume(args: SubmitArgs): Promise<boolean> {
     // عند التحرير وتعطيل أحجام القوارير، تُحذف كل أحجام القوارير الموجودة
     const perfumeId = result.data?.[0]?.id;
     if (perfumeId) {
-      const { error: deleteError } = await supabase
-        .from("perfume_bottle_sizes")
-        .delete()
-        .eq("perfume_id", perfumeId);
+      const deleteError = await adminDelete("perfume_bottle_sizes", { perfume_id: perfumeId })
+        .then(() => null).catch((e) => e as Error);
 
       if (deleteError) {
         console.error("Error deleting bottle sizes:", deleteError);

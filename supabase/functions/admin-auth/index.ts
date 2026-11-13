@@ -79,10 +79,12 @@ serve(async (req) => {
   if (diff !== 0) return json(INVALID, 401);
 
   // Never return the password column to the client.
-  const { password: _omit, ...user } = data;
+  const user = { ...data } as Record<string, unknown>;
+  delete user.password;
 
   // Signed proof of this check, for functions that perform admin-only actions
-  // (vanex-proxy). A localStorage flag cannot authorise anything server-side.
+  // (vanex-proxy, admin-db). A localStorage flag cannot authorise anything
+  // server-side.
   const token = await issueAdminToken(data.id);
 
   return json({ success: true, user, token });

@@ -30,7 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { supabase } from "@/lib/supabase";
+import { adminUpdate } from "@/services/adminDb";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { StatusBadge } from "../components/StatusBadge";
 import { EmptyState } from "../components/EmptyState";
@@ -80,10 +80,9 @@ export function GiftOrdersTab({ giftOrdersApi }: GiftOrdersTabProps) {
    * تحديثاً متفائلاً (optimistic) دون إعادة جلب كامل من الخادم.
    */
   const handleStatusChange = async (orderId: string, newStatus: string) => {
-    const { error } = await supabase
-      .from("custom_gift_orders")
-      .update({ status: newStatus })
-      .eq("id", orderId);
+    const error = await adminUpdate("custom_gift_orders", { status: newStatus }, { id: orderId })
+      .then(() => null)
+      .catch((e) => e as Error);
     if (error) {
       toast.error("Failed to update status");
     } else {

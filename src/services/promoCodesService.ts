@@ -13,6 +13,7 @@
  *  - الحدود: حدّ عام `usage_limit`، إضافة إلى `usage_limit_per_user` (يُحسب عبر البريد الإلكتروني للطلبات السابقة)
  */
 import { supabase } from "@/lib/supabase";
+import { adminInsert, adminUpdate, adminDelete } from "./adminDb";
 import type { CartItem } from "@/contexts/CartContext";
 
 export type DiscountType = "fixed" | "percentage";
@@ -165,21 +166,22 @@ export async function fetchAllPromoCodes(): Promise<PromoCode[]> {
 export async function createPromoCode(
   payload: PromoCodePayload
 ): Promise<PromoCode> {
-  const { data, error } = await supabase
-    .from("promo_codes")
-    .insert({
+  // عبر admin-db: جدول الأكواد لم يعد يقبل الكتابة من المتصفّح، فقد كان أي
+  // زائر يستطيع إنشاء كود خصم ١٠٠٪ لنفسه.
+  try {
+    const [row] = await adminInsert("promo_codes", {
       ...payload,
       code: normalizeCode(payload.code),
-    })
-    .select()
-    .single();
-
-  if (error) {
-    // رمز Postgres 23505 = انتهاك قيد الفرادة → الكود `code` موجود مسبقًا.
-    if (error.code === "23505") throw new Error("DUPLICATE_CODE");
-    throw error;
+    });
+    return hydratePromo(row);
+  } catch (e) {
+    // 23505 = انتهاك قيد الفرادة → الكود موجود مسبقًا.
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg.includes("23505") || /duplicate key/i.test(msg)) {
+      throw new Error("DUPLICATE_CODE");
+    }
+    throw e;
   }
-  return hydratePromo(data);
 }
 
 /**
@@ -193,22 +195,20 @@ export async function updatePromoCode(
   id: string,
   patch: Partial<PromoCodePayload>
 ): Promise<void> {
-  const { error } = await supabase
-    .from("promo_codes")
-    .update({
+  await adminUpdate(
+    "promo_codes",
+    {
       ...patch,
       // إعادة تطبيع الكود بشكل شرطي فقط إذا كان المُستدعي يُغيّره.
       ...(patch.code !== undefined ? { code: normalizeCode(patch.code) } : {}),
-    })
-    .eq("id", id);
-
-  if (error) throw error;
+    },
+    { id },
+  );
 }
 
 /** للمسؤول: يحذف كود عرض نهائيًا. يرمي خطأ عند فشل قاعدة البيانات. */
 export async function deletePromoCode(id: string): Promise<void> {
-  const { error } = await supabase.from("promo_codes").delete().eq("id", id);
-  if (error) throw error;
+  await adminDelete("promo_codes", { id });
 }
 
 /**
@@ -219,11 +219,7 @@ export async function togglePromoCode(
   id: string,
   isActive: boolean
 ): Promise<void> {
-  const { error } = await supabase
-    .from("promo_codes")
-    .update({ is_active: isActive })
-    .eq("id", id);
-  if (error) throw error;
+  await adminUpdate("promo_codes", { is_active: isActive }, { id });
 }
 
 // يحسب كم طلبًا سابقًا قدّمه هذا البريد الإلكتروني مستخدمًا هذا العرض، لفرض حدّ
@@ -388,35 +384,11 @@ export async function validatePromoCode(
  * @throws Rethrows DB errors; callers typically fire-and-forget and just log.
  */
 export async function incrementPromoCodeUsage(id: string): Promise<void> {
-  // Re-read current usage_count + usage_limit, then conditionally update so
-  // we never exceed the limit even under a race. Best-effort; callers
-  // should fire-and-forget and log failures without blocking checkout.
-  const { data, error: fetchError } = await supabase
-    .from("promo_codes")
-    .select("usage_count, usage_limit")
-    .eq("id", id)
-    .maybeSingle();
-
-  if (fetchError || !data) throw fetchError ?? new Error("promo not found");
-
-  const currentCount = Number(data.usage_count ?? 0);
-  const limit =
-    data.usage_limit !== null && data.usage_limit !== undefined
-      ? Number(data.usage_limit)
-      : null;
-
-  if (limit !== null && currentCount >= limit) return;
-
-  let query = supabase
-    .from("promo_codes")
-    .update({ usage_count: currentCount + 1 })
-    .eq("id", id)
-    .eq("usage_count", currentCount); // optimistic guard against race
-
-  if (limit !== null) {
-    query = query.lt("usage_count", limit);
-  }
-
-  const { error } = await query;
+  // عبر دالة قاعدة بيانات ضيّقة بدل UPDATE مباشر: الزبون يحتاج زيادة العدّاد
+  // فقط، بينما صلاحية UPDATE العامة كانت تتيح لأي أحد تعديل قيمة الخصم نفسها.
+  // الزيادة والتحقّق من الحدّ يجريان في عبارة واحدة، فلا سباق على العدّاد.
+  const { error } = await supabase.rpc("increment_promo_usage", {
+    promo_id: id,
+  });
   if (error) throw error;
 }

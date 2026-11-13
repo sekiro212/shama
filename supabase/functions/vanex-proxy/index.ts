@@ -5,6 +5,11 @@
 // inside dist/assets/index-*.js. That token does not merely cost money if
 // stolen — it can create, cancel and recall real shipments on the account.
 //
+// It also fixes checkout outright: the browser cannot reach api.vanex.ly at
+// all because that host sends no CORS headers, so the city picker on
+// shama.ly spun forever and no customer could complete an order. The same
+// request from a server returns 118 cities.
+//
 // The token now lives only in this function's environment.
 //
 // Authorisation mirrors how the app actually uses the API:

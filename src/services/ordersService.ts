@@ -8,6 +8,7 @@
  * ===========================================================================
  */
 import { supabase } from "@/lib/supabase";
+import { adminUpdate, adminDelete } from "./adminDb";
 
 export interface VanexOrderLog {
   id: number;
@@ -289,13 +290,9 @@ export const getOrderStats = async (): Promise<OrderStats> => {
 // Delete order (admin only)
 export const deleteOrder = async (id: string): Promise<boolean> => {
   try {
-    const { error } = await supabase.from("orders").delete().eq("id", id);
-
-    if (error) {
-      console.error("Error deleting order:", error);
-      return false;
-    }
-
+    // عبر admin-db: الطلبات لم تعد تقبل التعديل أو الحذف من المتصفّح.
+    // الدالة ترمي عند الفشل، فيلتقطها catch أدناه ويُعيد false كما كان.
+    await adminDelete("orders", { id });
     return true;
   } catch (error) {
     console.error("Error deleting order:", error);
@@ -346,20 +343,15 @@ export const updateOrderStatus = async (
   status: Order["status"]
 ): Promise<boolean> => {
   try {
-    const { error } = await supabase
-      .from("orders")
-      .update({
+    await adminUpdate(
+      "orders",
+      {
         status,
         // تسجيل وقت المعالجة عند أي حالة غير "pending"، وإفراغه إذا أُعيدت إلى "pending"
         processed_at: status !== "pending" ? new Date().toISOString() : null,
-      })
-      .eq("id", id);
-
-    if (error) {
-      console.error("Error updating order status:", error);
-      return false;
-    }
-
+      },
+      { id },
+    );
     return true;
   } catch (error) {
     console.error("Error updating order status:", error);
@@ -429,9 +421,9 @@ export const saveVanexPackageInfo = async (
   packageId: number | null,
 ): Promise<boolean> => {
   try {
-    const { error } = await supabase
-      .from("orders")
-      .update({
+    await adminUpdate(
+      "orders",
+      {
         vanex_package_code: packageCode,
         vanex_package_id: packageId,
         // حالة Vanex الأولية للشحنة الجديدة: "store_new" بالإنجليزية و"جديد" بالعربية للعرض
@@ -440,13 +432,9 @@ export const saveVanexPackageInfo = async (
         vanex_last_synced_at: new Date().toISOString(),
         status: "shipped",
         processed_at: new Date().toISOString(),
-      })
-      .eq("id", orderId);
-
-    if (error) {
-      console.error("Error saving Vanex package info:", error);
-      return false;
-    }
+      },
+      { id: orderId },
+    );
     return true;
   } catch (error) {
     console.error("Error saving Vanex package info:", error);

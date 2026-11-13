@@ -163,9 +163,7 @@ async function publishGiftAsProduct(params: {
 }): Promise<void> {
   const { products, customization } = params;
 
-  // الجنس: إن اتّفقت كل العطور على جنس واحد نستخدمه، وإلا "unisex".
-  const genders = [...new Set(products.map((p) => p.gender || "unisex"))];
-  const gender = genders.length === 1 ? genders[0] : "unisex";
+  // الجنس والسعر يُحسبان داخل publish-gift-set من صفوف العطور نفسها.
 
   // نجمّع نوتات الهرم من كل العطور المختارة (دون تكرار، وبحدّ أقصى 5 لكل طبقة).
   const collect = (k: "top" | "middle" | "base") =>
@@ -188,32 +186,35 @@ async function publishGiftAsProduct(params: {
   // صورة البطاقة: صورة الهدية المولّدة أولاً، وإلا صورة أول عطر مختار.
   const image = params.imageUrl || products[0]?.images?.[0]?.image_url || null;
 
-  const { data: inserted, error } = await supabase
-    .from("perfumes")
-    .insert({
-      name, name_ar: nameAr, price: params.totalPrice, gender,
-      description, description_ar: descriptionAr,
-      fragrance_notes: notes, fragrance_notes_ar: notes,
-      image, size: "Gift Set", type: "gift", concentration: "Gift Set",
-      fragrance_world: occEn, rating: 5, reviews: 0,
-      stock_quantity: 5, is_active: true, has_samples: false, has_bottle_sizes: false,
-    })
-    .select("id")
-    .single();
-  if (error) throw error;
-
-  // صف صورة أساسي حتى تعرض بطاقة المنتج صورة (أعمدة image_name/file_path/mime_type إلزامية).
-  if (image) {
-    const path =
-      params.imagePath ??
-      (image.includes("/perfume-images/") ? image.split("/perfume-images/")[1] : `gifts/${inserted.id}.png`);
-    const { error: imgErr } = await supabase.from("perfume_images").insert({
-      perfume_id: inserted.id, image_url: image,
-      image_name: path.split("/").pop() || "gift.png",
-      file_path: path, file_size: 0, mime_type: params.imageMime,
-      is_primary: true, display_order: 0,
-    });
-    if (imgErr) console.error("Gift product image row failed:", imgErr);
+  // عبر دالة طرفية: الكتالوج لم يعد يقبل الإدراج من المتصفّح. الدالة تفرض
+  // type="gift" وتحسب السعر من العطور نفسها، فلا يصير هذا المسار بابًا
+  // خلفيًا لإضافة أي منتج إلى المتجر.
+  const res = await fetch(
+    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/publish-gift-set`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({
+        perfumeIds: products.map((p) => p.id),
+        name,
+        nameAr,
+        description,
+        descriptionAr,
+        occasion: occEn,
+        notes,
+        image,
+        imagePath: params.imagePath,
+        imageMime: params.imageMime,
+      }),
+    },
+  );
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as { error?: string } | null;
+    throw new Error(body?.error ?? `publish-gift-set failed (${res.status})`);
   }
 }
 

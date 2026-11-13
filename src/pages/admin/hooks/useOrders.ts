@@ -12,6 +12,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
+import { adminUpdate } from "@/services/adminDb";
 import {
   fetchOrders,
   getOrderStats,
@@ -280,15 +281,12 @@ export function useOrders({ onStockMutated }: UseOrdersOptions = {}) {
       setAcceptingOrder(order.id);
 
       // تحديث حالة الطلب إلى مقبول (accepted)
-      const { error: orderError } = await supabase
-        .from("orders")
-        .update({
-          status: "accepted",
-          processed_at: new Date().toISOString(),
-        })
-        .eq("id", order.id);
-
-      if (orderError) throw orderError;
+      // عبر admin-db؛ ترمي عند الفشل، وهو ما كان يفعله throw أدناه.
+      await adminUpdate(
+        "orders",
+        { status: "accepted", processed_at: new Date().toISOString() },
+        { id: order.id },
+      );
 
       // تحديث كميات المخزون لكل عنصر
       for (const item of order.items) {
@@ -303,15 +301,11 @@ export function useOrders({ onStockMutated }: UseOrdersOptions = {}) {
         const newStock = perfume.stock_quantity - item.quantity;
 
         // تحديث المخزون وتعيينه غير نشط إذا بلغ المخزون 0
-        const { error: updateError } = await supabase
-          .from("perfumes")
-          .update({
-            stock_quantity: newStock,
-            is_active: newStock > 0,
-          })
-          .eq("id", item.id);
-
-        if (updateError) throw updateError;
+        await adminUpdate(
+          "perfumes",
+          { stock_quantity: newStock, is_active: newStock > 0 },
+          { id: item.id },
+        );
       }
 
       toast.success(t("admin.toast.orderAcceptedSuccess"));
@@ -339,15 +333,11 @@ export function useOrders({ onStockMutated }: UseOrdersOptions = {}) {
       setReturningOrder(order.id);
 
       // تحديث حالة الطلب إلى مُرجَع (returned)
-      const { error: orderError } = await supabase
-        .from("orders")
-        .update({
-          status: "returned",
-          processed_at: new Date().toISOString(),
-        })
-        .eq("id", order.id);
-
-      if (orderError) throw orderError;
+      await adminUpdate(
+        "orders",
+        { status: "returned", processed_at: new Date().toISOString() },
+        { id: order.id },
+      );
 
       // تحديث كميات المخزون لكل عنصر (زيادة)
       for (const item of order.items) {
@@ -362,15 +352,11 @@ export function useOrders({ onStockMutated }: UseOrdersOptions = {}) {
         const newStock = perfume.stock_quantity + item.quantity;
 
         // تحديث المخزون وتعيينه نشطًا إذا كان غير نشط
-        const { error: updateError } = await supabase
-          .from("perfumes")
-          .update({
-            stock_quantity: newStock,
-            is_active: true,
-          })
-          .eq("id", item.id);
-
-        if (updateError) throw updateError;
+        await adminUpdate(
+          "perfumes",
+          { stock_quantity: newStock, is_active: true },
+          { id: item.id },
+        );
       }
 
       toast.success(t("admin.toast.returnProcessedSuccess"));

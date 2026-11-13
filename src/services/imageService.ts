@@ -7,6 +7,7 @@
  * ===========================================================================
  */
 import { supabase } from "@/lib/supabase";
+import { adminInsert, adminUpdate, adminDelete } from "./adminDb";
 import { toast } from "sonner";
 
 export interface PerfumeImage {
@@ -81,29 +82,28 @@ export const uploadPerfumeImage = async (
 
     // عند تعيين هذه الصورة كأساسية، يجب إلغاء صفة "أساسية" عن بقية صور العطر أولًا
     if (isPrimary) {
-      await supabase
-        .from("perfume_images")
-        .update({ is_primary: false })
-        .eq("perfume_id", perfumeId);
+      await adminUpdate("perfume_images", { is_primary: false }, { perfume_id: perfumeId });
     }
 
     // حفظ البيانات الوصفية للصورة (الرابط، الاسم، الحجم، النوع...) في جدول perfume_images
-    const { data: imageData, error: dbError } = await supabase
-      .from("perfume_images")
-      .insert([
-        {
-          perfume_id: perfumeId,
-          image_url: publicUrl,
-          image_name: file.name,
-          file_path: fileName,
-          file_size: file.size,
-          mime_type: file.type,
-          is_primary: isPrimary,
-          display_order: displayOrder,
-        },
-      ])
-      .select()
-      .single();
+    let imageData: PerfumeImage | null = null;
+    let dbError: unknown = null;
+    try {
+      const rows = await adminInsert<PerfumeImage>("perfume_images", {
+        perfume_id: perfumeId,
+        image_url: publicUrl,
+        image_name: file.name,
+        file_path: fileName,
+        file_size: file.size,
+        mime_type: file.type,
+        is_primary: isPrimary,
+        display_order: displayOrder,
+      });
+      imageData = rows[0] ?? null;
+      if (!imageData) dbError = new Error("insert returned no row");
+    } catch (e) {
+      dbError = e;
+    }
 
     if (dbError) {
       console.error("Database error:", dbError);
@@ -157,12 +157,9 @@ export const deletePerfumeImage = async (imageId: string): Promise<boolean> => {
     }
 
     // حذف سجل الصورة من قاعدة البيانات
-    const { error: dbError } = await supabase
-      .from("perfume_images")
-      .delete()
-      .eq("id", imageId);
-
-    if (dbError) {
+    try {
+      await adminDelete("perfume_images", { id: imageId });
+    } catch (dbError) {
       console.error("Error deleting from database:", dbError);
       toast.error("Failed to delete image from database");
       return false;
@@ -178,10 +175,7 @@ export const deletePerfumeImage = async (imageId: string): Promise<boolean> => {
         .limit(1);
 
       if (!otherError && otherImages && otherImages.length > 0) {
-        await supabase
-          .from("perfume_images")
-          .update({ is_primary: true })
-          .eq("id", otherImages[0].id);
+        await adminUpdate("perfume_images", { is_primary: true }, { id: otherImages[0].id });
 
         // Note: We no longer update the main image field as we rely on uploaded images only
       }
@@ -245,18 +239,12 @@ export const setPrimaryImage = async (imageId: string): Promise<boolean> => {
     }
 
     // إلغاء صفة "أساسية" عن جميع صور العطر
-    await supabase
-      .from("perfume_images")
-      .update({ is_primary: false })
-      .eq("perfume_id", imageData.perfume_id);
+    await adminUpdate("perfume_images", { is_primary: false }, { perfume_id: imageData.perfume_id });
 
     // تعيين الصورة المطلوبة كأساسية
-    const { error: updateError } = await supabase
-      .from("perfume_images")
-      .update({ is_primary: true })
-      .eq("id", imageId);
-
-    if (updateError) {
+    try {
+      await adminUpdate("perfume_images", { is_primary: true }, { id: imageId });
+    } catch (updateError) {
       console.error("Error setting primary image:", updateError);
       toast.error("Failed to set primary image");
       return false;
@@ -284,10 +272,9 @@ export const updateImageOrder = async (
   newOrder: number
 ): Promise<boolean> => {
   try {
-    const { error } = await supabase
-      .from("perfume_images")
-      .update({ display_order: newOrder })
-      .eq("id", imageId);
+    const error = await adminUpdate("perfume_images", { display_order: newOrder }, { id: imageId })
+      .then(() => null)
+      .catch((e) => e as Error);
 
     if (error) {
       console.error("Error updating image order:", error);

@@ -17,6 +17,7 @@
  * خطأ واضحًا للمستخدم بدل الاعتماد على قيمة افتراضية.
  */
 import { supabase } from "@/lib/supabase";
+import { adminInsert, adminUpdate, adminDelete } from "./adminDb";
 
 export interface Influencer {
   id: string;
@@ -207,14 +208,10 @@ export async function fetchInfluencerPayouts(
 export async function createInfluencer(
   payload: InfluencerPayload
 ): Promise<Influencer> {
-  const { data, error } = await supabase
-    .from("influencers")
-    .insert(payload)
-    .select()
-    .single();
-
-  if (error) throw error;
-  return hydrateInfluencer(data);
+  // عبر admin-db: سياسات "Public insert/update/delete influencers" كانت
+  // USING (true)، أي أنّ أي زائر كان يستطيع إنشاء مشهور أو تغيير نسبته.
+  const [row] = await adminInsert("influencers", payload as unknown as Record<string, unknown>);
+  return hydrateInfluencer(row);
 }
 
 /** تحديث جزئي لمشهور. */
@@ -222,11 +219,7 @@ export async function updateInfluencer(
   id: string,
   patch: Partial<InfluencerPayload>
 ): Promise<void> {
-  const { error } = await supabase
-    .from("influencers")
-    .update(patch)
-    .eq("id", id);
-  if (error) throw error;
+  await adminUpdate("influencers", patch as unknown as Record<string, unknown>, { id });
 }
 
 /**
@@ -235,8 +228,7 @@ export async function updateInfluencer(
  * بلقطة النسبة المسجّلة عليها.
  */
 export async function deleteInfluencer(id: string): Promise<void> {
-  const { error } = await supabase.from("influencers").delete().eq("id", id);
-  if (error) throw error;
+  await adminDelete("influencers", { id });
 }
 
 /** عدد الأكواد المرتبطة بمشهور — يُستخدم في نص تأكيد الحذف. يَرمي عند الفشل. */
@@ -261,6 +253,5 @@ export async function countCodesForInfluencer(
 export async function recordInfluencerPayout(
   payload: InfluencerPayoutPayload
 ): Promise<void> {
-  const { error } = await supabase.from("influencer_payouts").insert(payload);
-  if (error) throw error;
+  await adminInsert("influencer_payouts", payload as unknown as Record<string, unknown>);
 }

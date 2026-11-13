@@ -8,6 +8,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
+import { adminUpdate, adminDelete } from "@/services/adminDb";
 import { generateProductDescription } from "@/services/aiService";
 import { useLanguage } from "@/contexts/LanguageContext";
 import type { Perfume, PerfumeSample, PerfumeBottleSize } from "../types";
@@ -320,9 +321,8 @@ export function usePerfumes() {
 
     try {
       setDeletingPerfume(id);
-      const { error } = await supabase.from("perfumes").delete().eq("id", id);
-
-      if (error) throw error;
+      // عبر admin-db؛ الدالة ترمي عند الفشل فيلتقطها catch أدناه.
+      await adminDelete("perfumes", { id });
 
       toast.success(t("admin.toast.perfumeDeletedSuccess"));
       loadPerfumes();
@@ -338,12 +338,7 @@ export function usePerfumes() {
   const toggleStatus = async (id: string, currentStatus: boolean) => {
     try {
       setTogglingStatus(id);
-      const { error } = await supabase
-        .from("perfumes")
-        .update({ is_active: !currentStatus })
-        .eq("id", id);
-
-      if (error) throw error;
+      await adminUpdate("perfumes", { is_active: !currentStatus }, { id });
 
       toast.success(
         !currentStatus

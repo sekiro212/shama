@@ -8,6 +8,7 @@
  * ===========================================================================
  */
 import { supabase } from "@/lib/supabase";
+import { adminUpdate, adminDelete } from "./adminDb";
 
 export interface Memory {
   id: string;
@@ -77,11 +78,7 @@ export const fetchAllMemories = async (): Promise<Memory[]> => {
  * @param id معرّف الذكرى المراد اعتمادها.
  */
 export const approveMemory = async (id: string): Promise<void> => {
-  const { error } = await supabase
-    .from("memories")
-    .update({ status: "approved" })
-    .eq("id", id);
-  if (error) throw error;
+  await adminUpdate("memories", { status: "approved" }, { id });
 };
 
 /**
@@ -89,8 +86,7 @@ export const approveMemory = async (id: string): Promise<void> => {
  * @param id معرّف الذكرى المراد حذفها.
  */
 export const deleteMemory = async (id: string): Promise<void> => {
-  const { error } = await supabase.from("memories").delete().eq("id", id);
-  if (error) throw error;
+  await adminDelete("memories", { id });
 };
 
 /**

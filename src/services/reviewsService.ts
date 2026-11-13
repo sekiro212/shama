@@ -11,6 +11,7 @@
  * لكل منتج. تكون المراجعات الجديدة افتراضيًا "pending" حتى الموافقة (AI أو مسؤول).
  */
 import { supabase } from "@/lib/supabase";
+import { adminUpdate, adminDelete } from "./adminDb";
 
 export type ReviewStatus = "pending" | "approved";
 
@@ -127,21 +128,13 @@ export async function fetchAllReviews(): Promise<
 }
 
 export async function approveReview(reviewId: string): Promise<void> {
-  const { error } = await supabase
-    .from("reviews")
-    .update({ status: "approved" })
-    .eq("id", reviewId);
-
-  if (error) throw error;
+  // عبر admin-db: سياسة "Admin update reviews" كانت USING (true) لدور public،
+  // أي أنّ أي زائر كان يستطيع اعتماد تقييمه بنفسه.
+  await adminUpdate("reviews", { status: "approved" }, { id: reviewId });
 }
 
 export async function deleteReview(reviewId: string): Promise<void> {
-  const { error } = await supabase
-    .from("reviews")
-    .delete()
-    .eq("id", reviewId);
-
-  if (error) throw error;
+  await adminDelete("reviews", { id: reviewId });
 }
 
 export async function fetchPendingReviewCount(): Promise<number> {
