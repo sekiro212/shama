@@ -2,6 +2,34 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Deploy workflow — READ FIRST
+
+Production deploys are automatic: **every push to `main` builds and deploys
+shama.ly** via `.github/workflows/deploy.yml` (typecheck → Vite build → prerender
+all product pages → FTPS sync to `public_html` and the `admin.shama.ly` docroot →
+live smoke test). A push to `main` *is* a production release.
+
+Rules for Claude:
+
+1. **Never push to `main` without the owner's approval of that specific change.**
+   Make the change, verify it locally (`npm run build`, and `npm run test:e2e`
+   when behaviour changed), show the result, then wait.
+2. **Approval means push.** When the owner says they like it — "I like it",
+   "تمام", "حلو", "push it", "اعتمد", or similar — commit and push to `main` on
+   both remotes (`origin` and `org`) without asking again. Only the repo with
+   the `DEPLOY_ENABLED` variable deploys, so pushing to both is safe.
+3. **After pushing, watch the run** (`gh run watch` / `gh run list`) and report
+   the outcome: deployed and verified, or the step that failed and why. Never
+   say "deployed" on the strength of a push alone.
+4. **If the build fails, nothing is uploaded** and the previous version stays
+   live. If the upload itself fails midway the site can be partly updated —
+   re-run the workflow (`gh run rerun <id>`), which resyncs only what differs.
+   Fix forward with new commits; never force-push `main`.
+5. Never commit `.env`, credentials, or the `backups/` directory.
+
+Local manual deploy still works: `bash scripts/build-deploy.sh` produces
+`shama-dist-cpanel.zip` and `shama-admin-cpanel.zip`.
+
 ## Commands
 
 ```bash
@@ -29,10 +57,19 @@ The frontend (`/`) needs a `.env` file:
 ```
 VITE_SUPABASE_URL=
 VITE_SUPABASE_ANON_KEY=
-VITE_OPENROUTER_API_KEY=
 VITE_WHATSAPP_NUMBER=      # optional — international format, digits only (e.g. 218911234567).
                            # Unset hides the "Order on WhatsApp" checkout option entirely.
 ```
+
+**Never put a secret in a `VITE_*` variable.** Vite inlines every one of them into
+the public bundle as a string literal. Third-party credentials live in Supabase
+Edge Function secrets instead:
+
+| Secret | Used by |
+|--------|---------|
+| `OPENROUTER_API_KEY` | `ai-proxy` |
+| `VANEX_TOKEN` | `vanex-proxy`, `sync-vanex-packages` |
+| `ADMIN_TOKEN_SECRET` | `admin-auth` (issues), `admin-db` + `vanex-proxy` (verify) |
 
 The Telegram bot (`telegram-bot/.env`) needs:
 ```

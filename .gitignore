@@ -52,3 +52,6 @@ out/
 
 # Playwright run output (screenshots, traces, last-run state)
 test-results/
+
+# CI deploy staging for admin.shama.ly
+admin-dist/

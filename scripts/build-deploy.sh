@@ -76,7 +76,8 @@ find dist -name .DS_Store -delete
 # --- store zip: public_html ---
 rm -f shama-dist-cpanel.zip
 (cd dist && zip -rq ../shama-dist-cpanel.zip . -x '.DS_Store' -x '*/.DS_Store')
-cp shama-dist-cpanel.zip ~/Desktop/shama-dist-cpanel.zip
+# Desktop copies are a local convenience; CI runners have no ~/Desktop.
+[ -d ~/Desktop ] && cp shama-dist-cpanel.zip ~/Desktop/shama-dist-cpanel.zip
 
 # --- admin zip: /home/<user>/admin (admin.shama.ly docroot) ---
 # Same bundle — src/main.tsx renders AdminApp when hostname starts with "admin.".
@@ -87,7 +88,10 @@ cp /tmp/raw-index.html /tmp/admin-dist/index.html
 cp scripts/deploy-static/.htaccess /tmp/admin-dist/.htaccess
 rm -f shama-admin-cpanel.zip
 (cd /tmp/admin-dist && zip -rq "$ROOT/shama-admin-cpanel.zip" . -x '.DS_Store' -x '*/.DS_Store')
-cp shama-admin-cpanel.zip ~/Desktop/shama-admin-cpanel.zip
+[ -d ~/Desktop ] && cp shama-admin-cpanel.zip ~/Desktop/shama-admin-cpanel.zip
+
+# Unzipped admin tree for the CI deploy step (gitignored).
+rm -rf admin-dist && cp -R /tmp/admin-dist admin-dist
 
 echo "  store: $(ls -lh shama-dist-cpanel.zip | awk '{print $5}') -> ~/Desktop/shama-dist-cpanel.zip"
 echo "  admin: $(ls -lh shama-admin-cpanel.zip | awk '{print $5}') -> ~/Desktop/shama-admin-cpanel.zip"

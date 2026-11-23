@@ -1,0 +1,129 @@
+# Build shama.ly and deploy it to cPanel on every push to main.
+#
+# The site is static on Libyan Spider cPanel, so "deploy" means: run the same
+# scripts/build-deploy.sh used locally (typecheck, Vite build, prerender all
+# product pages, SEO files), then sync the result over FTPS to two docroots —
+# public_html for the store and the admin.shama.ly docroot for the panel.
+#
+# The sync is incremental: FTP-Deploy-Action keeps a state file on the server
+# and uploads only files whose hash changed, so a one-line fix does not
+# re-upload 46 MB of product pages.
+#
+# Runs only where the repository variable DEPLOY_ENABLED is "true". This repo is
+# pushed to two remotes (personal and org); without the guard both would deploy
+# the same commit to the same server at the same time.
+#
+# Required secrets (Settings -> Secrets and variables -> Actions -> Secrets):
+#   VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY   build-time config (public values)
+#   VITE_DUPES_SUPABASE_URL, VITE_DUPES_SUPABASE_ANON_KEY, VITE_DUPES_STORE_URL
+#   VITE_WHATSAPP_NUMBER                         optional; unset hides WhatsApp
+#   FTP_SERVER, FTP_USERNAME, FTP_PASSWORD       a cPanel FTP account
+# Required variables (same page -> Variables):
+#   DEPLOY_ENABLED = true
+#   FTP_STORE_DIR  e.g. public_html/        (relative to the FTP account's root)
+#   FTP_ADMIN_DIR  e.g. admin.shama.ly/     (the admin subdomain's docroot)
+
+name: Deploy to cPanel
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+# Never let two deploys interleave uploads; a newer push waits for the older.
+concurrency:
+  group: cpanel-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: vars.DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # The prerender drives a real browser. render/prerender scripts try system
+      # Chrome first and fall back to Playwright's chromium, so install that.
+      - name: Install Playwright chromium
+        run: npx playwright install --with-deps chromium
+
+      # build-deploy.sh reads .env (Vite at build time, and the product-id
+      # fetch for the prerender). Secrets never touch the repo.
+      - name: Write .env
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_DUPES_SUPABASE_URL: ${{ secrets.VITE_DUPES_SUPABASE_URL }}
+          VITE_DUPES_SUPABASE_ANON_KEY: ${{ secrets.VITE_DUPES_SUPABASE_ANON_KEY }}
+          VITE_DUPES_STORE_URL: ${{ secrets.VITE_DUPES_STORE_URL }}
+          VITE_WHATSAPP_NUMBER: ${{ secrets.VITE_WHATSAPP_NUMBER }}
+        run: |
+          {
+            echo "VITE_SUPABASE_URL=$VITE_SUPABASE_URL"
+            echo "VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY"
+            echo "VITE_DUPES_SUPABASE_URL=$VITE_DUPES_SUPABASE_URL"
+            echo "VITE_DUPES_SUPABASE_ANON_KEY=$VITE_DUPES_SUPABASE_ANON_KEY"
+            echo "VITE_DUPES_STORE_URL=$VITE_DUPES_STORE_URL"
+            echo "VITE_WHATSAPP_NUMBER=$VITE_WHATSAPP_NUMBER"
+          } > .env
+
+      # Typecheck + build + prerender + SEO files. Exits non-zero if any page
+      # fails to prerender, so a half-rendered site never reaches the server.
+      - name: Build
+        run: bash scripts/build-deploy.sh
+
+      # Last line of defence: the two credentials that used to be inlined into
+      # the bundle must not come back through some new VITE_ variable.
+      - name: Check bundle for leaked credentials
+        run: |
+          if grep -rqE 'sk-or-v1-[A-Za-z0-9]{20,}' dist/assets; then
+            echo "::error::An OpenRouter key is present in the built bundle"; exit 1
+          fi
+
+      # An empty server-dir would sync the admin build into the FTP account's
+      # root. Fail loudly instead.
+      - name: Check deploy targets are configured
+        run: |
+          [ -n "${{ vars.FTP_ADMIN_DIR }}" ] || { echo "::error::Set the FTP_ADMIN_DIR repository variable"; exit 1; }
+          [ -n "${{ secrets.FTP_SERVER }}" ] || { echo "::error::Set the FTP_SERVER secret"; exit 1; }
+
+      - name: Deploy store -> public_html
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          local-dir: ./dist/
+          server-dir: ${{ vars.FTP_STORE_DIR || 'public_html/' }}
+          state-name: .ftp-deploy-sync-state.json
+
+      - name: Deploy admin -> admin.shama.ly
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          local-dir: ./admin-dist/
+          server-dir: ${{ vars.FTP_ADMIN_DIR }}
+          state-name: .ftp-deploy-sync-state.json
+
+      # Smoke test the live site, not the artifact.
+      - name: Verify shama.ly
+        run: |
+          sleep 5
+          html=$(curl -fsSL --max-time 30 https://shama.ly/)
+          echo "$html" | grep -q 'lang="ar"' || { echo "::error::shama.ly did not serve the Arabic shell"; exit 1; }
+          curl -fsS -o /dev/null --max-time 30 https://shama.ly/robots.txt
+          echo "shama.ly is serving the new build"
