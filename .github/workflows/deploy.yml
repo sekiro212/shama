@@ -38,7 +38,9 @@ concurrency:
 jobs:
   deploy:
     if: vars.DEPLOY_ENABLED == 'true'
-    runs-on: ubuntu-latest
+    # Pinned, not ubuntu-latest: that moved to 26.04, which Playwright 1.58
+    # cannot install chromium on, and the prerender needs a browser.
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
 
     steps:
