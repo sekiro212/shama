@@ -25,7 +25,10 @@ Rules for Claude:
    live. If the upload itself fails midway the site can be partly updated —
    re-run the workflow (`gh run rerun <id>`), which resyncs only what differs.
    Fix forward with new commits; never force-push `main`.
-5. Never commit `.env`, credentials, or the `backups/` directory.
+5. **No pull requests, no feature branches.** All work is committed directly to
+   `main` and pushed — never open a PR, never push to another branch. (Approval
+   in rule 1 is still required before that push.)
+6. Never commit `.env`, credentials, or the `backups/` directory.
 
 Local manual deploy still works: `bash scripts/build-deploy.sh` produces
 `shama-dist-cpanel.zip` and `shama-admin-cpanel.zip`.
